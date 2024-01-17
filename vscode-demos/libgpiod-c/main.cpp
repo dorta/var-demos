@@ -8,9 +8,12 @@
 #define    CONSUMER    "Variscite"
 #endif
 
+#define VERIFY_MACH_ID_STR(str, match) (strstr(str, " " match " "))
+
 typedef enum
 {
     DART_MX8M,
+    SOM_MX8M_MINI,
     /* TODO: Add others */
     SOM_UNKNOWN
 } som_t;
@@ -28,8 +31,12 @@ som_t detect_som() {
     } else {
        len = fread(machine, sizeof(char), 200, fptr);
        if(len > 0) {
-            if(strstr(machine, " DART-MX8M ")) {
+            if(VERIFY_MACH_ID_STR(machine, "DART-MX8M")) {
                 som = DART_MX8M;
+            } else if (VERIFY_MACH_ID_STR(machine, "VAR-SOM-MX8M-MINI")) {
+                som = SOM_MX8M_MINI;
+            } else {
+                printf("Error: Unsupported SoM!\n");
             }
        } else {
             printf("Error: Failed to read /sys/devices/soc0/machine\n");
@@ -46,7 +53,7 @@ int main(int argc, char **argv)
     volatile unsigned int i, ret, val;
     struct gpiod_chip *chip;
     struct gpiod_line *line;
-    char * chipname = 0;
+    const char * chipname = 0;
     unsigned int line_num;
 
     // Detect SOM and configure gpiochip and line_num
@@ -54,6 +61,11 @@ int main(int argc, char **argv)
         case DART_MX8M:
             chipname = "gpiochip6"; // dt8mcustomboard i2c gpio expander
             line_num = 7;            // i2c gpio expander gpio #7
+        break;
+        case SOM_MX8M_MINI:
+            /* VAR-SOM-MX8M-MINI Symphony Custom Board I2C GPIO #0 */
+            chipname = "gpiochip5";
+            line_num = 0;
         break;
         /* Todo: Add other SoMs */
         default:
