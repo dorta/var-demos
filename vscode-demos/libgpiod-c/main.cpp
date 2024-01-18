@@ -18,6 +18,12 @@ typedef enum
     SOM_UNKNOWN
 } som_t;
 
+typedef struct platform_data_t
+{
+    const char *gpio_chip_name;
+    unsigned int gpio_line_num;
+} platform_data_t;
+
 /**
  * Parse /sys/devices/soc0/machine to determine the current Variscite SoM
  */
@@ -55,34 +61,37 @@ int main(int argc, char **argv)
     struct gpiod_line *line;
     const char * chipname = 0;
     unsigned int line_num;
+    platform_data_t platform;
+
+    memset(&platform, 0, sizeof(platform_data_t));
 
     // Detect SOM and configure gpiochip and line_num
     switch(detect_som()) {
         case DART_MX8M:
-            chipname = "gpiochip6"; // dt8mcustomboard i2c gpio expander
-            line_num = 7;            // i2c gpio expander gpio #7
+            platform.gpio_chip_name = "gpiochip6"; // dt8mcustomboard i2c gpio expander
+            platform.gpio_line_num = 7; // i2c gpio expander gpio #7
         break;
         case SOM_MX8M_MINI:
             /* VAR-SOM-MX8M-MINI Symphony Custom Board I2C GPIO #0 */
-            chipname = "gpiochip5";
-            line_num = 0;
+            platform.gpio_chip_name = "gpiochip5";
+            platform.gpio_line_num = 0;
         break;
         /* Todo: Add other SoMs */
         default:
         break;
     }
 
-    if (!chipname) {
+    if (!platform.gpio_chip_name) {
         goto end;
     }
 
-    chip = gpiod_chip_open_by_name(chipname);
+    chip = gpiod_chip_open_by_name(platform.gpio_chip_name);
     if (!chip) {
         perror("Open chip failed\n");
         goto end;
     }
 
-    line = gpiod_chip_get_line(chip, line_num);
+    line = gpiod_chip_get_line(chip, platform.gpio_line_num);
     if (!line) {
         perror("Get line failed\n");
         goto close_chip;
