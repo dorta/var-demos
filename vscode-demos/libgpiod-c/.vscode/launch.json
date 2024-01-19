@@ -18,7 +18,7 @@
             "text": "-enable-pretty-printing",
             "ignoreFailures": true
         }],
-        "miDebuggerPath": "/usr/bin/gdb-multiarch",
+        "miDebuggerPath": "${config:VARISCITE.GDB}",
         "miDebuggerServerAddress": "${config:VARISCITE.TARGET_IP}:3000",
     }]
 }
