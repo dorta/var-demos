@@ -20,3 +20,33 @@ detection accelerated by the NPU, with on-screen rendering via OpenCV,
 supporting both LVDS and HDMI outputs at HD and Full HD resolutions.
 Unlike basic SDK or BSP samples, this can serve as a foundation for
 real-world applications with further development.
+
+**Note:**
+This project uses [Git Large File Storage (LFS)](https://git-lfs.github.com/)
+to manage large video files in the `media/` directory.
+
+To ensure the video files are properly downloaded:
+
+1. Install Git LFS:
+    ```bash
+    sudo apt install git-lfs
+    ```
+
+2. Perform the one-time Git LFS setup:
+    ```bash
+    git lfs install
+    ```
+
+3. Clone this repository as usual:
+    ```bash
+    git clone git@github.com:varigit/var-demos.git
+    ```
+
+4. In most cases, Git LFS will automatically download the large files during
+   the clone. If the video files appear as small text placeholders, run:
+    ```bash
+    git lfs pull
+    ```
+
+If Git LFS is not installed, video files will appear as small text placeholders
+and will not play correctly.
