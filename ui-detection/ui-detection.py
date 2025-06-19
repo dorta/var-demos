@@ -25,9 +25,9 @@ from multimedia import *
 from utils import read_labels
 
 
-global counter, stop
+global counter, run
 counter = DEMO_DURATION
-stop = False
+run = "demo"
 
 
 class RealTimeDetection(Gtk.Window):
@@ -73,10 +73,9 @@ class RealTimeDetection(Gtk.Window):
         self.displayed_image = Gtk.Image()
         horizontal_box.pack_start(self.displayed_image, True, True, 0)
 
-        img = cv2.imread(LOADING_CAMERA_IMAGE)
+        img = cv2.imread(LOADING_INTERPRETER_IMAGE)
         self.set_displayed_image(img)
 
-        self.start_interpreter()
         self.run_application()
 
     def on_object_toggled(self, button, obj):
@@ -98,8 +97,12 @@ class RealTimeDetection(Gtk.Window):
 
 
     def image_detection(self):
+        global counter, run
+
+        self.interpreter = Interpreter(model=ML_MODEL_NPU)
+
         while True:
-            if not stop:
+            if run == "demo":
                 """Capture a frame from the camera and update the GUI."""
                 ret, frame = self.cap.read()
                 if not ret:
@@ -125,28 +128,32 @@ class RealTimeDetection(Gtk.Window):
                 output_frame = overlay_image(frame=frame, top_result=result, labels=self.labels,)
 
                 GLib.idle_add(self.set_displayed_image, output_frame)
+            elif run == "video":
+                img = cv2.imread(LOADING_CAMERA_IMAGE)
+                GLib.idle_add(self.set_displayed_image, img)
+
+                if self.cap is not None:
+                    self.cap.release()
+
+                run_video(args)
+
+                self.cap = cv2.VideoCapture(self.camera_pipeline, cv2.CAP_GSTREAMER)
+
+                counter = DEMO_DURATION
+                run = "demo"
 
 
     def time_counter(self):
-        global counter, stop
+        global counter, run
 
         while True:
             if counter > 0:
                 sleep(1)
                 counter -= 1
-            else:
-                stop = True
-                self.hide()
+            elif counter == 0:
+                run = "video"
+                counter -= 1
 
-                run_video(args)
-
-                img = cv2.imread(LOADING_INTERPRETER_IMAGE)
-                GLib.idle_add(self.set_displayed_image, img)
-                self.show_all()
-                self.start_interpreter()
-
-                counter = DEMO_DURATION
-                stop = False
 
     def set_displayed_image(self, image):
         image = cv2.resize(image, (640,480))
@@ -158,9 +165,6 @@ class RealTimeDetection(Gtk.Window):
                                            width - 10, height - 10,
                                            width * 3, None, None)
         self.displayed_image.set_from_pixbuf(self.pixbuf)
-
-    def start_interpreter(self):
-        self.interpreter = Interpreter(model=ML_MODEL_NPU)
 
     def run_application(self):
         time_thread = threading.Thread(target=self.time_counter)
