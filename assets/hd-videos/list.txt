@@ -1,3 +1,2 @@
 file '0_high_rise_buildings_1280x720.mp4'
 file '1_high_rise_buildings_1280x720.mp4'
-file '2_rain_rainy_1280x720.mp4'
