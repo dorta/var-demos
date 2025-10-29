@@ -30,11 +30,8 @@ from utils import (
 
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
-stop = False
-
 def open_gst_pipeline(source):
     with debug_profile("Gst.init and parse pipeline", args.debug):
-        Gst.init(None)
         pipeline = Gst.parse_launch(
             f"filesrc location={source} ! decodebin ! imxvideoconvert_g2d ! "
             "video/x-raw,format=RGBx ! appsink name=sink emit-signals=true "
@@ -128,94 +125,71 @@ def parse_results(interpreter, threshold=0.5):
 
 @profile
 def main(args):
-    global stop
+    Gst.init(None)
 
-    if args.som == "dart":
-        unboxing_video = "/opt/assets/unboxing/DART-MX8M-PLUS.mp4"
-    elif args.som == "var-som":
-        unboxing_video = "/opt/assets/unboxing/VAR-SOM-MX8M-PLUS.mp4"
-    else:
-        print("[ERROR] Invalid --som argument.")
+    if args.combination < 1 or args.combination > len(COMBINATIONS):
+        print("Invalid combination number. Choose between 1 and",
+                len(COMBINATIONS))
         return
 
-    def start_video_demo():
-        if args.combination < 1 or args.combination > len(COMBINATIONS):
-            print("Invalid combination number. Choose between 1 and",
-                  len(COMBINATIONS))
-            return
+    video, video_res, display, display_res, mode = (
+        COMBINATIONS[args.combination - 1]
+    )
+    print(f"Selected Combination #{args.combination}: Video={video}, "
+            f"VideoRes={video_res}, Display={display}, "
+            f"DisplayRes={display_res}, Mode={mode}")
 
-        video, video_res, display, display_res, mode = (
-            COMBINATIONS[args.combination - 1]
-        )
-        print(f"Selected Combination #{args.combination}: Video={video}, "
-              f"VideoRes={video_res}, Display={display}, "
-              f"DisplayRes={display_res}, Mode={mode}")
+    labels = load_labels(args.label)
+    interpreter = load_interpreter(args.model)
+    input_details = interpreter.get_input_details()
+    model_height, model_width = input_details[0]['shape'][1:3]
 
-        labels = load_labels(args.label)
-        interpreter = load_interpreter(args.model)
-        input_details = interpreter.get_input_details()
-        model_height, model_width = input_details[0]['shape'][1:3]
+    pipeline, sink = open_gst_pipeline(video)
+    timer = Timer()
 
-        pipeline, sink = open_gst_pipeline(video)
-        timer = Timer()
+    cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
 
-        if mode == "fullscreen":
-            cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty("Detection", cv2.WND_PROP_FULLSCREEN,
-                                  cv2.WINDOW_FULLSCREEN)
-        else:
-            cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
+    if mode == "fullscreen":
+        cv2.setWindowProperty("Detection", cv2.WND_PROP_FULLSCREEN,
+                                cv2.WINDOW_FULLSCREEN)
 
-        while True:
-            if stop:
-                break
-
-            frame = gst_read_frame(sink)
-            if frame is None:
-                break
-
-            resized_input = cv2.resize(frame, (model_width, model_height))
-            input_data = np.expand_dims(resized_input, axis=0).astype(np.uint8)
-
-            with timer.timeit():
-                run_inference(interpreter, input_data)
-
-            results = parse_results(interpreter)
-            frame = put_info_on_frame(frame, results, timer.time, labels,
-                                      args.model, video)
-
-            if mode == "fullscreen" and frame.shape[1] != display_res[0]:
-                frame = cv2.resize(frame, display_res)
-
-            cv2.imshow("Detection", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            if cv2.waitKey(1) == 27:
-                break
-
-        pipeline.set_state(Gst.State.NULL)
-        cv2.destroyAllWindows()
-
-    def loop():
-        global stop
-        while True:
-            stop = False
-            start_video_demo()
-            stop = True
-            screen_freeze = subprocess.Popen(
-                ['evtest', '--grab', '/dev/input/event2'],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    while True:
+        frame = gst_read_frame(sink)
+        if frame is None:
+            # End of stream -> seek back to start
+            success = pipeline.seek_simple(
+                Gst.Format.TIME,
+                Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+                0
             )
-            try:
-                cmd = (
-                    f'gst-launch-1.0 playbin '
-                    f'uri=file://{unboxing_video} '
-                    'video-sink="waylandsink window-width=800 window-height=480"'
-                )
-                subprocess.run(cmd, shell=True, check=True)
-            finally:
-                screen_freeze.kill()
-            sleep(1)
+            if not success:
+                print("Failed to seek. Exiting...")
+                break
+            else:
+                sleep(0.05) # flush appsink queue
+            continue
 
-    loop()
+        resized_input = cv2.resize(frame, (model_width, model_height))
+        input_data = np.expand_dims(resized_input, axis=0).astype(np.uint8)
+
+        with timer.timeit():
+            run_inference(interpreter, input_data)
+
+        results = parse_results(interpreter)
+        frame = put_info_on_frame(frame, results, timer.time, labels,
+                                    args.model, video)
+
+        if mode == "fullscreen" and frame.shape[1] != display_res[0]:
+            frame = cv2.resize(frame, display_res)
+
+        cv2.imshow("Detection", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        if cv2.waitKey(1) == 27:
+            break
+
+    pipeline.send_event(Gst.Event.new_eos())
+    pipeline.set_state(Gst.State.NULL)
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
