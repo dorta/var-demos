@@ -16,7 +16,9 @@
 
 set -e
 
-SLIDE_SECONDS=30
+VIDEO_DESKTOP_WAIT_SECONDS=20
+SLIDE_SECONDS=20
+POST_SLIDE_DESKTOP_SECONDS=30
 
 # X11 demo environment
 export DISPLAY=${DISPLAY:-:0.0}
@@ -89,8 +91,10 @@ play_video() {
 
 run_loop() {
   while true; do
-    show_slide "$SLIDE"
     play_video "$VIDEO"
+    sleep "${VIDEO_DESKTOP_WAIT_SECONDS}"
+    show_slide "$SLIDE"
+    sleep "${POST_SLIDE_DESKTOP_SECONDS}"
   done
 }
 
