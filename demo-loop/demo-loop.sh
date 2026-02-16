@@ -16,17 +16,11 @@
 
 set -e
 
-VIDEO_DESKTOP_WAIT_SECONDS=20
 SLIDE_SECONDS=20
-POST_SLIDE_DESKTOP_SECONDS=30
-
-# X11 demo environment
-export DISPLAY=${DISPLAY:-:0.0}
+SLIDE_FPS=30
 
 log() { echo "[INFO] $*"; }
 die() { echo "[ERROR] $*" >&2; exit 1; }
-
-have_timeout() { command -v timeout >/dev/null 2>&1; }
 
 pick_assets() {
   local som="$1" res="$2"
@@ -62,39 +56,42 @@ pick_assets() {
 
 show_slide() {
   local png="$1"
-  local w h
+  local w h frames
 
   case "$RES" in
     1280x800) w=1280; h=800 ;;
     800x480|*) w=800;  h=480 ;;
   esac
 
+  frames=$((SLIDE_SECONDS * SLIDE_FPS))
   log "Slide (${SLIDE_SECONDS}s): $png"
 
-  timeout "${SLIDE_SECONDS}s" \
-    gst-launch-1.0 -q \
-      filesrc location="$png" ! \
-      pngdec ! \
-      imagefreeze ! \
-      videoconvert ! \
-      video/x-raw,format=UYVY,width=$w,height=$h ! \
-      imxv4l2sink \
-    >/dev/null 2>&1 || true
+  gst-launch-1.0 -q \
+    filesrc location="$png" ! \
+    pngdec ! \
+    imagefreeze num-buffers="$frames" ! \
+    videoconvert ! \
+    video/x-raw,format=UYVY,framerate=${SLIDE_FPS}/1,width=$w,height=$h ! \
+    imxv4l2sink \
+  >/dev/null 2>&1 || true
 }
 
 play_video() {
   local mp4="$1"
+
   log "Video: $mp4"
 
-  gst-play-1.0 -q "$mp4" >/dev/null 2>&1 || true
+  gst-launch-1.0 -q \
+    playbin uri="file://$mp4" \
+      audio-sink="fakesink sync=false" \
+      video-sink="imxv4l2sink" \
+    >/dev/null 2>&1 || true
 }
 
 run_loop() {
   while true; do
     play_video "$VIDEO"
-    sleep "${VIDEO_DESKTOP_WAIT_SECONDS}"
     show_slide "$SLIDE"
-    sleep "${POST_SLIDE_DESKTOP_SECONDS}"
   done
 }
 
