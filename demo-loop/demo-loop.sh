@@ -92,13 +92,9 @@ play_video() {
 }
 
 run_3d_demo_if_available() {
-  if [[ -x /opt/viv_samples/vdk/tutorial1 ]]; then
+  if [[ -x /opt/imx-gpu-sdk/GLES2/Bloom___Wayland/GLES2.Bloom___Wayland ]]; then
     log "Running 3D demo (30 seconds)"
-    /opt/imx-gpu-sdk/GLES2/Bloom___Wayland/GLES2.Bloom___Wayland &
-    pid=$!
-    sleep 30
-    kill "$pid" >/dev/null 2>&1 || true
-    wait "$pid" >/dev/null 2>&1 || true
+    /opt/imx-gpu-sdk/GLES2/Bloom___Wayland/GLES2.Bloom___Wayland --ExitAfterFrame 650
   fi
 }
 
