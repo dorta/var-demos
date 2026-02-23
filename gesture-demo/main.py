@@ -1,0 +1,380 @@
+#!/usr/bin/env python3
+
+import argparse
+import ctypes
+import os
+import re
+import shutil
+import subprocess
+import time
+from pathlib import Path
+from typing import Dict, List, Optional
+
+# OpenCV on this BSP is built with Qt backend. In shells without Wayland/X11 env,
+# Qt may abort if it defaults to the missing "wayland" plugin.
+if "QT_QPA_PLATFORM" not in os.environ:
+    if os.environ.get("WAYLAND_DISPLAY"):
+        os.environ["QT_QPA_PLATFORM"] = "wayland"
+    elif os.environ.get("DISPLAY"):
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
+    else:
+        os.environ["QT_QPA_PLATFORM"] = "eglfs"
+
+import cv2
+
+CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 4),
+    (0, 5), (5, 6), (6, 7), (7, 8),
+    (0, 9), (9, 10), (10, 11), (11, 12),
+    (0, 13), (13, 14), (14, 15), (15, 16),
+    (0, 17), (17, 18), (18, 19), (19, 20),
+    (5, 9), (9, 13), (13, 17),
+]
+
+
+def draw_hand(frame, points):
+    if points is None:
+        return
+    for idx_a, idx_b in CONNECTIONS:
+        ax, ay = points[idx_a]
+        bx, by = points[idx_b]
+        cv2.line(frame, (int(ax), int(ay)), (int(bx), int(by)), (255, 180, 0), 2)
+    for x, y in points:
+        cv2.circle(frame, (int(x), int(y)), 3, (0, 255, 0), -1)
+
+
+def run_cmd(cmd: List[str], check: bool = False) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=check)
+
+
+def list_video_devices() -> List[Dict[str, str]]:
+    devices = []
+    by_path = {}
+    paths = sorted(str(p) for p in Path("/dev").glob("video*"))
+
+    for path in paths:
+        drv = ""
+        card = ""
+        kind = "unknown"
+        if shutil_which("v4l2-ctl"):
+            out = run_cmd(["v4l2-ctl", "-d", path, "--all"]).stdout
+            m_drv = re.search(r"^\s*Driver name\s*:\s*(.+)$", out, re.MULTILINE)
+            m_card = re.search(r"^\s*Card type\s*:\s*(.+)$", out, re.MULTILINE)
+            drv = m_drv.group(1).strip() if m_drv else ""
+            card = m_card.group(1).strip() if m_card else ""
+            if drv == "uvcvideo":
+                kind = "USB"
+            elif "mxc-isi" in card or "csi" in card.lower():
+                kind = "MIPI/CSI"
+        info = {"path": path, "driver": drv, "card": card, "kind": kind}
+        devices.append(info)
+        by_path[path] = info
+
+    if shutil_which("v4l2-ctl"):
+        out = run_cmd(["v4l2-ctl", "--list-devices"]).stdout
+        current = ""
+        for line in out.splitlines():
+            if not line.strip():
+                continue
+            if not line.startswith("\t"):
+                current = line.strip()
+                continue
+            dev = line.strip()
+            if dev in by_path and not by_path[dev]["card"]:
+                by_path[dev]["card"] = current
+
+    return devices
+
+
+def print_video_devices(devices: List[Dict[str, str]]) -> None:
+    print("Available capture devices:")
+    if not devices:
+        print("  (none found)")
+        return
+    for idx, d in enumerate(devices):
+        print(
+            f"  [{idx}] {d['path']}  kind={d['kind']}  "
+            f"driver={d['driver'] or '?'}  card={d['card'] or '?'}"
+        )
+
+
+def choose_default_camera(devices: List[Dict[str, str]]) -> str:
+    for d in devices:
+        if d["kind"] == "USB":
+            return d["path"]
+    for d in devices:
+        if d["kind"] == "MIPI/CSI":
+            return d["path"]
+    if devices:
+        return devices[0]["path"]
+    return "/dev/video0"
+
+
+def prompt_camera_selection(devices: List[Dict[str, str]], default_camera: str) -> str:
+    if not devices:
+        return default_camera
+
+    default_idx = 0
+    for idx, d in enumerate(devices):
+        if d["path"] == default_camera:
+            default_idx = idx
+            break
+
+    if not os.isatty(0):
+        print(f"Non-interactive shell detected. Using default camera: {default_camera}")
+        return default_camera
+
+    print("")
+    print("Select camera by index and press Enter.")
+    print(f"Default [{default_idx}] = {default_camera}")
+    while True:
+        try:
+            answer = input("Camera index: ").strip()
+        except EOFError:
+            print(f"Input closed. Using default camera: {default_camera}")
+            return default_camera
+
+        if answer == "":
+            return default_camera
+        if answer.isdigit():
+            idx = int(answer)
+            if 0 <= idx < len(devices):
+                return devices[idx]["path"]
+        print("Invalid index. Please try again.")
+
+
+def resolve_media_device(preferred: str = "") -> Optional[str]:
+    if preferred and Path(preferred).exists():
+        return preferred
+    for p in sorted(Path("/dev").glob("media*")):
+        return str(p)
+    return None
+
+
+def setup_mipi_media_pipeline(csi_index: int, width: int, height: int, pixel_fmt: str, media_dev: str = "") -> None:
+    if not shutil_which("media-ctl"):
+        print("WARN: media-ctl not found, skipping MIPI setup.")
+        return
+
+    dev = resolve_media_device(media_dev)
+    if not dev:
+        print("WARN: no /dev/media* found, skipping MIPI setup.")
+        return
+
+    if csi_index == 1:
+        csidev = "csidev-4ad40000.csi"
+        formatter = "4ac10000.syscon:formatter@120"
+        crossbar = "3"
+        sensor_candidates = ["ov5640 7-003c", "ov5640_mainline 7-003c"]
+    else:
+        csidev = "csidev-4ad30000.csi"
+        formatter = "4ac10000.syscon:formatter@20"
+        crossbar = "2"
+        sensor_candidates = ["ov5640 2-003c", "ov5640_mainline 2-003c"]
+
+    topology = run_cmd(["media-ctl", "-d", dev, "-p"]).stdout
+    sensor = sensor_candidates[0]
+    for cand in sensor_candidates:
+        if cand in topology:
+            sensor = cand
+            break
+
+    print(f"Setting MIPI media pipeline: dev={dev} csi={csi_index} sensor='{sensor}' {width}x{height} fmt={pixel_fmt}")
+
+    cmds = [
+        ["media-ctl", "-d", dev, "-l", f"'{sensor}':0->'{csidev}':0 [1]"],
+        ["media-ctl", "-d", dev, "-l", f"'{csidev}':1 -> '{formatter}':0 [1]"],
+        ["media-ctl", "-d", dev, "-V", f"'{sensor}':0 [fmt: {pixel_fmt}/{width}x{height} field:none]"],
+        ["media-ctl", "-d", dev, "-V", f"'{csidev}':0 [fmt: {pixel_fmt}/{width}x{height} field:none]"],
+        ["media-ctl", "-d", dev, "-V", f"'{formatter}':0 [fmt: {pixel_fmt}/{width}x{height} field:none]"],
+        ["media-ctl", "-d", dev, "-V", f"'crossbar':{crossbar} [fmt: {pixel_fmt}/{width}x{height} field:none]"],
+    ]
+
+    for isi in range(8):
+        cmds.append(["media-ctl", "-d", dev, "-V", f"'mxc_isi.{isi}':0 [fmt: {pixel_fmt}/{width}x{height} field:none]"])
+
+    for cmd in cmds:
+        try:
+            run_cmd(cmd, check=True)
+        except subprocess.CalledProcessError as exc:
+            print(f"WARN: media-ctl command failed: {' '.join(cmd)}")
+            print(exc.stdout)
+
+
+def shutil_which(cmd: str) -> bool:
+    return shutil.which(cmd) is not None
+
+
+def find_delegate_path(explicit: str, base_dir: Path) -> str:
+    candidates = []
+    if explicit:
+        candidates.append(explicit)
+    candidates.extend(
+        [
+            "/usr/lib/libneutron_delegate.so",
+            "/usr/lib/liblitert_neutron_delegate.so",
+            str(base_dir / "assets" / "converted" / "libneutron_delegate_sdk3.so"),
+        ]
+    )
+
+    seen = set()
+    for p in candidates:
+        if not p or p in seen:
+            continue
+        seen.add(p)
+        if not Path(p).is_file():
+            continue
+        try:
+            ctypes.CDLL(p)
+            return p
+        except OSError as exc:
+            print(f"WARN: skipping delegate '{p}' (load failed: {exc})")
+    return ""
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="Gesture demo for DART-MX95 (single entrypoint)")
+    p.add_argument("-i", "--camera", default="", help="Camera device (example: /dev/video13 or /dev/video0)")
+    p.add_argument("-d", "--delegate", default="", help="Neutron delegate path (.so). Auto-detected if omitted.")
+    p.add_argument("--use-npu", choices=["0", "1"], default="1", help="Enable NPU delegate if available.")
+    p.add_argument("--use-neutron-palm", choices=["0", "1"], default="1", help="Use converted palm model.")
+    p.add_argument("--use-neutron-landmark", choices=["0", "1"], default="0", help="Use converted landmark model.")
+    p.add_argument("--list-cameras", action="store_true", help="List available cameras and exit.")
+    p.add_argument("--setup-mipi", action="store_true", help="Apply media-ctl setup for MIPI/CSI before running.")
+    p.add_argument("--mipi-csi-index", type=int, choices=[0, 1], default=0, help="CSI index for MIPI setup.")
+    p.add_argument("--media-dev", default="", help="Media controller device (example: /dev/media0). Auto if omitted.")
+    p.add_argument("--camera-width", type=int, default=640)
+    p.add_argument("--camera-height", type=int, default=480)
+    p.add_argument("--camera-fps", type=int, default=30)
+    p.add_argument("--camera-fmt", default="UYVY8_1X16", help="MIPI media-ctl format (for --setup-mipi).")
+    p.add_argument("--windowed", action="store_true", help="Disable fullscreen mode.")
+    p.add_argument("--no-display", action="store_true", help="Run without GUI window.")
+    return p
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+
+    base_dir = Path(__file__).resolve().parent
+    original = base_dir / "assets" / "original"
+    converted = base_dir / "assets" / "converted"
+    shared = base_dir / "assets" / "shared"
+
+    devices = list_video_devices()
+    print_video_devices(devices)
+    if args.list_cameras:
+        return 0
+
+    # Delay heavy imports so --list-cameras works even without ML runtime.
+    from gesture_classifier import GestureClassifier
+    from hand_tracker import HandTracker
+
+    default_camera = choose_default_camera(devices)
+    if args.camera:
+        camera = args.camera
+    else:
+        camera = prompt_camera_selection(devices, default_camera)
+
+    use_npu = args.use_npu == "1"
+    use_neutron_palm = args.use_neutron_palm == "1"
+    use_neutron_landmark = args.use_neutron_landmark == "1"
+
+    selected = next((d for d in devices if d["path"] == camera), None)
+    setup_mipi = args.setup_mipi
+    if not setup_mipi and selected and selected["kind"] == "MIPI/CSI" and os.isatty(0):
+        answer = input("Selected MIPI/CSI camera. Apply media-ctl setup now? [y/N]: ").strip().lower()
+        setup_mipi = answer in ("y", "yes")
+
+    if setup_mipi:
+        setup_mipi_media_pipeline(
+            csi_index=args.mipi_csi_index,
+            width=args.camera_width,
+            height=args.camera_height,
+            pixel_fmt=args.camera_fmt,
+            media_dev=args.media_dev,
+        )
+
+    delegate = find_delegate_path(args.delegate, base_dir) if use_npu else ""
+
+    palm_model = original / "palm_detection_builtin_256_integer_quant.tflite"
+    landmark_model = original / "hand_landmark_3d_256_integer_quant.tflite"
+    anchors = shared / "anchors.csv"
+
+    if delegate and use_neutron_palm:
+        p = converted / "palm_detection_builtin_256_integer_quant_neutron.tflite"
+        if p.is_file():
+            palm_model = p
+
+    if delegate and use_neutron_landmark:
+        p = converted / "hand_landmark_3d_256_integer_quant_neutron.tflite"
+        if p.is_file():
+            landmark_model = p
+
+    if not palm_model.is_file() or not landmark_model.is_file() or not anchors.is_file():
+        print("ERROR: missing model assets.")
+        return 2
+
+    cap = None
+    if camera.startswith("/dev/video"):
+        cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.camera_width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.camera_height)
+        cap.set(cv2.CAP_PROP_FPS, args.camera_fps)
+    else:
+        cap = cv2.VideoCapture(camera)
+
+    ok, frame = cap.read()
+    if not ok or frame is None:
+        print(f"ERROR: cannot read frame from {camera}")
+        return 1
+
+    detector = HandTracker(str(palm_model), str(landmark_model), str(anchors), delegate, box_shift=0.2, box_enlarge=1.3)
+    classifier = GestureClassifier()
+
+    print(f"Input: {camera}")
+    print(f"Use NPU: {'yes' if bool(delegate) else 'no'}")
+    print(f"Delegate: {delegate or 'CPU'}")
+    print(f"Palm model: {palm_model.name}")
+    print(f"Landmark model: {landmark_model.name}")
+    print("Press 'q' to quit")
+
+    window_name = "DART-MX95 Gesture"
+    if not args.no_display:
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        if not args.windowed:
+            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    last = time.time()
+    fps = 0.0
+    while ok:
+        start = time.perf_counter()
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        points, _ = detector(image)
+        infer_ms = (time.perf_counter() - start) * 1000.0
+
+        label = classifier.classify(points)
+        draw_hand(frame, points)
+
+        now = time.time()
+        dt = max(now - last, 1e-6)
+        fps = (0.90 * fps) + (0.10 * (1.0 / dt)) if fps else (1.0 / dt)
+        last = now
+
+        cv2.putText(frame, f"Gesture: {label}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (40, 255, 40), 2)
+        cv2.putText(frame, f"Infer: {infer_ms:.1f} ms", (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (20, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+        if not args.no_display:
+            cv2.imshow(window_name, frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+        ok, frame = cap.read()
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
