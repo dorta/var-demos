@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+  echo "Usage: $0 <board_ip_or_host> [all|01|02|03|04|<demo-folder-name>]" >&2
+  echo "Examples:" >&2
+  echo "  $0 192.168.0.10" >&2
+  echo "  $0 192.168.0.10 all" >&2
+  echo "  $0 192.168.0.10 01" >&2
+  echo "  $0 192.168.0.10 04-face-detection" >&2
+}
+
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <board_ip_or_host>" >&2
-  echo "Example: $0 192.168.0.10" >&2
+  usage
   exit 2
 fi
 
 HOST="$1"
+TARGET="${2:-all}"
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 DEMOS=(
   "01-hand-gesture-full"
@@ -16,13 +26,44 @@ DEMOS=(
   "04-face-detection"
 )
 
-for demo in "${DEMOS[@]}"; do
-  echo "== Deploying ${demo} =="
-  (cd "$demo" && ./deploy "$HOST" "/opt/${demo}")
-done
+resolve_demo() {
+  case "$1" in
+    01|1) echo "01-hand-gesture-full" ;;
+    02|2) echo "02-hand-detection-only" ;;
+    03|3) echo "03-hand-direction-tracking" ;;
+    04|4) echo "04-face-detection" ;;
+    01-hand-gesture-full|02-hand-detection-only|03-hand-direction-tracking|04-face-detection) echo "$1" ;;
+    all) echo "all" ;;
+    *) return 1 ;;
+  esac
+}
 
-echo ""
-echo "All demos deployed to root@${HOST}:/opt"
+deploy_one() {
+  local demo="$1"
+  echo "== Deploying ${demo} =="
+  ssh "root@${HOST}" "mkdir -p '/opt/${demo}'"
+  tar -C "${ROOT_DIR}/${demo}" --exclude='.git' --exclude='__pycache__' -cf - . \
+    | ssh "root@${HOST}" "tar -xf - -C '/opt/${demo}'"
+}
+
+resolved="$(resolve_demo "${TARGET}")" || {
+  echo "ERROR: invalid target '${TARGET}'" >&2
+  usage
+  exit 2
+}
+
+if [[ "${resolved}" == "all" ]]; then
+  for demo in "${DEMOS[@]}"; do
+    deploy_one "${demo}"
+  done
+  echo ""
+  echo "All demos deployed to root@${HOST}:/opt"
+else
+  deploy_one "${resolved}"
+  echo ""
+  echo "Demo deployed to root@${HOST}:/opt/${resolved}"
+fi
+
 echo ""
 echo "Run examples:"
 echo "  ssh root@${HOST} 'cd /opt/01-hand-gesture-full && ./hand-gesture-full'"

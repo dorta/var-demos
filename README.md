@@ -4,6 +4,11 @@ This repository contains **4 production-facing demos** for i.MX95 (Variscite DAR
 
 All documentation is focused on what each demo actually does, model origin, conversion context, and deployment workflow.
 
+All 4 demos keep both model sets:
+- `assets/original/` for source `.tflite`
+- `assets/converted/` for Neutron-converted `.tflite`
+- `assets/shared/` when shared metadata is required (for example `anchors.csv`)
+
 ## Validated BSP Image
 
 All demos in this repository were tested on this image:
@@ -93,6 +98,14 @@ From repository root:
 ./deploy-all 192.168.0.10
 ```
 
+Single demo deployment:
+```bash
+./deploy-all 192.168.0.10 01
+./deploy-all 192.168.0.10 02
+./deploy-all 192.168.0.10 03
+./deploy-all 192.168.0.10 04
+```
+
 This deploys to:
 - `/opt/01-hand-gesture-full`
 - `/opt/02-hand-detection-only`
@@ -142,6 +155,11 @@ From `var-demos` repository root:
 
 ```bash
 ./deploy-all 192.168.0.10
+```
+
+Or deploy one demo only:
+```bash
+./deploy-all 192.168.0.10 04-face-detection
 ```
 
 ### 5) Run and test demos on board

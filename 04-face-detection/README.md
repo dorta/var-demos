@@ -14,20 +14,23 @@ Pipeline:
 Use this when you need a very fast and stable NPU showcase.
 
 ## Models included
-- `assets/yolo_face_detect.tflite`
-- `assets/yolo_face_detect_neutron.tflite`
+- `assets/original/yolo_face_detect.tflite`
+- `assets/converted/yolo_face_detect_neutron.tflite`
 
-## Model origin
-- Source model from eIQ model zoo:
+## Model origin (name + link)
+- Model name: `yolo_face_detect.tflite`
+- Source model path (eIQ model zoo):
   `eiq-model-zoo/tasks/vision/object-detection/faceDet/yolo_face_detect.tflite`
+- Upstream repository:
+  `https://github.com/nxp-imx/eiq-model-zoo`
 
-## Conversion reference
-Converted with eIQ Neutron SDK (`imx95` target):
+## Conversion steps (eIQ Neutron SDK)
+Converted for i.MX95 (`--target imx95`) from `assets/original` to `assets/converted`:
 ```bash
 $SDK/bin/neutron-converter \
-  --input yolo_face_detect.tflite \
+  --input assets/original/yolo_face_detect.tflite \
   --target imx95 \
-  --output yolo_face_detect_neutron.tflite \
+  --output assets/converted/yolo_face_detect_neutron.tflite \
   --dump-statistics-file
 ```
 
@@ -44,10 +47,11 @@ Useful options:
 ```
 
 ## Deploy
+Use the repository root deploy script:
 ```bash
-./deploy 192.168.0.10
+cd ..
+./deploy-all 192.168.0.10 04
 ```
-Default remote path: `/opt/04-face-detection`
 
 ## Performance profile summary
 - One of the best-performing NPU demos in this repository.

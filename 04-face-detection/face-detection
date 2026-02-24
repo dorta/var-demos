@@ -176,6 +176,8 @@ def parse_args():
 def main():
     args = parse_args()
     base = Path(__file__).resolve().parent
+    original = base / "assets" / "original"
+    converted = base / "assets" / "converted"
 
     cams = list_cameras()
     if not cams:
@@ -192,7 +194,7 @@ def main():
 
     delegate = find_delegate() if args.use_npu == "1" else ""
     use_npu = bool(delegate)
-    model = base / "assets" / ("yolo_face_detect_neutron.tflite" if use_npu else "yolo_face_detect.tflite")
+    model = (converted / "yolo_face_detect_neutron.tflite") if use_npu else (original / "yolo_face_detect.tflite")
 
     det = FaceDetector(model, delegate)
 

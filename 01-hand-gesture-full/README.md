@@ -23,13 +23,32 @@ Use this when you want the most complete hand understanding (finger/joint-based 
 - `assets/converted/hand_landmark_3d_256_integer_quant_neutron.tflite`
 - `assets/shared/anchors.csv`
 
-## Model origin
-- MediaPipe-style hand models used in NXP/eIQ hand tracking flows.
+## Model origin (name + link)
+- Palm model name: `palm_detection_builtin_256_integer_quant.tflite`
+  - Source used in this repo: previously validated project baseline artifact.
+  - Reference family: MediaPipe Palm Detection:
+    `https://github.com/google-ai-edge/mediapipe/tree/master/mediapipe/modules/palm_detection`
+- Landmark model name: `hand_landmark_3d_256_integer_quant.tflite`
+  - Source used in this repo: previously validated project baseline artifact.
+  - Reference family: MediaPipe Hand Landmark:
+    `https://github.com/google-ai-edge/mediapipe/tree/master/mediapipe/modules/hand_landmark`
+- Anchor file name: `anchors.csv`
+  - Source used in this repo: paired with the palm detector from the same validated baseline.
 
-## Conversion reference
-Converted with eIQ Neutron SDK (`imx95` target):
+## Conversion steps (eIQ Neutron SDK)
+Converted for i.MX95 (`--target imx95`) from `assets/original` to `assets/converted`:
 ```bash
-$SDK/bin/neutron-converter --input <original_model.tflite> --target imx95 --output <converted_model.tflite> --dump-statistics-file
+$SDK/bin/neutron-converter \
+  --input assets/original/palm_detection_builtin_256_integer_quant.tflite \
+  --target imx95 \
+  --output assets/converted/palm_detection_builtin_256_integer_quant_neutron.tflite \
+  --dump-statistics-file
+
+$SDK/bin/neutron-converter \
+  --input assets/original/hand_landmark_3d_256_integer_quant.tflite \
+  --target imx95 \
+  --output assets/converted/hand_landmark_3d_256_integer_quant_neutron.tflite \
+  --dump-statistics-file
 ```
 
 ## Run
@@ -46,10 +65,11 @@ Useful options:
 ```
 
 ## Deploy
+Use the repository root deploy script:
 ```bash
-./deploy 192.168.0.10
+cd ..
+./deploy-all 192.168.0.10 01
 ```
-Default remote path: `/opt/01-hand-gesture-full`
 
 ## Performance profile summary
 - Best behavior quality among hand demos.

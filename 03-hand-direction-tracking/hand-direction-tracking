@@ -133,6 +133,9 @@ def parse_args():
 def main():
     args = parse_args()
     base = Path(__file__).resolve().parent
+    original = base / "assets" / "original"
+    converted = base / "assets" / "converted"
+    shared = base / "assets" / "shared"
     cams = list_cameras()
     if not cams:
         print("No /dev/video* found")
@@ -150,10 +153,10 @@ def main():
     delegate = find_delegate() if args.use_npu == "1" else ""
     use_npu = bool(delegate)
 
-    palm_model = base / "assets" / ("palm_detection_builtin_256_integer_quant_neutron.tflite" if use_npu else "palm_detection_builtin_256_integer_quant.tflite")
-    recrop_model = base / "assets" / ("hand_recrop_model_full_integer_quant_neutron.tflite" if use_npu else "hand_recrop_model_full_integer_quant.tflite")
+    palm_model = (converted / "palm_detection_builtin_256_integer_quant_neutron.tflite") if use_npu else (original / "palm_detection_builtin_256_integer_quant.tflite")
+    recrop_model = (converted / "hand_recrop_model_full_integer_quant_neutron.tflite") if use_npu else (original / "hand_recrop_model_full_integer_quant.tflite")
 
-    palm = PalmDetector(str(palm_model), str(base / "assets" / "anchors.csv"), delegate)
+    palm = PalmDetector(str(palm_model), str(shared / "anchors.csv"), delegate)
     recrop = RecropRefiner(str(recrop_model), delegate)
     classifier = LiteGestureClassifier(history_size=12)
 
