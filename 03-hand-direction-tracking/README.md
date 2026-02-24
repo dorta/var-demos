@@ -41,14 +41,14 @@ Converted with eIQ Neutron SDK (`imx95` target), same as demo 02.
 
 ## Run
 ```bash
-./03-hand-direction-tracking
+./hand-direction-tracking
 ```
 
 Useful options:
 ```bash
-./03-hand-direction-tracking --camera /dev/video13 --use-npu 1
-./03-hand-direction-tracking --camera /dev/video0 --windowed
-./03-hand-direction-tracking --use-npu 0
+./hand-direction-tracking --camera /dev/video13 --use-npu 1
+./hand-direction-tracking --camera /dev/video0 --windowed
+./hand-direction-tracking --use-npu 0
 ```
 
 ## Deploy

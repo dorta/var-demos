@@ -32,14 +32,14 @@ $SDK/bin/neutron-converter --input <original_model.tflite> --target imx95 --outp
 
 ## Run
 ```bash
-./02-hand-detection-only
+./hand-detection-only
 ```
 
 Useful options:
 ```bash
-./02-hand-detection-only --camera /dev/video13 --use-npu 1
-./02-hand-detection-only --camera /dev/video0 --windowed
-./02-hand-detection-only --use-npu 0
+./hand-detection-only --camera /dev/video13 --use-npu 1
+./hand-detection-only --camera /dev/video0 --windowed
+./hand-detection-only --use-npu 0
 ```
 
 ## Deploy

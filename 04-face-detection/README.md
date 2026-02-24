@@ -33,14 +33,14 @@ $SDK/bin/neutron-converter \
 
 ## Run
 ```bash
-./04-face-detection
+./face-detection
 ```
 
 Useful options:
 ```bash
-./04-face-detection --camera /dev/video13 --use-npu 1
-./04-face-detection --camera /dev/video0 --windowed
-./04-face-detection --use-npu 0
+./face-detection --camera /dev/video13 --use-npu 1
+./face-detection --camera /dev/video0 --windowed
+./face-detection --use-npu 0
 ```
 
 ## Deploy

@@ -79,11 +79,11 @@ Image file:
 - `04-face-detection/`
 - `deploy-all` (single deploy script for all demos)
 
-Each demo folder contains one executable entrypoint with the same name as the folder:
-- `01-hand-gesture-full/01-hand-gesture-full`
-- `02-hand-detection-only/02-hand-detection-only`
-- `03-hand-direction-tracking/03-hand-direction-tracking`
-- `04-face-detection/04-face-detection`
+Each demo folder contains one executable entrypoint without numeric prefix:
+- `01-hand-gesture-full/hand-gesture-full`
+- `02-hand-detection-only/hand-detection-only`
+- `03-hand-direction-tracking/hand-direction-tracking`
+- `04-face-detection/face-detection`
 
 ## Single-command Deployment (all demos)
 
@@ -147,10 +147,10 @@ From `var-demos` repository root:
 ### 5) Run and test demos on board
 
 ```bash
-cd /opt/01-hand-gesture-full && ./01-hand-gesture-full
-cd /opt/02-hand-detection-only && ./02-hand-detection-only
-cd /opt/03-hand-direction-tracking && ./03-hand-direction-tracking
-cd /opt/04-face-detection && ./04-face-detection
+cd /opt/01-hand-gesture-full && ./hand-gesture-full
+cd /opt/02-hand-detection-only && ./hand-detection-only
+cd /opt/03-hand-direction-tracking && ./hand-direction-tracking
+cd /opt/04-face-detection && ./face-detection
 ```
 
 Notes:
@@ -162,10 +162,10 @@ Notes:
 ## Run Commands on Board
 
 ```bash
-cd /opt/01-hand-gesture-full && ./01-hand-gesture-full
-cd /opt/02-hand-detection-only && ./02-hand-detection-only
-cd /opt/03-hand-direction-tracking && ./03-hand-direction-tracking
-cd /opt/04-face-detection && ./04-face-detection
+cd /opt/01-hand-gesture-full && ./hand-gesture-full
+cd /opt/02-hand-detection-only && ./hand-detection-only
+cd /opt/03-hand-direction-tracking && ./hand-direction-tracking
+cd /opt/04-face-detection && ./face-detection
 ```
 
 All demos support camera selection and `--use-npu 0|1`.

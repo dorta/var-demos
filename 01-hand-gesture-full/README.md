@@ -34,15 +34,15 @@ $SDK/bin/neutron-converter --input <original_model.tflite> --target imx95 --outp
 
 ## Run
 ```bash
-./01-hand-gesture-full
+./hand-gesture-full
 ```
 
 Useful options:
 ```bash
-./01-hand-gesture-full --list-cameras
-./01-hand-gesture-full --camera /dev/video13 --use-npu 1
-./01-hand-gesture-full --camera /dev/video0 --setup-mipi --use-npu 1
-./01-hand-gesture-full --use-npu 0
+./hand-gesture-full --list-cameras
+./hand-gesture-full --camera /dev/video13 --use-npu 1
+./hand-gesture-full --camera /dev/video0 --setup-mipi --use-npu 1
+./hand-gesture-full --use-npu 0
 ```
 
 ## Deploy
