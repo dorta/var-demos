@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+
+import argparse
+import csv
+import ctypes
+import time
+from pathlib import Path
+
+import cv2
+import numpy as np
+import tflite_runtime.interpreter as tflite
+
+from lite_gesture_classifier import LiteGestureClassifier
+
+
+def find_delegate(explicit=""):
+    cands = [explicit, "/usr/lib/libneutron_delegate.so", "/usr/lib/liblitert_neutron_delegate.so"]
+    for c in cands:
+        if not c:
+            continue
+        if not Path(c).is_file():
+            continue
+        try:
+            ctypes.CDLL(c)
+            return c
+        except OSError:
+            pass
+    return ""
+
+
+def list_cameras():
+    return [str(d) for d in sorted(Path("/dev").glob("video*"))]
+
+
+class PalmDetector:
+    def __init__(self, model_path, anchors_path, delegate_path=""):
+        delegates = [tflite.load_delegate(delegate_path)] if delegate_path else None
+        self.interp = tflite.Interpreter(model_path=model_path, experimental_delegates=delegates)
+        self.interp.allocate_tensors()
+        in_details = self.interp.get_input_details()
+        out_details = self.interp.get_output_details()
+        self.in_idx = in_details[0]["index"]
+        self.out_clf = out_details[0]["index"]
+        self.out_reg = out_details[1]["index"]
+        with open(anchors_path, "r", encoding="utf-8") as f:
+            self.anchors = np.r_[[x for x in csv.reader(f, quoting=csv.QUOTE_NONNUMERIC)]]
+
+    @staticmethod
+    def _sigm(x):
+        x = np.clip(x, -60.0, 60.0)
+        return 1.0 / (1.0 + np.exp(-x))
+
+    @staticmethod
+    def _norm(img):
+        return np.ascontiguousarray(2 * ((img / 255.0) - 0.5).astype("float32"))
+
+    def detect(self, rgb):
+        h, w = rgb.shape[:2]
+        side = max(h, w)
+        pad_y = (side - h) // 2
+        pad_x = (side - w) // 2
+        img_pad = np.pad(rgb, ((pad_y, pad_y), (pad_x, pad_x), (0, 0)), mode="constant")
+        img_small = cv2.resize(img_pad, (256, 256))
+
+        self.interp.set_tensor(self.in_idx, self._norm(img_small)[None])
+        self.interp.invoke()
+
+        out_reg = self.interp.get_tensor(self.out_reg)[0]
+        out_clf = self.interp.get_tensor(self.out_clf)[0, :, 0]
+        mask = self._sigm(out_clf) > 0.95
+        cand = out_reg[mask]
+        anch = self.anchors[mask]
+        if cand.shape[0] == 0:
+            return None
+
+        idx = np.argmax(cand[:, 3])
+        _, _, bw, bh = cand[idx, :4]
+        kpts = anch[idx, :2] * 256 + cand[idx, 4:].reshape(-1, 2)
+
+        cx = np.mean(kpts[:, 0])
+        cy = np.mean(kpts[:, 1])
+        box_size = max(bw, bh) * 1.5
+        x1 = int(max(0, cx - box_size / 2))
+        y1 = int(max(0, cy - box_size / 2))
+        x2 = int(min(255, cx + box_size / 2))
+        y2 = int(min(255, cy + box_size / 2))
+
+        scale = side / 256.0
+        x1o = int(x1 * scale - pad_x)
+        y1o = int(y1 * scale - pad_y)
+        x2o = int(x2 * scale - pad_x)
+        y2o = int(y2 * scale - pad_y)
+        x1o = max(0, min(w - 1, x1o))
+        y1o = max(0, min(h - 1, y1o))
+        x2o = max(0, min(w - 1, x2o))
+        y2o = max(0, min(h - 1, y2o))
+
+        if x2o <= x1o or y2o <= y1o:
+            return None
+
+        return (x1o, y1o, x2o, y2o)
+
+
+class RecropRefiner:
+    def __init__(self, model_path, delegate_path=""):
+        delegates = [tflite.load_delegate(delegate_path)] if delegate_path else None
+        self.interp = tflite.Interpreter(model_path=model_path, experimental_delegates=delegates)
+        self.interp.allocate_tensors()
+        self.in_details = self.interp.get_input_details()[0]
+        self.out_idx = self.interp.get_output_details()[0]["index"]
+
+    def run(self, rgb_crop):
+        if rgb_crop.size == 0:
+            return None
+        x = cv2.resize(rgb_crop, (256, 256))
+        if self.in_details["dtype"] == np.int8:
+            x = (x.astype(np.float32) / 255.0 / 0.003921568859368563 - 128.0).astype(np.int8)
+        else:
+            x = (x.astype(np.float32) / 255.0).astype(np.float32)
+        self.interp.set_tensor(self.in_details["index"], x[None])
+        self.interp.invoke()
+        return self.interp.get_tensor(self.out_idx)[0].reshape(-1)
+
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Fast NPU lite gesture demo (palm + recrop + motion classifier)")
+    ap.add_argument("--camera", default="")
+    ap.add_argument("--use-npu", choices=["0", "1"], default="1")
+    ap.add_argument("--windowed", action="store_true")
+    return ap.parse_args()
+
+
+def main():
+    args = parse_args()
+    base = Path(__file__).resolve().parent
+    cams = list_cameras()
+    if not cams:
+        print("No /dev/video* found")
+        return 1
+
+    if args.camera:
+        camera = args.camera
+    else:
+        print("Available cameras:")
+        for i, c in enumerate(cams):
+            print(f"  [{i}] {c}")
+        pick = input("Camera index [0]: ").strip()
+        camera = cams[int(pick)] if pick.isdigit() and int(pick) < len(cams) else cams[0]
+
+    delegate = find_delegate() if args.use_npu == "1" else ""
+    use_npu = bool(delegate)
+
+    palm_model = base / "assets" / ("palm_detection_builtin_256_integer_quant_neutron.tflite" if use_npu else "palm_detection_builtin_256_integer_quant.tflite")
+    recrop_model = base / "assets" / ("hand_recrop_model_full_integer_quant_neutron.tflite" if use_npu else "hand_recrop_model_full_integer_quant.tflite")
+
+    palm = PalmDetector(str(palm_model), str(base / "assets" / "anchors.csv"), delegate)
+    recrop = RecropRefiner(str(recrop_model), delegate)
+    classifier = LiteGestureClassifier(history_size=12)
+
+    cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+
+    ok, frame = cap.read()
+    if not ok:
+        print(f"Cannot read from {camera}")
+        return 2
+
+    print(f"Input: {camera}")
+    print(f"Delegate: {delegate if use_npu else 'CPU'}")
+    print(f"Palm model: {palm_model.name}")
+    print(f"Recrop model: {recrop_model.name}")
+
+    win = "Fast NPU Lite Gesture"
+    cv2.namedWindow(win, cv2.WINDOW_NORMAL)
+    if not args.windowed:
+        cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    fps = 0.0
+    last = time.time()
+    while ok:
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        t0 = time.perf_counter()
+        box = palm.detect(rgb)
+        t1 = time.perf_counter()
+        palm_ms = (t1 - t0) * 1000.0
+
+        recrop_ms = 0.0
+        center = None
+        if box is not None:
+            x1, y1, x2, y2 = box
+            center = ((x1 + x2) * 0.5, (y1 + y2) * 0.5)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            crop = rgb[y1:y2, x1:x2]
+            tr0 = time.perf_counter()
+            _ = recrop.run(crop)
+            tr1 = time.perf_counter()
+            recrop_ms = (tr1 - tr0) * 1000.0
+
+        gesture = classifier.update(center, time.time())
+
+        now = time.time()
+        dt = max(now - last, 1e-6)
+        fps = (0.90 * fps + 0.10 * (1.0 / dt)) if fps else (1.0 / dt)
+        last = now
+
+        cv2.putText(frame, f"Gesture: {gesture.label} ({gesture.score:.2f})", (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (40, 255, 40), 2)
+        cv2.putText(frame, f"Palm: {palm_ms:.2f} ms", (20, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        cv2.putText(frame, f"Recrop: {recrop_ms:.2f} ms", (20, 95), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (20, 125), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+        cv2.imshow(win, frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+        ok, frame = cap.read()
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
