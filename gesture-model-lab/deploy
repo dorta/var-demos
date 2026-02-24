@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <board_ip_or_host> [remote_dir]"
+  exit 1
+fi
+
+HOST="$1"
+REMOTE_DIR="${2:-/opt/gesture-model-lab}"
+
+ssh "root@${HOST}" "mkdir -p '${REMOTE_DIR}'"
+
+if ssh "root@${HOST}" "command -v rsync >/dev/null 2>&1"; then
+  rsync -az --delete \
+    --exclude '.git/' \
+    --exclude '__pycache__/' \
+    ./ "root@${HOST}:${REMOTE_DIR}/"
+else
+  echo "WARN: rsync not found on target, using tar-over-ssh fallback"
+  tar --exclude='.git' --exclude='__pycache__' -cf - . \
+    | ssh "root@${HOST}" "tar -xf - -C '${REMOTE_DIR}'"
+fi
+
+echo "Deployed to root@${HOST}:${REMOTE_DIR}"
