@@ -1,136 +1,0 @@
-Converting model with the following options:
-  Input  = assets/original/hand_landmark_3d_256_integer_quant.tflite
-  Output = assets/converted/hand_landmark_3d_256_integer_quant_neutron.tflite
-  Target = imx95
-  Statistics dump = assets/converted/hand_landmark_3d_256_integer_quant_neutron_*_statistics.txt
-
-Starting Tile scheduling. This might take a while.
-[=============================================================================>  ] 97 %
-Starting TCM allocation. This might take a while.
-[================================================================================] 100 %[================================================================================] 100 %[================================================================================] 100 %
-Starting microcode generation. This might take a while.
-[>                                                                               ] 0 %[=============>                                                                  ] 17 %[===========================>                                                    ] 33 %[========================================>                                       ] 50 %[=====================================================>                          ] 67 %[===================================================================>            ] 83 %[================================================================================] 100 %
-===================================================== subgraph_151 =====================================================
-Number of Jobs:                                   64
-Number of Tiles:                                  15
-Number of V2P:                                    11
-Number Bytes of (High-Priority) Data Fetches:     196608 / 196608
-Number Bytes of (High-Priority) Weights Fetches:  1792 / 3360
-Number Bytes of (High-Priority) Data Pushes:      1048576 / 1048576
-Cycles of Compute Jobs:                           79585
-Cycles of Overflow Data Movement:                 0
-Cycles of High-Priority Data Movement:            105908
-Cycles of DRAM Access:                            111622
-Cycles of the Whole Subgraph:                     188654
-Predicted Latency of the Whole Subgraph:          0.188654 ms
---------------------------------------------------------------------------------------------------------
-| Tick | Absolute Cycle Count | Delta Cycle Count | Job Name                                           |
---------------------------------------------------------------------------------------------------------
-| 0    | 0                    | 633               | RELOCATE_KERNELS                                   |
-| 1    | 633                  | 175               | V2P                                                |
-| 2    | 808                  | 993               | WFETCH                                             |
-| 3    | 1801                 | 0                 | DFETCH                                             |
-| 4    | 1801                 | 0                 | DFETCH                                             |
-| 5    | 1801                 | 0                 | DFETCH                                             |
-| 6    | 1801                 | 0                 | DFETCH                                             |
-| 7    | 1801                 | 0                 | DFETCH                                             |
-| 8    | 1801                 | 0                 | DFETCH                                             |
-| 9    | 1801                 | 0                 | DFETCH                                             |
-| 10   | 1801                 | 0                 | DFETCH                                             |
-| 11   | 1801                 | 175               | V2P                                                |
-| 12   | 1976                 | 8515              | Conv2DStandardV2TT                                 |
-| 13   | 10491                | 1236              | TCM2TCM_CP_T0                                      |
-| 14   | 11727                | 175               | V2P                                                |
-| 15   | 11902                | 8515              | Conv2DStandardV2TT, WFETCH, WFETCH, WFETCH, WFETCH |
-| 16   | 20417                | 175               | V2P                                                |
-| 17   | 20592                | 8749              | GlobalBiasScaleTT                                  |
-| 18   | 29341                | 24371             | PUSH                                               |
-| 19   | 53712                | 0                 | PUSH                                               |
-| 20   | 53712                | 0                 | PUSH                                               |
-| 21   | 53712                | 0                 | PUSH                                               |
-| 22   | 53712                | 175               | V2P                                                |
-| 23   | 53887                | 8749              | GlobalBiasScaleTT, WFETCH                          |
-| 24   | 62636                | 24371             | PUSH                                               |
-| 25   | 87007                | 0                 | PUSH                                               |
-| 26   | 87007                | 0                 | PUSH                                               |
-| 27   | 87007                | 0                 | PUSH                                               |
-| 28   | 87007                | 175               | V2P                                                |
-| 29   | 87182                | 10061             | BatchNormTT, WFETCH, WFETCH, WFETCH, WFETCH        |
-| 30   | 97243                | 175               | V2P                                                |
-| 31   | 97418                | 175               | V2P                                                |
-| 32   | 97593                | 8749              | GlobalBiasScaleTT                                  |
-| 33   | 106342               | 13885             | PUSH                                               |
-| 34   | 120227               | 0                 | PUSH                                               |
-| 35   | 120227               | 0                 | PUSH                                               |
-| 36   | 120227               | 0                 | PUSH                                               |
-| 37   | 120227               | 175               | V2P                                                |
-| 38   | 120402               | 8749              | GlobalBiasScaleTT                                  |
-| 39   | 129151               | 13885             | PUSH                                               |
-| 40   | 143036               | 0                 | PUSH                                               |
-| 41   | 143036               | 0                 | PUSH                                               |
-| 42   | 143036               | 0                 | PUSH                                               |
-| 43   | 143036               | 175               | V2P                                                |
-| 44   | 143211               | 8749              | GlobalBiasScaleTT                                  |
-| 45   | 151960               | 13885             | PUSH                                               |
-| 46   | 165845               | 0                 | PUSH                                               |
-| 47   | 165845               | 0                 | PUSH                                               |
-| 48   | 165845               | 0                 | PUSH                                               |
-| 49   | 165845               | 175               | V2P                                                |
-| 50   | 166020               | 8749              | GlobalBiasScaleTT                                  |
-| 51   | 174769               | 13885             | PUSH                                               |
-| 52   | 188654               | 0                 | PUSH                                               |
-| 53   | 188654               | 0                 | PUSH                                               |
-| 54   | 188654               | 0                 | PUSH                                               |
---------------------------------------------------------------------------------------------------------
-Starting Tile scheduling. This might take a while.
-[==>                                                                             ] 2 %[===>                                                                            ] 3 %[===>                                                                            ] 4 %[====>                                                                           ] 5 %[====>                                                                           ] 5 %[=====>                                                                          ] 7 %[======>                                                                         ] 7 %[=======>                                                                        ] 8 %[=======>                                                                        ] 9 %[========>                                                                       ] 10 %[========>                                                                       ] 10 %[=========>                                                                      ] 12 %[==========>                                                                     ] 12 %[============>                                                                   ] 15 %[==============>                                                                 ] 18 %[================>                                                               ] 21 %[===================>                                                            ] 24 %[=====================>                                                          ] 27 %[========================>                                                       ] 30 %[==========================>                                                     ] 33 %[============================>                                                   ] 36 %[===============================>                                                ] 39 %[=================================>                                              ] 42 %[====================================>                                           ] 45 %[======================================>                                         ] 48 %[=========================================>                                      ] 51 %[============================================>                                   ] 55 %[============================================================>                   ] 75 %[===============================================================================>] 99 %[================================================================================] 100 %
-Starting TCM allocation. This might take a while.
-[=====>                                                                          ] 6 %[=========>                                                                      ] 12 %[==============>                                                                 ] 17 %[==================>                                                             ] 23 %[=======================>                                                        ] 29 %[============================>                                                   ] 35 %[================================>                                               ] 40 %[=====================================>                                          ] 46 %[=========================================>                                      ] 52 %[==============================================>                                 ] 58 %[===================================================>                            ] 63 %[=======================================================>                        ] 69 %[============================================================>                   ] 75 %[=================================================================>              ] 81 %[=====================================================================>          ] 86 %[==========================================================================>     ] 92 %[==============================================================================> ] 98 %[================================================================================] 100 %[======>                                                                         ] 7 %WARNING: neutron-converter/src/NeutronConverterS.cpp:279 De-extracted NeutronGraph "subgraph_152" resulting in lower conversion ratio because of the following failure:
-WARNING: neutron-converter/src/NeutronConverterS.cpp:280 _Map_base::at
-========================================================================================================================
-Statistics for NeutronGraph "subgraph_151":
-  Operators:
-    Number of Neutron operators = 4
-    Number of builtin operators = 7
-  Memory:
-    Inputs        = 196,608 (bytes)
-    Microcode     = 5,452 (bytes)
-    Weights       = 2,208 (bytes)
-    Kernels       = 4,512 (bytes)
-    Outputs       = 1,048,576 (bytes)
-    Scratch       = 0 (bytes) (Allocation efficiency: 1)
-    Total data    = 1,245,184 (bytes) (Inputs + Outputs + Scratch)
-    Total weights = 12,172 (bytes) (Microcode + Weights + Kernels)
-    Total size    = 1,257,356 (bytes) (All)
-  Latency:
-    Cycle estimation   = 188,654 (cycles)
-    Latency estimation = 0.189 (ms) (@ 1000.000 MHz)
-========================================================================================================================
-Overall statistics for graph "main":
-  Operators:
-    Number of operators after import    = 164
-    Number of operators after optimize  = 213
-    Number of operators after extract   = 168
-      Number of Neutron graphs          = 1
-      Number of operators total         = 174
-      Number of operators converted     = 7
-      Number of operators NOT converted = 167
-    Operator conversion ratio           = 7 / 174 = 0.0402299
-    Operators converted                 = 1,2,3,4,5,6,7,
-  Memory:
-    Total data    = 1,572,864 (bytes) (Inputs + Outputs + Intermediate Variable Tensors)
-    Total weights = 1,471,248 (bytes) (Weights)
-    Total size    = 3,044,112 (bytes) (All)
-  Latency:
-    Cycle estimation   = 188,654 (cycles) (NPU only)
-    Latency estimation = 0.189 (ms) (@ 1000.000 MHz) (NPU only)
-========================================================================================================================
-Conversion time:
-  Optimization = 0.046673 (seconds)
-  Extraction   = 0.0731538 (seconds)
-  Generation   = 43.9654 (seconds)
-  Total        = 44.0852 (seconds)
-========================================================================================================================
-WARNING: neutron-converter/src/NeutronCommon.cpp:281 De-extracted NeutronGraph "subgraph_152" resulting in lower conversion ratio because of the following failure:
-WARNING: neutron-converter/src/NeutronCommon.cpp:281 _Map_base::at
-WARNING: neutron-converter/src/NeutronCommon.cpp:281 Graph "main" has FLOAT operators which are NOT supported! This can result in low conversion ratio!

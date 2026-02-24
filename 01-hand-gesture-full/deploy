@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <board_ip_or_host> [remote_dir]" >&2
+  echo "Example: $0 192.168.0.10 /opt/01-hand-gesture-full" >&2
+  exit 2
+fi
+
+HOST="$1"
+REMOTE_DIR="${2:-/opt/01-hand-gesture-full}"
+LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+ssh "root@${HOST}" "mkdir -p '${REMOTE_DIR}'"
+tar -C "$LOCAL_DIR" --exclude='.git' --exclude='__pycache__' -cf - . | ssh "root@${HOST}" "tar -xf - -C '${REMOTE_DIR}'"
+
+echo "Deployed to root@${HOST}:${REMOTE_DIR}"

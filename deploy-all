@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <board_ip_or_host>" >&2
+  echo "Example: $0 192.168.0.10" >&2
+  exit 2
+fi
+
+HOST="$1"
+
+DEMOS=(
+  "01-hand-gesture-full"
+  "02-hand-detection-only"
+  "03-hand-direction-tracking"
+  "04-face-detection"
+)
+
+for demo in "${DEMOS[@]}"; do
+  echo "== Deploying ${demo} =="
+  (cd "$demo" && ./deploy "$HOST" "/opt/${demo}")
+done
+
+echo ""
+echo "All demos deployed to root@${HOST}:/opt"
+echo ""
+echo "Run examples:"
+echo "  ssh root@${HOST} 'cd /opt/01-hand-gesture-full && python3 main.py'"
+echo "  ssh root@${HOST} 'cd /opt/02-hand-detection-only && python3 main.py'"
+echo "  ssh root@${HOST} 'cd /opt/03-hand-direction-tracking && python3 main.py'"
+echo "  ssh root@${HOST} 'cd /opt/04-face-detection && python3 main.py'"
