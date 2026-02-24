@@ -1,5 +1,9 @@
 # 03 - Hand Direction Tracking
 
+## Tested BSP Image
+Validated on:
+`mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst`
+
 ## What this demo does
 This demo tracks hand movement direction in real time.
 
@@ -37,14 +41,14 @@ Converted with eIQ Neutron SDK (`imx95` target), same as demo 02.
 
 ## Run
 ```bash
-python3 main.py
+./03-hand-direction-tracking
 ```
 
 Useful options:
 ```bash
-python3 main.py --camera /dev/video13 --use-npu 1
-python3 main.py --camera /dev/video0 --windowed
-python3 main.py --use-npu 0
+./03-hand-direction-tracking --camera /dev/video13 --use-npu 1
+./03-hand-direction-tracking --camera /dev/video0 --windowed
+./03-hand-direction-tracking --use-npu 0
 ```
 
 ## Deploy

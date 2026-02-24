@@ -1,5 +1,9 @@
 # 01 - Hand Gesture Full
 
+## Tested BSP Image
+Validated on:
+`mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst`
+
 ## What this demo does
 This is the complete hand gesture pipeline:
 - palm detection
@@ -30,15 +34,15 @@ $SDK/bin/neutron-converter --input <original_model.tflite> --target imx95 --outp
 
 ## Run
 ```bash
-python3 main.py
+./01-hand-gesture-full
 ```
 
 Useful options:
 ```bash
-python3 main.py --list-cameras
-python3 main.py --camera /dev/video13 --use-npu 1
-python3 main.py --camera /dev/video0 --setup-mipi --use-npu 1
-python3 main.py --use-npu 0
+./01-hand-gesture-full --list-cameras
+./01-hand-gesture-full --camera /dev/video13 --use-npu 1
+./01-hand-gesture-full --camera /dev/video0 --setup-mipi --use-npu 1
+./01-hand-gesture-full --use-npu 0
 ```
 
 ## Deploy

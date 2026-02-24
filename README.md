@@ -4,6 +4,17 @@ This repository contains **4 production-facing demos** for i.MX95 (Variscite DAR
 
 All documentation is focused on what each demo actually does, model origin, conversion context, and deployment workflow.
 
+## Validated BSP Image
+
+All demos in this repository were tested on this image:
+
+```bash
+wget https://variscite-public.nyc3.cdn.digitaloceanspaces.com/DART-MX95/Software/mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst
+```
+
+Image file:
+- `mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst`
+
 ## Demo Index
 
 ### 1) `01-hand-gesture-full`
@@ -68,6 +79,12 @@ All documentation is focused on what each demo actually does, model origin, conv
 - `04-face-detection/`
 - `deploy-all` (single deploy script for all demos)
 
+Each demo folder contains one executable entrypoint with the same name as the folder:
+- `01-hand-gesture-full/01-hand-gesture-full`
+- `02-hand-detection-only/02-hand-detection-only`
+- `03-hand-direction-tracking/03-hand-direction-tracking`
+- `04-face-detection/04-face-detection`
+
 ## Single-command Deployment (all demos)
 
 From repository root:
@@ -82,13 +99,73 @@ This deploys to:
 - `/opt/03-hand-direction-tracking`
 - `/opt/04-face-detection`
 
+## Board Provisioning and Demo Validation
+
+### 1) Download image on host PC
+
+```bash
+mkdir -p ~/imx95-image && cd ~/imx95-image
+wget https://variscite-public.nyc3.cdn.digitaloceanspaces.com/DART-MX95/Software/mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst
+```
+
+### 2) Flash image to SD card (Linux host)
+
+1. Insert SD card.
+2. Identify device node (`/dev/sdX`):
+
+```bash
+lsblk
+```
+
+3. Flash (replace `sdX` with the correct device, without partition suffix):
+
+```bash
+zstd -d mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst -c | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
+sync
+```
+
+### 3) Boot DART-MX95
+
+1. Insert flashed media in the board.
+2. Set boot mode to SD (or your expected media boot mode).
+3. Power on and complete first boot.
+4. Confirm system version:
+
+```bash
+uname -a
+cat /etc/os-release
+```
+
+### 4) Deploy demos from host to board
+
+From `var-demos` repository root:
+
+```bash
+./deploy-all 192.168.0.10
+```
+
+### 5) Run and test demos on board
+
+```bash
+cd /opt/01-hand-gesture-full && ./01-hand-gesture-full
+cd /opt/02-hand-detection-only && ./02-hand-detection-only
+cd /opt/03-hand-direction-tracking && ./03-hand-direction-tracking
+cd /opt/04-face-detection && ./04-face-detection
+```
+
+Notes:
+- At startup, each demo lists available cameras and allows index selection.
+- Use `--camera /dev/videoX` if you want to skip interactive selection.
+- Use `--setup-mipi` when required by your MIPI pipeline.
+- Use `--use-npu 1` to request Neutron delegate path.
+
 ## Run Commands on Board
 
 ```bash
-cd /opt/01-hand-gesture-full && python3 main.py
-cd /opt/02-hand-detection-only && python3 main.py
-cd /opt/03-hand-direction-tracking && python3 main.py
-cd /opt/04-face-detection && python3 main.py
+cd /opt/01-hand-gesture-full && ./01-hand-gesture-full
+cd /opt/02-hand-detection-only && ./02-hand-detection-only
+cd /opt/03-hand-direction-tracking && ./03-hand-direction-tracking
+cd /opt/04-face-detection && ./04-face-detection
 ```
 
 All demos support camera selection and `--use-npu 0|1`.

@@ -1,5 +1,9 @@
 # 04 - Face Detection
 
+## Tested BSP Image
+Validated on:
+`mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst`
+
 ## What this demo does
 This demo performs real-time face detection from camera stream.
 
@@ -29,14 +33,14 @@ $SDK/bin/neutron-converter \
 
 ## Run
 ```bash
-python3 main.py
+./04-face-detection
 ```
 
 Useful options:
 ```bash
-python3 main.py --camera /dev/video13 --use-npu 1
-python3 main.py --camera /dev/video0 --windowed
-python3 main.py --use-npu 0
+./04-face-detection --camera /dev/video13 --use-npu 1
+./04-face-detection --camera /dev/video0 --windowed
+./04-face-detection --use-npu 0
 ```
 
 ## Deploy

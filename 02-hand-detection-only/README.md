@@ -1,5 +1,9 @@
 # 02 - Hand Detection Only
 
+## Tested BSP Image
+Validated on:
+`mx95__yocto-walnascar-6.12.20_2.0.0-v1.4__android-15.0.0_2.0.0-v1.1.wic.zst`
+
 ## What this demo does
 This demo only detects/localizes the hand region very quickly.
 
@@ -28,14 +32,14 @@ $SDK/bin/neutron-converter --input <original_model.tflite> --target imx95 --outp
 
 ## Run
 ```bash
-python3 main.py
+./02-hand-detection-only
 ```
 
 Useful options:
 ```bash
-python3 main.py --camera /dev/video13 --use-npu 1
-python3 main.py --camera /dev/video0 --windowed
-python3 main.py --use-npu 0
+./02-hand-detection-only --camera /dev/video13 --use-npu 1
+./02-hand-detection-only --camera /dev/video0 --windowed
+./02-hand-detection-only --use-npu 0
 ```
 
 ## Deploy
