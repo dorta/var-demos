@@ -4,12 +4,35 @@ import argparse
 import csv
 import ctypes
 import os
+import sys
 import time
 from pathlib import Path
+
+# OpenCV on this BSP is built with Qt backend. In shells without Wayland/X11 env,
+# Qt may abort if it defaults to the missing "wayland" plugin.
+if "QT_QPA_PLATFORM" not in os.environ:
+    if os.environ.get("WAYLAND_DISPLAY"):
+        os.environ["QT_QPA_PLATFORM"] = "wayland"
+    elif os.environ.get("DISPLAY"):
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
+    else:
+        os.environ["QT_QPA_PLATFORM"] = "eglfs"
 
 import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from camera_utils import (
+    choose_default_camera,
+    infer_mipi_csi_index,
+    list_video_devices,
+    open_camera_capture,
+    print_video_devices,
+    prompt_camera_selection,
+    setup_mipi_media_pipeline,
+)
 
 
 def find_delegate(explicit=""):
@@ -25,11 +48,6 @@ def find_delegate(explicit=""):
         except OSError:
             pass
     return ""
-
-
-def list_cameras():
-    devs = sorted(Path("/dev").glob("video*"))
-    return [str(d) for d in devs]
 
 
 class PalmDetector:
@@ -124,7 +142,16 @@ def parse_args():
     ap = argparse.ArgumentParser(description="Fast NPU hand box demo (palm + recrop)")
     ap.add_argument("--camera", default="")
     ap.add_argument("--use-npu", choices=["0", "1"], default="1")
+    ap.add_argument("--list-cameras", action="store_true")
+    ap.add_argument("--setup-mipi", action="store_true")
+    ap.add_argument("--mipi-csi-index", type=int, choices=[0, 1], default=-1)
+    ap.add_argument("--media-dev", default="")
+    ap.add_argument("--camera-width", type=int, default=640)
+    ap.add_argument("--camera-height", type=int, default=480)
+    ap.add_argument("--camera-fps", type=int, default=30)
+    ap.add_argument("--camera-fmt", default="UYVY8_1X16")
     ap.add_argument("--windowed", action="store_true")
+    ap.add_argument("--no-display", action="store_true")
     return ap.parse_args()
 
 
@@ -134,18 +161,25 @@ def main():
     original = base / "assets" / "original"
     converted = base / "assets" / "converted"
     shared = base / "assets" / "shared"
-    cams = list_cameras()
-    if not cams:
+    devices = list_video_devices()
+    print_video_devices(devices)
+    if args.list_cameras:
+        return 0
+    if not devices:
         print("No /dev/video* found")
         return 1
 
-    camera = args.camera
-    if not camera:
-        print("Available cameras:")
-        for i, c in enumerate(cams):
-            print(f"  [{i}] {c}")
-        pick = input("Camera index [0]: ").strip()
-        camera = cams[int(pick)] if pick.isdigit() and int(pick) < len(cams) else cams[0]
+    default_camera = choose_default_camera(devices)
+    camera = args.camera or prompt_camera_selection(devices, default_camera)
+    selected = next((d for d in devices if d["path"] == camera), None)
+
+    setup_mipi = args.setup_mipi
+    if not setup_mipi and selected and selected["kind"] == "MIPI/CSI" and os.isatty(0):
+        answer = input("Selected MIPI/CSI camera. Apply media-ctl setup now? [y/N]: ").strip().lower()
+        setup_mipi = answer in ("y", "yes")
+    if setup_mipi:
+        csi_index = args.mipi_csi_index if args.mipi_csi_index >= 0 else infer_mipi_csi_index(camera, 0)
+        setup_mipi_media_pipeline(csi_index, args.camera_width, args.camera_height, args.camera_fmt, args.media_dev)
 
     delegate = find_delegate() if args.use_npu == "1" else ""
     use_npu = bool(delegate)
@@ -157,10 +191,14 @@ def main():
     palm = PalmDetector(str(palm_model), str(anchors), delegate)
     recrop = RecropRefiner(str(recrop_model), delegate)
 
-    cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cap.set(cv2.CAP_PROP_FPS, 30)
+    cap, capture_desc = open_camera_capture(
+        cv2,
+        camera,
+        selected["kind"] if selected else "unknown",
+        args.camera_width,
+        args.camera_height,
+        args.camera_fps,
+    )
 
     ok, frame = cap.read()
     if not ok:
@@ -168,14 +206,16 @@ def main():
         return 2
 
     print(f"Input: {camera}")
+    print(f"Capture: {capture_desc}")
     print(f"Delegate: {delegate if use_npu else 'CPU'}")
     print(f"Palm model: {palm_model.name}")
     print(f"Recrop model: {recrop_model.name}")
 
     win = "Fast NPU Hand Box"
-    cv2.namedWindow(win, cv2.WINDOW_NORMAL)
-    if not args.windowed:
-        cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    if not args.no_display:
+        cv2.namedWindow(win, cv2.WINDOW_NORMAL)
+        if not args.windowed:
+            cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     fps = 0.0
     last = time.time()
@@ -206,9 +246,10 @@ def main():
         cv2.putText(frame, f"Recrop: {recrop_ms:.2f} ms", (20, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
         cv2.putText(frame, f"FPS: {fps:.1f}", (20, 95), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-        cv2.imshow(win, frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+        if not args.no_display:
+            cv2.imshow(win, frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
         ok, frame = cap.read()
 
     cap.release()
