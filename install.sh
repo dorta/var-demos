@@ -108,3 +108,8 @@ fi
 
 mv -- "$stage" "$install_dir"
 trap - EXIT
+rm -rf -- "$work_dir"
+
+echo "[OK] Installed to $install_dir"
+[[ -z "$backup" ]] || echo "[INFO] Previous installation: $backup"
+echo "[INFO] Run: cd '$install_dir' && ./ml-demo --help"
