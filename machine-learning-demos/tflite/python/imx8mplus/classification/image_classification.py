@@ -1,6 +1,8 @@
 # Copyright 2021 Variscite LTD
 # SPDX-License-Identifier: BSD-3-Clause
 import argparse
+import os
+import sys
 
 import cv2
 import numpy as np
@@ -56,8 +58,19 @@ def image_classification(args):
 
     image = put_info_on_frame(image, result, labels,
                               timer.time, args['model'], args['image'])
-    cv2.imshow(TITLE, image)
-    cv2.waitKey()
+    if args["output_frame"]:
+        output_dir = os.path.dirname(args["output_frame"])
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+        if not cv2.imwrite(args["output_frame"], image):
+            raise RuntimeError(
+                f"Could not write output frame: {args['output_frame']}"
+            )
+        print(f"Saved annotated frame to {args['output_frame']}")
+
+    if not args["headless"]:
+        cv2.imshow(TITLE, image)
+        cv2.waitKey()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -77,5 +90,12 @@ if __name__ == "__main__":
           '--kresults',
           default='3',
           help='number of displayed results')
+    parser.add_argument(
+          "--output-frame",
+          help="write the annotated result to this image path")
+    parser.add_argument(
+          "--headless",
+          action="store_true",
+          help="run without creating an OpenCV display window")
     args = vars(parser.parse_args())
     image_classification(args)
