@@ -19,31 +19,31 @@ and beyond) smoothly and consistently, while remaining **resolution-agnostic**.
 ## 1. Video Files
 
 **No video files are included directly in this repository.** Validation samples
-are hosted separately and installed with `install.sh`, keeping large binaries
-out of Git.
+are hosted separately and installed by the machine-learning demo installer,
+keeping large binaries out of Git.
 
 The paths listed inside the `COMBINATIONS` table point to files under
 `assets/videos/`.
 
-To prepare the included samples and check the target runtime:
+From the parent `machine-learning-demos` directory, install this demo with:
 
 ```sh
-./install.sh
+./install.sh high-resolution-video-detection
 ```
 
-The installer downloads assets with `curl`, retries transient failures, and
-validates every file against the published `SHA256SUMS` manifest. By default it
-uses the versioned URL:
+The installer detects the target SoC, downloads assets with `curl`, retries
+transient failures, and validates every file with SHA-256. By default it uses
+the versioned URL:
 
 ```text
-https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/high-resolution-video-detection/v1/samples
+https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1
 ```
 
-`ASSET_VERSION`, `ASSET_BASE_URL`, and `ASSET_DIR` can be overridden in the
-environment. For example:
+`ASSET_BASE_URL` and `INSTALL_ROOT` can be overridden in the environment. For
+example:
 
 ```sh
-ASSET_VERSION=v2 ./install.sh
+INSTALL_ROOT=/home/root/demos ./install.sh high-resolution-video-detection
 ```
 
 You can also:
