@@ -2,52 +2,204 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 ifdef::env-github[]
-:tip-caption: :bulb:
 :note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
 :warning-caption: :warning:
 :source-highlighter: :rouge:
 endif::[]
 
-:VARISCITE_WIKI: https://variwiki.com/
-:TFLITE_CLASSIFICATION: classification/
-:TFLITE_DETECTION: detection/
+= Machine Learning Demos
 
-= Machine Learning Samples
+This directory contains deployable machine-learning demos for Variscite
+Systems on Module. A single installer detects the target SoC, installs only
+compatible demos, and downloads versioned models and media with SHA-256
+verification.
 
-This repository aims to provide simple source codes examples written in Python
-that you can easily deploy and test them on your System on Module (SoM) powered
-by the i.MX8 family.
+== Supported Platforms
 
-== Getting Started
+[cols="1,2,1"]
+|===
+|SoC |Boards |Status
 
-Before getting started make sure to have the latest Yocto Release with
-**Wayland** + **X11** features built with the **fsl-image-qt5 image**; or,
-if you want to use the **fsl-image-gui**, then add the following lines at your
-_local.conf_ file:
+|i.MX 8M Plus
+|DART-MX8M-PLUS, VAR-SOM-MX8M-PLUS, and VAR-SMARC-MX8M-PLUS
+|Validated
 
-[source,bash]
+|i.MX 93
+|Source retained under `platforms/imx93`
+|Pending hardware validation
+
+|i.MX 95
+|Not included
+|Pending hardware validation
+|===
+
+The installer identifies i.MX 8M Plus targets through the
+`fsl,imx8mp` Device Tree compatible string. It does not depend on the carrier
+board name or hostname. Pending platforms are never installed automatically.
+
+== Available Demos
+
+[cols="2,3,2"]
+|===
+|Demo |Inputs |Acceleration
+
+|link:classification/[Classification]
+|Image, video file, or camera
+|TensorFlow Lite with the VX delegate
+
+|link:detection/[Object detection]
+|Image, video file, or camera
+|TensorFlow Lite with the VX delegate
+
+|link:high-resolution-video-detection/[High-resolution video detection]
+|720p, 800p, 1080p, or a custom video
+|V4L2 decode, i.MX G2D, and the VX delegate
+|===
+
+The old PyVar, Arm NN, target-side training, and GTK application examples were
+removed because they are unavailable, incomplete, duplicated, or incompatible
+with the current target image.
+
+== Install on the Target
+
+Run the installer as `root` on the target:
+
+[source,console]
 ----
-OPENCV_PKGS_imxgpu = " \
-   opencv-apps \
-   opencv-samples \
-   python3-opencv \
-"
-
-IMAGE_INSTALL_append_mx8mp = " \
-    packagegroup-imx-ml \
-    ${OPENCV_PKGS} \
-"
+curl -fsSL \
+  https://raw.githubusercontent.com/varigit/var-demos/demos/machine-learning-demos/install.sh \
+  | sh
 ----
 
-* For more information, please visit the {VARISCITE_WIKI}[Variscite Wiki] page.
+By default, compatible demos are installed under:
 
-== TensorFlow Lite
+[source,text]
+----
+/opt/var-demos/machine-learning
+----
 
-=== Python Examples
+The installer validates the target runtime but does not modify the operating
+system or install packages. It checks Python, OpenCV, TensorFlow Lite,
+GStreamer, the i.MX G2D plugin, and `/usr/lib/libvx_delegate.so`.
 
-The following examples use a starter model from TensorFlow Lite:
+=== Installer Options
 
-* {TFLITE_CLASSIFICATION}[Image Classification];
-* {TFLITE_DETECTION}[Object Detection].
+List compatible demos without installing them:
+
+[source,console]
+----
+./install.sh --list
+----
+
+Install only one demo:
+
+[source,console]
+----
+./install.sh detection
+----
+
+Preview an installation:
+
+[source,console]
+----
+./install.sh --dry-run
+----
+
+Use another destination:
+
+[source,console]
+----
+./install.sh --prefix /home/root/machine-learning
+----
+
+`--board imx8mplus` is available for development and CI. Normal target
+installations should use automatic detection.
+
+== Display Environment
+
+OpenCV in the current i.MX 8M Plus image uses XWayland. When launching a GUI
+demo through SSH, prepare the session with:
+
+[source,console]
+----
+export XDG_RUNTIME_DIR=/run/user/0
+export DISPLAY=:0
+unset WAYLAND_DISPLAY QT_QPA_PLATFORM
+----
+
+OpenCV demos use fullscreen by default and preserve the source aspect ratio.
+Press `Esc` to close a video or camera demo. Pass `--windowed` when a regular
+window is preferred.
+
+== Run the Demos
+
+=== Classification
+
+[source,console]
+----
+cd /opt/var-demos/machine-learning/classification
+python3 image_classification.py
+python3 video_classification.py --videofmw gstreamer
+python3 realtime_classification.py --camera /dev/video4
+----
+
+=== Object Detection
+
+[source,console]
+----
+cd /opt/var-demos/machine-learning/detection
+python3 image_detection.py
+python3 video_detection.py --videofmw gstreamer
+python3 realtime_detection.py --camera /dev/video4
+----
+
+Camera device numbers depend on the image and connected hardware. Use
+`v4l2-ctl --list-devices` and pass the capture device with `--camera`. On the
+validated VAR-SMARC-MX8M-PLUS system, the camera is `/dev/video4`.
+
+=== High-resolution Video Detection
+
+[source,console]
+----
+cd /opt/var-demos/machine-learning/high-resolution-video-detection
+python3 high-resolution-video-detection.py
+python3 high-resolution-video-detection.py --combination 2
+----
+
+Use `--headless` for an automated smoke test. The demo prints processed frame
+and detection totals when the video ends.
+
+== Asset Storage
+
+Models and media are not stored in Git or Git LFS. Versioned i.MX 8M Plus
+assets and their checksum manifest are published at:
+
+[source,text]
+----
+https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1/
+----
+
+Each demo contains an `assets.manifest` that maps immutable SHA-256 hashes to
+its local paths. The installer caches identical files during installation, so
+the shared detection model is downloaded only once.
+
+== Local Development
+
+From a repository checkout, test detection and selection without writing to
+the target installation directory:
+
+[source,console]
+----
+./install.sh --board imx8mplus --list
+./install.sh --board imx8mplus --dry-run
+----
+
+Install from the current checkout into a temporary directory:
+
+[source,console]
+----
+./install.sh \
+  --board imx8mplus \
+  --source . \
+  --prefix /tmp/machine-learning
+----
