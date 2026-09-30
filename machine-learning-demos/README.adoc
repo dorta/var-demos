@@ -17,9 +17,6 @@ endif::[]
 :TFLITE_IMAGES_TRAINING_SCRATCH: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/tflite/python/images_classification_train/
 :TFLITE_USER_INTERFACE: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/tflite/python/realtime_application/
 
-:ARMNN_CLASSIFICATION: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/armnn/python/classification/
-:ARMNN_DETECTION: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/armnn/python/detection/
-
 = Machine Learning Samples
 
 This repository aims to provide simple source codes examples written in Python
@@ -66,12 +63,3 @@ The following examples explain how to train your own model from scratch:
 The following example shows an user interface example written with Python GTK:
 
 * {TFLITE_USER_INTERFACE}[Real time example using Python GTK].
-
-== Arm NN
-
-=== Python Examples
-
-The following examples use a starter mode from TensorFlow Lite and ONNX:
-
-* {ARMNN_CLASSIFICATION}[Image Classification];
-* {ARMNN_DETECTION}[Object Detection].
