@@ -25,7 +25,7 @@ keeping large binaries out of Git.
 The paths listed inside the `COMBINATIONS` table point to files under
 `assets/videos/`.
 
-From the parent `machine-learning-demos` directory, install this demo with:
+From the parent `ai-ml-demos` directory, install this demo with:
 
 ```sh
 ./install.sh high-resolution-video-detection

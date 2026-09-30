@@ -7,7 +7,7 @@ set -eu
 
 ALL_DEMOS="classification detection high-resolution-video-detection"
 ASSET_BASE_URL=${ASSET_BASE_URL:-"https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1"}
-INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/machine-learning}
+INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
 VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-varigit/var-demos}
 
@@ -29,7 +29,7 @@ Options:
   --dry-run           Show what would be installed
   --list              List demos compatible with the detected board
   --prefix DIRECTORY  Installation directory
-  --source DIRECTORY  Use a local machine-learning-demos source tree
+  --source DIRECTORY  Use a local ai-ml-demos source tree
   -h, --help          Show this help
 
 Supported board names: imx8mplus
@@ -103,8 +103,8 @@ fetch_source() {
     download "${url}" "${archive}"
     tar -xzf "${archive}" -C "${source_dir}"
     SOURCE_ROOT=$(find "${source_dir}" -type d \
-        -path '*/machine-learning-demos' -print | head -n 1)
-    [ -n "${SOURCE_ROOT}" ] || fail "machine-learning-demos not found"
+        -path '*/ai-ml-demos' -print | head -n 1)
+    [ -n "${SOURCE_ROOT}" ] || fail "ai-ml-demos not found"
 }
 
 load_demo() {
