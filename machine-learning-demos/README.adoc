@@ -13,8 +13,6 @@ endif::[]
 :VARISCITE_WIKI: https://variwiki.com/
 :TFLITE_CLASSIFICATION: https://github.com/varigit/var-demos/blob/master/machine-learning-demos/tflite/python/classification/
 :TFLITE_DETECTION: https://github.com/varigit/var-demos/blob/master/machine-learning-demos/tflite/python/detection/
-:TFLITE_HANDWRITTEN: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/tflite/python/mnist_digit/
-:TFLITE_IMAGES_TRAINING_SCRATCH: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/tflite/python/images_classification_train/
 :TFLITE_USER_INTERFACE: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/tflite/python/realtime_application/
 
 = Machine Learning Samples
@@ -54,11 +52,6 @@ The following examples use a starter model from TensorFlow Lite:
 
 * {TFLITE_CLASSIFICATION}[Image Classification];
 * {TFLITE_DETECTION}[Object Detection].
-
-The following examples explain how to train your own model from scratch:
-
-* {TFLITE_HANDWRITTEN}[Handwritten Digits MNIST Dataset];
-* {TFLITE_IMAGES_TRAINING_SCRATCH}[Image Classification Custom Dataset].
 
 The following example shows an user interface example written with Python GTK:
 
