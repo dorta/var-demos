@@ -49,5 +49,5 @@ Then, you will get the `model_example_vela.tflite` model.
 
 Try the classification examples:
 
-* [Image File Example](https://github.com/varigit/var-demos/blob/master/machine-learning-demos/tflite/python/imx93/classification/image_classification.py)
-* [Video File Example](https://github.com/varigit/var-demos/blob/master/machine-learning-demos/tflite/python/imx93/classification/video_classification.py)
+* [Image File Example](classification/image_classification.py)
+* [Video File Example](classification/video_classification.py)

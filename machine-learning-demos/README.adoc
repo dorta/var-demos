@@ -11,9 +11,9 @@ ifdef::env-github[]
 endif::[]
 
 :VARISCITE_WIKI: https://variwiki.com/
-:TFLITE_CLASSIFICATION: https://github.com/varigit/var-demos/blob/master/machine-learning-demos/tflite/python/classification/
-:TFLITE_DETECTION: https://github.com/varigit/var-demos/blob/master/machine-learning-demos/tflite/python/detection/
-:TFLITE_USER_INTERFACE: https://github.com/varigit/var-demos/tree/master/machine-learning-demos/tflite/python/realtime_application/
+:TFLITE_CLASSIFICATION: classification/
+:TFLITE_DETECTION: detection/
+:TFLITE_USER_INTERFACE: realtime-application/
 
 = Machine Learning Samples
 
