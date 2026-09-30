@@ -5,7 +5,7 @@
 
 set -eu
 
-ALL_DEMOS="classification detection high-resolution-video-detection realtime-application"
+ALL_DEMOS="classification detection high-resolution-video-detection"
 ASSET_BASE_URL=${ASSET_BASE_URL:-"https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1"}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/machine-learning}
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}

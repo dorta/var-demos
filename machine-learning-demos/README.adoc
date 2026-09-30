@@ -13,7 +13,6 @@ endif::[]
 :VARISCITE_WIKI: https://variwiki.com/
 :TFLITE_CLASSIFICATION: classification/
 :TFLITE_DETECTION: detection/
-:TFLITE_USER_INTERFACE: realtime-application/
 
 = Machine Learning Samples
 
@@ -52,7 +51,3 @@ The following examples use a starter model from TensorFlow Lite:
 
 * {TFLITE_CLASSIFICATION}[Image Classification];
 * {TFLITE_DETECTION}[Object Detection].
-
-The following example shows an user interface example written with Python GTK:
-
-* {TFLITE_USER_INTERFACE}[Real time example using Python GTK].
