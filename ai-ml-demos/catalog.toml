@@ -1,0 +1,41 @@
+version = 1
+
+[platforms.imx8mplus]
+name = "i.MX 8M Plus"
+compatible = ["fsl,imx8mp"]
+status = "validated"
+asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1"
+
+[platforms.imx93]
+name = "i.MX 93"
+compatible = ["fsl,imx93"]
+status = "pending"
+
+[platforms.imx95]
+name = "i.MX 95"
+compatible = ["fsl,imx95"]
+status = "pending"
+
+[[demos]]
+id = "classification"
+title = "Image, video, and camera classification"
+path = "classification"
+platforms = ["imx8mplus"]
+entrypoint = "python3 image_classification.py"
+manifest = "assets.manifest"
+
+[[demos]]
+id = "detection"
+title = "Image, video, and camera object detection"
+path = "detection"
+platforms = ["imx8mplus"]
+entrypoint = "python3 image_detection.py"
+manifest = "assets.manifest"
+
+[[demos]]
+id = "high-resolution-video-detection"
+title = "High-resolution video object detection"
+path = "high-resolution-video-detection"
+platforms = ["imx8mplus"]
+entrypoint = "python3 high-resolution-video-detection.py --combination 2"
+manifest = "assets.manifest"

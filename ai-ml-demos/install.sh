@@ -5,8 +5,7 @@
 
 set -eu
 
-ALL_DEMOS="classification detection high-resolution-video-detection"
-ASSET_BASE_URL=${ASSET_BASE_URL:-"https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1"}
+ASSET_BASE_URL=${ASSET_BASE_URL:-}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
 VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-varigit/var-demos}
@@ -32,7 +31,7 @@ Options:
   --source DIRECTORY  Use a local ai-ml-demos source tree
   -h, --help          Show this help
 
-Supported board names: imx8mplus
+Known board ids are defined in catalog.toml.
 EOF
 }
 
@@ -53,17 +52,10 @@ cleanup() {
 }
 
 detect_board() {
-    compatible=
-    if [ -r /proc/device-tree/compatible ]; then
-        compatible=$(tr '\0' '\n' </proc/device-tree/compatible)
-    fi
-
-    case "${compatible}" in
-        *fsl,imx8mp*) BOARD=imx8mplus ;;
-        *fsl,imx93*) fail "i.MX 93 demos are not validated yet" ;;
-        *fsl,imx95*) fail "i.MX 95 demos are not validated yet" ;;
-        *) fail "unsupported board; use --board only for development" ;;
-    esac
+    [ -r /proc/device-tree/compatible ] || \
+        fail "Device Tree compatible string is not available"
+    BOARD=$(catalog detect) || \
+        fail "unsupported board; use --board only for development"
 }
 
 download() {
@@ -88,7 +80,7 @@ fetch_source() {
 
     script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd || true)
     if [ -n "${script_dir}" ] && \
-       [ -f "${script_dir}/classification/demo.conf" ]; then
+       [ -f "${script_dir}/catalog.toml" ]; then
         SOURCE_ROOT=${script_dir}
         return
     fi
@@ -107,40 +99,49 @@ fetch_source() {
     [ -n "${SOURCE_ROOT}" ] || fail "ai-ml-demos not found"
 }
 
+catalog() {
+    python3 "${SOURCE_ROOT}/catalog.py" \
+        --catalog "${SOURCE_ROOT}/catalog.toml" "$@"
+}
+
+check_platform() {
+    status=$(catalog platform-field "${BOARD}" status) || \
+        fail "unknown board: ${BOARD}"
+    [ "${status}" = "validated" ] || \
+        fail "${BOARD} support is ${status}; hardware validation is required"
+
+    if [ -z "${ASSET_BASE_URL}" ]; then
+        ASSET_BASE_URL=$(catalog \
+            platform-field "${BOARD}" asset_base_url)
+    fi
+}
+
 load_demo() {
     demo=$1
-    config="${SOURCE_ROOT}/${demo}/demo.conf"
-    [ -f "${config}" ] || fail "unknown demo: ${demo}"
-    DEMO_TITLE=
-    DEMO_BOARDS=
-    DEMO_ENTRYPOINT=
-    # shellcheck disable=SC1090
-    . "${config}"
+    DEMO_TITLE=$(catalog demo-field "${demo}" title)
+    DEMO_PATH=$(catalog demo-field "${demo}" path)
+    DEMO_ENTRYPOINT=$(catalog demo-field "${demo}" entrypoint)
+    DEMO_MANIFEST=$(catalog demo-field "${demo}" manifest)
 }
 
 demo_is_compatible() {
-    case " ${DEMO_BOARDS} " in
-        *" ${BOARD} "*) return 0 ;;
-        *) return 1 ;;
-    esac
+    catalog supports "$1" "${BOARD}" >/dev/null
 }
 
 selected_demos() {
     if [ -n "${REQUESTED_DEMOS}" ]; then
         printf '%s\n' ${REQUESTED_DEMOS}
     else
-        printf '%s\n' ${ALL_DEMOS}
+        catalog demos --platform "${BOARD}"
     fi
 }
 
 list_demos() {
     echo "Compatible demos for ${BOARD}:"
-    for demo in ${ALL_DEMOS}; do
-        load_demo "${demo}"
-        if demo_is_compatible; then
-            printf '  %-32s %s\n' "${demo}" "${DEMO_TITLE}"
-        fi
-    done
+    catalog demos --platform "${BOARD}" --titles | \
+        while IFS="$(printf '\t')" read -r demo title; do
+            printf '  %-32s %s\n' "${demo}" "${title}"
+        done
 }
 
 check_runtime() {
@@ -155,7 +156,6 @@ check_runtime() {
 
     python3 - <<'PY' || fail "required Python modules are missing"
 import cv2
-import gi
 import numpy
 import tflite_runtime.interpreter
 PY
@@ -194,23 +194,24 @@ install_asset() {
 install_demo() {
     demo=$1
     load_demo "${demo}"
-    demo_is_compatible || \
+    demo_is_compatible "${demo}" || \
         fail "${demo} is not compatible with ${BOARD}"
 
     echo "Installing ${DEMO_TITLE}"
-    install -d "${INSTALL_ROOT}/${demo}"
-    cp -R "${SOURCE_ROOT}/${demo}/." "${INSTALL_ROOT}/${demo}/"
+    install -d "${INSTALL_ROOT}/${DEMO_PATH}"
+    cp -R "${SOURCE_ROOT}/${DEMO_PATH}/." \
+        "${INSTALL_ROOT}/${DEMO_PATH}/"
 
-    manifest="${SOURCE_ROOT}/${demo}/assets.manifest"
+    manifest="${SOURCE_ROOT}/${DEMO_PATH}/${DEMO_MANIFEST}"
     while read -r expected remote_path relative_path; do
         case "${expected}" in
             ''|'#'*) continue ;;
         esac
-        install_asset "${demo}" "${expected}" \
+        install_asset "${DEMO_PATH}" "${expected}" \
             "${remote_path}" "${relative_path}"
     done < "${manifest}"
 
-    echo "  Run: cd ${INSTALL_ROOT}/${demo} && ${DEMO_ENTRYPOINT}"
+    echo "  Run: cd ${INSTALL_ROOT}/${DEMO_PATH} && ${DEMO_ENTRYPOINT}"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -250,17 +251,18 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-case "${BOARD}" in
-    '') detect_board ;;
-    imx8mplus) ;;
-    *) fail "unsupported board override: ${BOARD}" ;;
-esac
-
 require_command install
+require_command python3
 WORK_DIR=$(mktemp -d)
 trap cleanup EXIT HUP INT TERM
 install -d "${WORK_DIR}/assets"
 fetch_source
+catalog validate --root "${SOURCE_ROOT}"
+
+if [ -z "${BOARD}" ]; then
+    detect_board
+fi
+check_platform
 
 if [ "${LIST_ONLY}" -eq 1 ]; then
     list_demos
@@ -273,7 +275,7 @@ if [ "${DRY_RUN}" -eq 1 ]; then
     echo "Demos:"
     selected_demos | while read -r demo; do
         load_demo "${demo}"
-        demo_is_compatible || \
+        demo_is_compatible "${demo}" || \
             fail "${demo} is not compatible with ${BOARD}"
         echo "  ${demo}"
     done
@@ -283,6 +285,10 @@ fi
 check_runtime
 install -d "${INSTALL_ROOT}"
 install -m 0755 "${SOURCE_ROOT}/install.sh" "${INSTALL_ROOT}/install.sh"
+install -m 0644 "${SOURCE_ROOT}/catalog.toml" \
+    "${INSTALL_ROOT}/catalog.toml"
+install -m 0755 "${SOURCE_ROOT}/catalog.py" \
+    "${INSTALL_ROOT}/catalog.py"
 selected_demos | while read -r demo; do
     install_demo "${demo}"
 done
