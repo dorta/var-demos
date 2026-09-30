@@ -13,7 +13,7 @@ except ImportError:
     sys.exit("No TensorFlow Lite Runtime module found!")
 
 from helper.config import TITLE
-from helper.opencv import put_info_on_frame
+from helper.opencv import create_window, put_info_on_frame
 from helper.utils import load_labels, Timer
 
 # Constants
@@ -56,6 +56,7 @@ def image_classification(args):
 
     image = put_info_on_frame(image, result, labels,
                               timer.time, args['model'], args['image'])
+    create_window(TITLE, args['windowed'])
     cv2.imshow(TITLE, image)
     cv2.waitKey()
 
@@ -77,5 +78,9 @@ if __name__ == "__main__":
           '--kresults',
           default='3',
           help='number of displayed results')
+    parser.add_argument(
+          '--windowed',
+          action='store_true',
+          help='open the result in a window instead of fullscreen')
     args = vars(parser.parse_args())
     image_classification(args)

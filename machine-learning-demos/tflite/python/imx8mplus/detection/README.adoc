@@ -30,6 +30,9 @@ scp -r ~/var-demos/tflite/detection root@<target-ip>:/home/root
 
 === Usage
 
+The examples open in fullscreen by default. Press `Esc` to close video and
+realtime examples. Use `--windowed` to open any example in a regular window.
+
 ==== Image Detection Example
 
 . To run the detection example using a single image:

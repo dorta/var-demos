@@ -16,7 +16,7 @@ except ImportError:
     sys.exit("No TensorFlow Lite Runtime module found!")
 
 from helper.config import TITLE
-from helper.opencv import put_info_on_frame, put_fps_on_frame
+from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
 from helper.utils import get_tensor, load_labels, Timer, Framerate
 
 # Constants
@@ -48,6 +48,7 @@ def image_detection(args):
     model_height, model_width = input_details[0]['shape'][1:3]
     
     video_capture = open_video_capture(args)
+    create_window(TITLE, args['windowed'])
     framerate = Framerate()
     while video_capture.isOpened():
         with framerate.fpsit():
@@ -76,7 +77,8 @@ def image_detection(args):
                                       args['model'], args['video'])
             frame = put_fps_on_frame(frame, framerate.fps)
             cv2.imshow(TITLE, frame)
-            cv2.waitKey(1)
+            if cv2.waitKey(1) == 27:
+                break
 
     video_capture.release()
     cv2.destroyAllWindows()
@@ -99,5 +101,9 @@ if __name__ == "__main__":
           '--videofmw',
           default='opencv',
           help='opencv or gstreamer')
+    parser.add_argument(
+          '--windowed',
+          action='store_true',
+          help='open the video in a window instead of fullscreen')
     args = vars(parser.parse_args())
     image_detection(args)

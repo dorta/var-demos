@@ -30,6 +30,9 @@ scp -r ~/var-demos/tflite/classification root@<target-ip>:/home/root
 
 === Usage
 
+The examples open in fullscreen by default. Press `Esc` to close video and
+realtime examples. Use `--windowed` to open any example in a regular window.
+
 ==== Image Classification Example
 
 . To run the classification example using a single image:

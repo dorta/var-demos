@@ -13,7 +13,7 @@ except ImportError:
     sys.exit("No TensorFlow Lite Runtime module found!")
 
 from helper.config import TITLE
-from helper.opencv import put_info_on_frame, put_fps_on_frame
+from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
 from helper.utils import load_labels, Timer, Framerate
 
 # Constants
@@ -40,6 +40,7 @@ def realtime_classification(args):
     _, height, width, _ = input_details[0]['shape']
 
     video_capture = open_video_capture()
+    create_window(TITLE, args['windowed'])
 
     framerate = Framerate()
     while video_capture.isOpened():
@@ -69,7 +70,8 @@ def realtime_classification(args):
                                       timer.time, args['model'], args['camera'])
             frame = put_fps_on_frame(frame, framerate.fps)
             cv2.imshow(TITLE, frame)
-            cv2.waitKey(1)
+            if cv2.waitKey(1) == 27:
+                break
 
     video_capture.release()
     cv2.destroyAllWindows()
@@ -92,5 +94,9 @@ if __name__ == "__main__":
           '--kresults',
           default='3',
           help='number of displayed results')
+    parser.add_argument(
+          '--windowed',
+          action='store_true',
+          help='open the camera feed in a window instead of fullscreen')
     args = vars(parser.parse_args())
     realtime_classification(args)

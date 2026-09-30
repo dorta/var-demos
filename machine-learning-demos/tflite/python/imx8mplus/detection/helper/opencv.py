@@ -9,6 +9,14 @@ import numpy as np
 
 from helper.config import INF_TIME_MSG, FONT, FPS_MSG
 
+
+def create_window(title, windowed=False):
+    cv2.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    if not windowed:
+        cv2.setWindowProperty(
+            title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
+        )
+
 def generate_colors(labels):
     hsv_tuples = [(x / len(labels), 1., 1.) for x in range(len(labels))]
     colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))

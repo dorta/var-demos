@@ -5,6 +5,14 @@ import cv2
 
 from helper.config import INF_TIME_MSG, FONT, FPS_MSG
 
+
+def create_window(title, windowed=False):
+    cv2.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    if not windowed:
+        cv2.setWindowProperty(
+            title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
+        )
+
 def put_info_on_frame(frame, top_result, labels,
                       inference_time, model_name, source_file):
     for idx, (i, score) in enumerate (top_result):
