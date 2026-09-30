@@ -3,20 +3,13 @@
 
 = AI/ML Demos
 
-Ready-to-run AI/ML demos for Variscite Systems on Module. The installer
-detects the target SoC and installs only compatible demos.
+Ready-to-run AI/ML demos for Variscite Systems on Module.
 
 == Support
 
 * i.MX 8M Plus: validated;
 * i.MX 93: pending hardware validation;
 * i.MX 95: pending hardware validation.
-
-Available on i.MX 8M Plus:
-
-* link:classification/[Classification] for images, videos, and cameras;
-* link:detection/[Object detection] for images, videos, and cameras;
-* link:high-resolution-video-detection/[High-resolution video detection].
 
 == Install
 
@@ -29,56 +22,15 @@ curl -fsSL \
   | sh
 ----
 
-The default destination is `/opt/var-demos/ai-ml`. Useful options:
-
-[source,console]
-----
-./install.sh --list
-./install.sh --dry-run
-./install.sh detection
-./install.sh --prefix /home/root/ai-ml
-----
-
 == Run
 
-Prepare an SSH session for OpenCV through XWayland:
-
 [source,console]
 ----
-export XDG_RUNTIME_DIR=/run/user/0
-export DISPLAY=:0
-unset WAYLAND_DISPLAY QT_QPA_PLATFORM
+var-ai
 ----
 
-Then run a demo from its directory:
+`var-ai` lists the demos supported by the detected platform. Select a number
+to start a demo. Press `Ctrl+C` to stop it and return to the menu.
 
-[source,console]
-----
-cd /opt/var-demos/ai-ml
-
-(cd classification && python3 image_classification.py)
-(cd detection && python3 image_detection.py)
-(cd high-resolution-video-detection && \
-  python3 high-resolution-video-detection.py --combination 2)
-----
-
-OpenCV demos use fullscreen by default. Press `Esc` to close video and camera
-demos, or pass `--windowed` to open a regular window.
-
-For a camera demo, find the capture device with
-`v4l2-ctl --list-devices` and pass it explicitly:
-
-[source,console]
-----
-cd /opt/var-demos/ai-ml/detection
-python3 realtime_detection.py --camera /dev/video4
-----
-
-== Assets
-
-Models and media are versioned outside Git and verified with SHA-256 during
-installation:
-
-https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1/
-
-Each demo declares its required files in `assets.manifest`.
+Models and media are downloaded separately and verified with SHA-256 during
+installation. Developer documentation is available inside each demo folder.

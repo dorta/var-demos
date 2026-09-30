@@ -39,3 +39,45 @@ path = "high-resolution-video-detection"
 platforms = ["imx8mplus"]
 entrypoint = "python3 high-resolution-video-detection.py --combination 2"
 manifest = "assets.manifest"
+
+[[launchers]]
+id = "classification-image"
+title = "Classify an image"
+demo = "classification"
+command = ["python3", "image_classification.py"]
+
+[[launchers]]
+id = "classification-video"
+title = "Classify a video"
+demo = "classification"
+command = ["python3", "video_classification.py", "--videofmw", "gstreamer"]
+
+[[launchers]]
+id = "classification-camera"
+title = "Classify the camera feed"
+demo = "classification"
+command = ["python3", "realtime_classification.py", "--camera", "{camera}"]
+
+[[launchers]]
+id = "detection-image"
+title = "Detect objects in an image"
+demo = "detection"
+command = ["python3", "image_detection.py"]
+
+[[launchers]]
+id = "detection-video"
+title = "Detect objects in a video"
+demo = "detection"
+command = ["python3", "video_detection.py", "--videofmw", "gstreamer"]
+
+[[launchers]]
+id = "detection-camera"
+title = "Detect objects in the camera feed"
+demo = "detection"
+command = ["python3", "realtime_detection.py", "--camera", "{camera}"]
+
+[[launchers]]
+id = "detection-hd-video"
+title = "Detect objects in a high-resolution video"
+demo = "high-resolution-video-detection"
+command = ["python3", "high-resolution-video-detection.py", "--combination", "2"]

@@ -6,6 +6,7 @@
 set -eu
 
 ASSET_BASE_URL=${ASSET_BASE_URL:-}
+BIN_DIR=${BIN_DIR:-/usr/local/bin}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
 VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-varigit/var-demos}
@@ -25,6 +26,7 @@ Install every compatible demo, or only the demos named on the command line.
 
 Options:
   --board BOARD       Override automatic board detection
+  --bin-dir DIRECTORY Install the var-ai command in this directory
   --dry-run           Show what would be installed
   --list              List demos compatible with the detected board
   --prefix DIRECTORY  Installation directory
@@ -148,6 +150,7 @@ check_runtime() {
     require_command cp
     require_command curl
     require_command install
+    require_command ln
     require_command python3
     require_command sha256sum
 
@@ -221,6 +224,11 @@ while [ "$#" -gt 0 ]; do
             BOARD=$2
             shift 2
             ;;
+        --bin-dir)
+            [ "$#" -ge 2 ] || fail "--bin-dir requires a value"
+            BIN_DIR=$2
+            shift 2
+            ;;
         --dry-run)
             DRY_RUN=1
             shift
@@ -272,6 +280,7 @@ fi
 if [ "${DRY_RUN}" -eq 1 ]; then
     echo "Board: ${BOARD}"
     echo "Install root: ${INSTALL_ROOT}"
+    echo "Command: ${BIN_DIR}/var-ai"
     echo "Demos:"
     selected_demos | while read -r demo; do
         load_demo "${demo}"
@@ -289,9 +298,18 @@ install -m 0644 "${SOURCE_ROOT}/catalog.toml" \
     "${INSTALL_ROOT}/catalog.toml"
 install -m 0755 "${SOURCE_ROOT}/catalog.py" \
     "${INSTALL_ROOT}/catalog.py"
+install -m 0755 "${SOURCE_ROOT}/manager.py" \
+    "${INSTALL_ROOT}/manager.py"
 selected_demos | while read -r demo; do
     install_demo "${demo}"
 done
 
+install -d "${BIN_DIR}"
+if [ -e "${BIN_DIR}/var-ai" ] && [ ! -L "${BIN_DIR}/var-ai" ]; then
+    fail "refusing to replace non-symlink: ${BIN_DIR}/var-ai"
+fi
+ln -sfn "${INSTALL_ROOT}/manager.py" "${BIN_DIR}/var-ai"
+
 echo
 echo "Installation complete: ${INSTALL_ROOT}"
+echo "Run the demo manager: var-ai"
