@@ -27,26 +27,26 @@ FONT = {
 }
 
 COMBINATIONS = [
-    ("video_1280x720.mp4", (1280, 720), "lvds_small", (800, 480), "windowed"),
-    ("video_1280x720.mp4", (1280, 720), "lvds_small", (800, 480), "fullscreen"),
-    ("video_1280x720.mp4", (1280, 720), "lvds_large", (1280, 800), "windowed"),
-    ("video_1280x720.mp4", (1280, 720), "lvds_large", (1280, 800), "fullscreen"),
-    ("video_1280x720.mp4", (1280, 720), "monitor_4k", (3840, 2160), "windowed"),
-    ("video_1280x720.mp4", (1280, 720), "monitor_4k", (3840, 2160), "fullscreen"),
+    ("assets/videos/video_1280x720.mp4", (1280, 720), "lvds_small", (800, 480), "windowed"),
+    ("assets/videos/video_1280x720.mp4", (1280, 720), "lvds_small", (800, 480), "fullscreen"),
+    ("assets/videos/video_1280x720.mp4", (1280, 720), "lvds_large", (1280, 800), "windowed"),
+    ("assets/videos/video_1280x720.mp4", (1280, 720), "lvds_large", (1280, 800), "fullscreen"),
+    ("assets/videos/video_1280x720.mp4", (1280, 720), "monitor_4k", (3840, 2160), "windowed"),
+    ("assets/videos/video_1280x720.mp4", (1280, 720), "monitor_4k", (3840, 2160), "fullscreen"),
 
-    ("video_1280x800.mp4", (1280, 800), "lvds_small", (800, 480), "windowed"),
-    ("video_1280x800.mp4", (1280, 800), "lvds_small", (800, 480), "fullscreen"),
-    ("video_1280x800.mp4", (1280, 800), "lvds_large", (1280, 800), "windowed"),
-    ("video_1280x800.mp4", (1280, 800), "lvds_large", (1280, 800), "fullscreen"),
-    ("video_1280x800.mp4", (1280, 800), "monitor_4k", (3840, 2160), "windowed"),
-    ("video_1280x800.mp4", (1280, 800), "monitor_4k", (3840, 2160), "fullscreen"),
+    ("assets/videos/video_1280x800.mp4", (1280, 800), "lvds_small", (800, 480), "windowed"),
+    ("assets/videos/video_1280x800.mp4", (1280, 800), "lvds_small", (800, 480), "fullscreen"),
+    ("assets/videos/video_1280x800.mp4", (1280, 800), "lvds_large", (1280, 800), "windowed"),
+    ("assets/videos/video_1280x800.mp4", (1280, 800), "lvds_large", (1280, 800), "fullscreen"),
+    ("assets/videos/video_1280x800.mp4", (1280, 800), "monitor_4k", (3840, 2160), "windowed"),
+    ("assets/videos/video_1280x800.mp4", (1280, 800), "monitor_4k", (3840, 2160), "fullscreen"),
 
-    ("video_1920x1080.mp4", (1920, 1080), "lvds_small", (800, 480), "windowed"),
-    ("video_1920x1080.mp4", (1920, 1080), "lvds_small", (800, 480), "fullscreen"),
-    ("video_1920x1080.mp4", (1920, 1080), "lvds_large", (1280, 800), "windowed"),
-    ("video_1920x1080.mp4", (1920, 1080), "lvds_large", (1280, 800), "fullscreen"),
-    ("video_1920x1080.mp4", (1920, 1080), "monitor_4k", (3840, 2160), "windowed"),
-    ("video_1920x1080.mp4", (1920, 1080), "monitor_4k", (3840, 2160), "fullscreen"),
+    ("assets/videos/video_1920x1080.mp4", (1920, 1080), "lvds_small", (800, 480), "windowed"),
+    ("assets/videos/video_1920x1080.mp4", (1920, 1080), "lvds_small", (800, 480), "fullscreen"),
+    ("assets/videos/video_1920x1080.mp4", (1920, 1080), "lvds_large", (1280, 800), "windowed"),
+    ("assets/videos/video_1920x1080.mp4", (1920, 1080), "lvds_large", (1280, 800), "fullscreen"),
+    ("assets/videos/video_1920x1080.mp4", (1920, 1080), "monitor_4k", (3840, 2160), "windowed"),
+    ("assets/videos/video_1920x1080.mp4", (1920, 1080), "monitor_4k", (3840, 2160), "fullscreen"),
 ]
 
 PROFILE_ENABLED = False
@@ -158,37 +158,37 @@ def put_info_on_frame(frame, results, inf_time, labels, model_name, source_file)
 
     return frame
 
+
+def resize_with_letterbox(frame, display_res):
+    target_width, target_height = display_res
+    frame_height, frame_width = frame.shape[:2]
+    scale = min(target_width / frame_width, target_height / frame_height)
+    resized_width = max(1, int(frame_width * scale))
+    resized_height = max(1, int(frame_height * scale))
+    resized = cv2.resize(frame, (resized_width, resized_height))
+
+    output = np.zeros((target_height, target_width, 3), dtype=frame.dtype)
+    x_offset = (target_width - resized_width) // 2
+    y_offset = (target_height - resized_height) // 2
+    output[
+        y_offset:y_offset + resized_height,
+        x_offset:x_offset + resized_width
+    ] = resized
+    return output
+
 def show_available_combinations():
     print("Available combinations:\n")
-    print(f"{'ID':<4} {'Video':<25} {'VideoRes':<10} {'AR_Video':<8} {'Display':<12} {'DisplayRes':<12} {'AR_Display':<10} {'Mode':<10} {'Resize Needed':<40} {'AR Match'}")
-    print("-" * 170)
-    rows = [
-        (1,  "video_1280x720.mp4",  "1280x720",  "16:9",   "lvds_small",  "800x480",   "5:3",     "windowed",   "No resize (windowed)",                          "No"),
-        (2,  "video_1280x720.mp4",  "1280x720",  "16:9",   "lvds_small",  "800x480",   "5:3",     "fullscreen", "No resize (bars expected)",                     "No"),
-        (3,  "video_1280x720.mp4",  "1280x720",  "16:9",   "lvds_large",  "1280x800",  "16:10",   "windowed",   "No resize (windowed)",                          "No"),
-        (4,  "video_1280x720.mp4",  "1280x720",  "16:9",   "lvds_large",  "1280x800",  "16:10",   "fullscreen", "No resize (bars expected)",                     "No"),
-        (5,  "video_1280x720.mp4",  "1280x720",  "16:9",   "monitor_4k",  "3840x2160", "16:9",    "windowed",   "No resize (windowed)",                          "Yes"),
-        (6,  "video_1280x720.mp4",  "1280x720",  "16:9",   "monitor_4k",  "3840x2160", "16:9",    "fullscreen", "Resize needed (resolution mismatch)",           "Yes"),
-        (7,  "video_1280x800.mp4",  "1280x800",  "16:10",  "lvds_small",  "800x480",   "5:3",     "windowed",   "No resize (windowed)",                          "No"),
-        (8,  "video_1280x800.mp4",  "1280x800",  "16:10",  "lvds_small",  "800x480",   "5:3",     "fullscreen", "No resize (bars expected)",                     "No"),
-        (9,  "video_1280x800.mp4",  "1280x800",  "16:10",  "lvds_large",  "1280x800",  "16:10",   "windowed",   "No resize (windowed)",                          "Yes"),
-        (10, "video_1280x800.mp4",  "1280x800",  "16:10",  "lvds_large",  "1280x800",  "16:10",   "fullscreen", "No resize (exact fit)",                         "Yes"),
-        (11, "video_1280x800.mp4",  "1280x800",  "16:10",  "monitor_4k",  "3840x2160", "16:9",    "windowed",   "No resize (windowed)",                          "No"),
-        (12, "video_1280x800.mp4",  "1280x800",  "16:10",  "monitor_4k",  "3840x2160", "16:9",    "fullscreen", "No resize (bars expected)",                     "No"),
-        (13, "video_1920x1080.mp4", "1920x1080", "16:9",   "lvds_small",  "800x480",   "5:3",     "windowed",   "No resize (windowed)",                          "No"),
-        (14, "video_1920x1080.mp4", "1920x1080", "16:9",   "lvds_small",  "800x480",   "5:3",     "fullscreen", "No resize (bars expected)",                     "No"),
-        (15, "video_1920x1080.mp4", "1920x1080", "16:9",   "lvds_large",  "1280x800",  "16:10",   "windowed",   "No resize (windowed)",                          "No"),
-        (16, "video_1920x1080.mp4", "1920x1080", "16:9",   "lvds_large",  "1280x800",  "16:10",   "fullscreen", "No resize (bars expected)",                     "No"),
-        (17, "video_1920x1080.mp4", "1920x1080", "16:9",   "monitor_4k",  "3840x2160", "16:9",    "windowed",   "No resize (windowed)",                          "Yes"),
-        (18, "video_1920x1080.mp4", "1920x1080", "16:9",   "monitor_4k",  "3840x2160", "16:9",    "fullscreen", "Resize needed (resolution mismatch)",           "Yes"),
-    ]
-
-    for r in rows:
-        print(f"{r[0]:<4} {r[1]:<25} {r[2]:<10} {r[3]:<8} {r[4]:<12} {r[5]:<12} {r[6]:<10} {r[7]:<10} {r[8]:<40} {r[9]}")
-
-    print("\nNotes:")
-    print("'No resize (bars expected)' means black bars may appear to preserve the original aspect ratio.")
-    print("'Resize needed' means the image will be resized and might look stretched or distorted.")
-    print("'Exact fit' means perfect match between video and screen — no distortion or bars.")
-    print("'AR Match' indicates if the video and display share the same aspect ratio (ideal scenario).")
+    print(
+        f"{'ID':<4} {'Video':<42} {'Video size':<12} "
+        f"{'Display':<12} {'Display size':<14} {'Mode'}"
+    )
+    print("-" * 103)
+    for index, combination in enumerate(COMBINATIONS, start=1):
+        video, video_res, display, display_res, mode = combination
+        video_size = f"{video_res[0]}x{video_res[1]}"
+        display_size = f"{display_res[0]}x{display_res[1]}"
+        print(
+            f"{index:<4} {video:<42} {video_size:<12} "
+            f"{display:<12} {display_size:<14} {mode}"
+        )
     exit(0)
