@@ -6,7 +6,7 @@
 set -eu
 
 ASSET_BASE_URL=${ASSET_BASE_URL:-}
-BIN_DIR=${BIN_DIR:-/usr/local/bin}
+BIN_DIR=${BIN_DIR:-/usr/bin}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
 VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-varigit/var-demos}
