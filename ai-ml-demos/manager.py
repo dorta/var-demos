@@ -208,17 +208,24 @@ def run_launcher(catalog, launcher, dashboard=True):
 def show_menu(platform, launchers):
     clear_screen()
     print("VARISCITE AI/ML DEMOS")
-    print(f"Platform: {platform}\n")
+    print(f"Platform: {platform}")
+    category = None
     for index, launcher in enumerate(launchers, start=1):
-        print(f"  {index}. {launcher['title']}")
+        if launcher.get("category") != category:
+            category = launcher.get("category")
+            print(f"\n{category}")
+        title = launcher.get("menu_title", launcher["title"])
+        description = launcher.get("description", "")
+        print(f"  {index}. {title:<9} {description}")
     print("\n  q. Quit")
+    print("\nDemos open fullscreen. Press Esc to close the display.")
 
 
 def interactive(catalog, platform, launchers):
     while True:
         show_menu(platform, launchers)
         try:
-            choice = input("\nSelect a demo: ").strip().lower()
+            choice = input("\nSelect a demo [1-7]: ").strip().lower()
         except (EOFError, KeyboardInterrupt):
             print()
             return 0

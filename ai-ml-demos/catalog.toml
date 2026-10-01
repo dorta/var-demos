@@ -43,41 +43,62 @@ manifest = "assets.manifest"
 [[launchers]]
 id = "classification-image"
 title = "Classify an image"
+category = "CLASSIFICATION"
+menu_title = "Image"
+description = "identify the main subject in a sample image"
 demo = "classification"
 command = ["python3", "image_classification.py"]
 
 [[launchers]]
 id = "classification-video"
 title = "Classify a video"
+category = "CLASSIFICATION"
+menu_title = "Video"
+description = "identify the main subject in each video frame"
 demo = "classification"
 command = ["python3", "video_classification.py", "--videofmw", "gstreamer"]
 
 [[launchers]]
 id = "classification-camera"
 title = "Classify the camera feed"
+category = "CLASSIFICATION"
+menu_title = "Camera"
+description = "classify the live camera feed"
 demo = "classification"
 command = ["python3", "realtime_classification.py", "--camera", "{camera}"]
 
 [[launchers]]
 id = "detection-image"
 title = "Detect objects in an image"
+category = "OBJECT DETECTION"
+menu_title = "Image"
+description = "locate and label objects in a sample image"
 demo = "detection"
 command = ["python3", "image_detection.py"]
 
 [[launchers]]
 id = "detection-video"
 title = "Detect objects in a video"
+category = "OBJECT DETECTION"
+menu_title = "Video"
+description = "locate and label objects in a sample video"
 demo = "detection"
 command = ["python3", "video_detection.py", "--videofmw", "gstreamer"]
 
 [[launchers]]
 id = "detection-camera"
 title = "Detect objects in the camera feed"
+category = "OBJECT DETECTION"
+menu_title = "Camera"
+description = "locate and label objects from the live camera"
 demo = "detection"
 command = ["python3", "realtime_detection.py", "--camera", "{camera}"]
 
 [[launchers]]
 id = "detection-hd-video"
 title = "Detect objects in a high-resolution video"
+category = "OBJECT DETECTION"
+menu_title = "HD video"
+description = "run the optimized high-resolution pipeline"
 demo = "high-resolution-video-detection"
 command = ["python3", "high-resolution-video-detection.py", "--combination", "2"]
