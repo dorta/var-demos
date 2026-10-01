@@ -8,6 +8,7 @@ set -eu
 ASSET_BASE_URL=${ASSET_BASE_URL:-}
 BIN_DIR=${BIN_DIR:-/usr/bin}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
+IN_PLACE=0
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
 VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-varigit/var-demos}
 
@@ -180,16 +181,25 @@ install_asset() {
         /*:*|*:/|*..*) fail "unsafe asset path in ${demo}" ;;
     esac
 
+    destination="${INSTALL_ROOT}/${demo}/${relative_path}"
     cache_file="${WORK_DIR}/assets/${expected}"
     if [ ! -f "${cache_file}" ]; then
-        echo "Downloading ${remote_path}"
-        download "${ASSET_BASE_URL}/${remote_path}" "${cache_file}.part"
-        printf '%s  %s\n' "${expected}" "${cache_file}.part" | \
-            sha256sum -c - >/dev/null
-        mv -f "${cache_file}.part" "${cache_file}"
+        if [ -f "${destination}" ] && \
+           printf '%s  %s\n' "${expected}" "${destination}" | \
+               sha256sum -c - >/dev/null 2>&1; then
+            echo "Using verified ${relative_path}"
+            cp "${destination}" "${cache_file}"
+        else
+            echo "Downloading ${remote_path}"
+            download \
+                "${ASSET_BASE_URL}/${remote_path}" \
+                "${cache_file}.part"
+            printf '%s  %s\n' "${expected}" "${cache_file}.part" | \
+                sha256sum -c - >/dev/null
+            mv -f "${cache_file}.part" "${cache_file}"
+        fi
     fi
 
-    destination="${INSTALL_ROOT}/${demo}/${relative_path}"
     install -d "$(dirname -- "${destination}")"
     install -m 0644 "${cache_file}" "${destination}"
 }
@@ -202,8 +212,10 @@ install_demo() {
 
     echo "Installing ${DEMO_TITLE}"
     install -d "${INSTALL_ROOT}/${DEMO_PATH}"
-    cp -R "${SOURCE_ROOT}/${DEMO_PATH}/." \
-        "${INSTALL_ROOT}/${DEMO_PATH}/"
+    if [ "${IN_PLACE}" -eq 0 ]; then
+        cp -R "${SOURCE_ROOT}/${DEMO_PATH}/." \
+            "${INSTALL_ROOT}/${DEMO_PATH}/"
+    fi
 
     manifest="${SOURCE_ROOT}/${DEMO_PATH}/${DEMO_MANIFEST}"
     while read -r expected remote_path relative_path; do
@@ -293,13 +305,20 @@ fi
 
 check_runtime
 install -d "${INSTALL_ROOT}"
-install -m 0755 "${SOURCE_ROOT}/install.sh" "${INSTALL_ROOT}/install.sh"
-install -m 0644 "${SOURCE_ROOT}/catalog.toml" \
-    "${INSTALL_ROOT}/catalog.toml"
-install -m 0755 "${SOURCE_ROOT}/catalog.py" \
-    "${INSTALL_ROOT}/catalog.py"
-install -m 0755 "${SOURCE_ROOT}/manager.py" \
-    "${INSTALL_ROOT}/manager.py"
+source_path=$(CDPATH= cd -- "${SOURCE_ROOT}" && pwd)
+install_path=$(CDPATH= cd -- "${INSTALL_ROOT}" && pwd)
+if [ "${source_path}" = "${install_path}" ]; then
+    IN_PLACE=1
+else
+    install -m 0755 "${SOURCE_ROOT}/install.sh" \
+        "${INSTALL_ROOT}/install.sh"
+    install -m 0644 "${SOURCE_ROOT}/catalog.toml" \
+        "${INSTALL_ROOT}/catalog.toml"
+    install -m 0755 "${SOURCE_ROOT}/catalog.py" \
+        "${INSTALL_ROOT}/catalog.py"
+    install -m 0755 "${SOURCE_ROOT}/manager.py" \
+        "${INSTALL_ROOT}/manager.py"
+fi
 selected_demos | while read -r demo; do
     install_demo "${demo}"
 done
