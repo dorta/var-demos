@@ -1,8 +1,8 @@
 # Copyright 2025 Variscite Ltd.
 # SPDX-License-Identifier: BSD-3-Clause
 
-import colorsys
-import random
+import collections
+import os
 import re
 from contextlib import contextmanager
 from datetime import timedelta
@@ -25,6 +25,18 @@ FONT = {
     },
     'thickness': 2
 }
+
+PALETTE = (
+    (34, 211, 167),
+    (56, 189, 248),
+    (251, 191, 36),
+    (167, 139, 250),
+    (251, 113, 133),
+    (163, 230, 53),
+)
+PANEL_COLOR = (24, 28, 32)
+TEXT_COLOR = (242, 244, 246)
+MUTED_COLOR = (184, 190, 196)
 
 COMBINATIONS = [
     ("assets/videos/video_1280x720.mp4", (1280, 720), "lvds_small", (800, 480), "windowed"),
@@ -78,6 +90,20 @@ class Timer:
     def convert(self, elapsed):
         self.time = str(timedelta(seconds=elapsed))
 
+
+class Framerate:
+    def __init__(self):
+        self.fps = 0.0
+        self.last_update = monotonic()
+        self.window = collections.deque(maxlen=30)
+
+    def update(self):
+        now = monotonic()
+        self.window.append(now - self.last_update)
+        self.last_update = now
+        self.fps = len(self.window) / sum(self.window)
+        return self.fps
+
 @contextmanager
 def debug_profile(name, enabled):
     start = monotonic()
@@ -91,71 +117,126 @@ def load_labels(path):
         lines = (p.match(line).groups() for line in f.readlines())
         return {int(num): text.strip() for num, text in lines}
 
-def generate_colors(labels):
-    hsv_tuples = [(x / len(labels), 1., 1.) for x in range(len(labels))]
-    colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-    colors = list(map(lambda x: (int(x[0] * 255), int(x[1] * 255),
-                                 int(x[2] * 255)), colors))
-    random.seed(10101)
-    random.shuffle(colors)
-    random.seed(None)
-    return colors
+def _blend_panel(frame, left, top, right, bottom, opacity=0.78):
+    left = max(0, left)
+    top = max(0, top)
+    right = min(frame.shape[1], right)
+    bottom = min(frame.shape[0], bottom)
+    if left >= right or top >= bottom:
+        return
+    region = frame[top:bottom, left:right]
+    panel = np.full_like(region, PANEL_COLOR)
+    cv2.addWeighted(panel, opacity, region, 1 - opacity, 0, region)
 
-def put_info_on_frame(frame, results, inf_time, labels, model_name, source_file):
-    colors = generate_colors(labels)
-    inference_position = (3, 20)
-    frame_height, frame_width, _ = frame.shape
 
+def _inference_ms(value):
+    hours, minutes, seconds = str(value).split(':')
+    total = float(hours) * 3600 + float(minutes) * 60 + float(seconds)
+    return total * 1000
+
+
+def _draw_badge(frame, text, row=0):
+    scale = 0.48
+    size, baseline = cv2.getTextSize(text, FONT['hershey'], scale, 1)
+    right = frame.shape[1] - 10
+    top = 10 + row * (size[1] + baseline + 22)
+    left = right - size[0] - 18
+    bottom = top + size[1] + baseline + 14
+    _blend_panel(frame, left, top, right, bottom)
+    cv2.putText(
+        frame, text, (left + 9, bottom - 7 - baseline),
+        FONT['hershey'], scale, TEXT_COLOR, 1, cv2.LINE_AA
+    )
+
+
+def _draw_metadata(frame, model_name, source_file):
+    scale = 0.42
+    lines = (
+        ('MODEL', os.path.basename(str(model_name))),
+        ('SOURCE', os.path.basename(str(source_file))),
+    )
+    rendered = [f'{key}  {value}' for key, value in lines]
+    sizes = [
+        cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
+        for text in rendered
+    ]
+    width = min(frame.shape[1] - 20, max(size[0] for size in sizes) + 20)
+    line_height = max(size[1] for size in sizes) + 8
+    left = 10
+    bottom = frame.shape[0] - 10
+    top = bottom - line_height * len(rendered) - 8
+    _blend_panel(frame, left, top, left + width, bottom, 0.72)
+    for index, ((key, value), size) in enumerate(zip(lines, sizes)):
+        y = top + 10 + index * line_height + size[1]
+        cv2.putText(
+            frame, key, (left + 10, y), FONT['hershey'], scale,
+            MUTED_COLOR, 1, cv2.LINE_AA
+        )
+        key_width = cv2.getTextSize(
+            f'{key}  ', FONT['hershey'], scale, 1
+        )[0][0]
+        cv2.putText(
+            frame, value, (left + 10 + key_width, y), FONT['hershey'],
+            scale, TEXT_COLOR, 1, cv2.LINE_AA
+        )
+
+
+def _draw_box(frame, bounds, label, color):
+    left, top, right, bottom = bounds
+    width = max(1, right - left)
+    height = max(1, bottom - top)
+    corner = max(10, min(24, width // 5, height // 5))
+    cv2.rectangle(frame, (left, top), (right, bottom), color, 1)
+    for start, end in (
+        ((left, top), (left + corner, top)),
+        ((left, top), (left, top + corner)),
+        ((right, top), (right - corner, top)),
+        ((right, top), (right, top + corner)),
+        ((left, bottom), (left + corner, bottom)),
+        ((left, bottom), (left, bottom - corner)),
+        ((right, bottom), (right - corner, bottom)),
+        ((right, bottom), (right, bottom - corner)),
+    ):
+        cv2.line(frame, start, end, color, 3, cv2.LINE_AA)
+
+    scale = 0.46
+    text_size, baseline = cv2.getTextSize(label, FONT['hershey'], scale, 1)
+    label_height = text_size[1] + baseline + 10
+    label_top = top - label_height if top >= label_height + 4 else top
+    label_right = min(frame.shape[1] - 1, left + text_size[0] + 14)
+    cv2.rectangle(
+        frame, (left, label_top), (label_right, label_top + label_height),
+        color, -1
+    )
+    cv2.putText(
+        frame, label, (left + 7, label_top + text_size[1] + 5),
+        FONT['hershey'], scale, PANEL_COLOR, 1, cv2.LINE_AA
+    )
+
+
+def put_info_on_frame(frame, results, inf_time, labels, model_name,
+                      source_file, fps=None):
+    frame_height, frame_width = frame.shape[:2]
     for obj in results:
         y_min, x_min, y_max, x_max = obj['box']
-        _id = obj['class']
-        score = obj['score']
+        class_id = int(obj['class'])
+        left = max(0, min(frame_width - 1, int(x_min * frame_width)))
+        right = max(0, min(frame_width - 1, int(x_max * frame_width)))
+        top = max(0, min(frame_height - 1, int(y_min * frame_height)))
+        bottom = max(0, min(frame_height - 1, int(y_max * frame_height)))
+        if right <= left or bottom <= top:
+            continue
+        name = labels.get(class_id, f'class {class_id}')
+        label = f"{name}  {obj['score']:.0%}"
+        _draw_box(
+            frame, (left, top, right, bottom), label,
+            PALETTE[class_id % len(PALETTE)]
+        )
 
-        x1 = int(x_min * frame_width)
-        x2 = int(x_max * frame_width)
-        y1 = int(y_min * frame_height)
-        y2 = int(y_max * frame_height)
-
-        top = max(0, y1)
-        left = max(0, x1)
-        bottom = min(frame_height, y2)
-        right = min(frame_width, x2)
-
-        label = f"{labels.get(_id, 'Unknown')} {score:.2f}"
-
-        label_size = cv2.getTextSize(label, FONT['hershey'], FONT['size'], FONT['thickness'])[0]
-        label_rect_left = int(left - 3)
-        label_rect_top = int(top - 3)
-        label_rect_right = int(left + 3 + label_size[0])
-        label_rect_bottom = int(top - 5 - label_size[1])
-
-        color = colors[_id % len(colors)]
-
-        cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-        cv2.rectangle(frame, (label_rect_left, label_rect_top), (label_rect_right, label_rect_bottom), color, -1)
-        cv2.putText(frame, label, (left, int(top - 4)), FONT['hershey'], FONT['size'],
-                    FONT['color']['black'], FONT['thickness'])
-
-    if inf_time:
-        cv2.putText(frame, f"INFERENCE TIME: {inf_time}", inference_position,
-                    FONT['hershey'], 0.5, FONT['color']['black'], 2, cv2.LINE_AA)
-        cv2.putText(frame, f"INFERENCE TIME: {inf_time}", inference_position,
-                    FONT['hershey'], 0.5, FONT['color']['white'], 1, cv2.LINE_AA)
-
-    y_offset = frame.shape[0] - cv2.getTextSize(source_file, FONT['hershey'], 0.5, 2)[0][1]
-
-    cv2.putText(frame, f"SOURCE: {source_file}", (3, y_offset),
-                FONT['hershey'], 0.5, FONT['color']['black'], 2, cv2.LINE_AA)
-    cv2.putText(frame, f"SOURCE: {source_file}", (3, y_offset),
-                FONT['hershey'], 0.5, FONT['color']['white'], 1, cv2.LINE_AA)
-
-    y_offset -= (cv2.getTextSize(model_name, FONT['hershey'], 0.5, 2)[0][1] + 3)
-
-    cv2.putText(frame, f"MODEL: {model_name}", (3, y_offset),
-                FONT['hershey'], 0.5, FONT['color']['black'], 2, cv2.LINE_AA)
-    cv2.putText(frame, f"MODEL: {model_name}", (3, y_offset),
-                FONT['hershey'], 0.5, FONT['color']['white'], 1, cv2.LINE_AA)
-
+    _draw_badge(frame, f'INFERENCE  {_inference_ms(inf_time):.1f} ms')
+    if fps is not None:
+        _draw_badge(frame, f'FPS  {fps:.1f}', row=1)
+    _draw_metadata(frame, model_name, source_file)
     return frame
 
 

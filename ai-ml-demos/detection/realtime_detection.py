@@ -66,7 +66,11 @@ def image_detection(args):
             result = []
             for idx, score in enumerate(scores):
                 if score > 0.5:
-                    result.append({'pos': positions[idx], '_id': classes[idx]})
+                    result.append({
+                        'pos': positions[idx],
+                        '_id': classes[idx],
+                        'score': float(score),
+                    })
 
             frame = put_info_on_frame(frame, result, timer.time, labels,
                                       args['model'], args['camera'])

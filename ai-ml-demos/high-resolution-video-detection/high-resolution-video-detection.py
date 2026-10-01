@@ -14,7 +14,8 @@ from gi.repository import Gst
 from tflite_runtime.interpreter import Interpreter, load_delegate
 
 from utils import (
-    Timer, put_info_on_frame, load_labels, debug_profile, COMBINATIONS,
+    Framerate, Timer, put_info_on_frame, load_labels, debug_profile,
+    COMBINATIONS,
     profile, resize_with_letterbox, show_available_combinations
 )
 
@@ -149,6 +150,7 @@ def main(args):
 
     pipeline, sink = open_gst_pipeline(video, args.debug)
     timer = Timer()
+    framerate = Framerate()
     frame_count = 0
     detected_frames = 0
     detection_count = 0
@@ -178,8 +180,10 @@ def main(args):
         detection_count += len(results)
         if results:
             detected_frames += 1
-        frame = put_info_on_frame(frame, results, timer.time, labels,
-                                  args.model, video)
+        fps = framerate.update()
+        frame = put_info_on_frame(
+            frame, results, timer.time, labels, args.model, video, fps
+        )
 
         if mode == "fullscreen":
             frame = resize_with_letterbox(frame, display_res)
