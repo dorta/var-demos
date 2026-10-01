@@ -213,19 +213,21 @@ def show_menu(platform, launchers):
     for index, launcher in enumerate(launchers, start=1):
         if launcher.get("category") != category:
             category = launcher.get("category")
-            print(f"\n{category}")
+            print(category)
         title = launcher.get("menu_title", launcher["title"])
         description = launcher.get("description", "")
         print(f"  {index}. {title:<9} {description}")
     print("\n  q. Quit")
-    print("\nDemos open fullscreen. Press Esc to close the display.")
+    print("Demos open fullscreen. Press Esc to close the display.")
 
 
 def interactive(catalog, platform, launchers):
     while True:
         show_menu(platform, launchers)
         try:
-            choice = input("\nSelect a demo [1-7]: ").strip().lower()
+            choice = input(
+                f"\nSelect a demo [1-{len(launchers)}]: "
+            ).strip().lower()
         except (EOFError, KeyboardInterrupt):
             print()
             return 0

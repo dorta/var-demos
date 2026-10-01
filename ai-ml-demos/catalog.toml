@@ -96,9 +96,27 @@ command = ["python3", "realtime_detection.py", "--camera", "{camera}"]
 
 [[launchers]]
 id = "detection-hd-video"
-title = "Detect objects in a high-resolution video"
-category = "OBJECT DETECTION"
-menu_title = "HD video"
-description = "run the optimized high-resolution pipeline"
+title = "Detect objects in a 720p video"
+category = "HIGH-RESOLUTION DETECTION"
+menu_title = "HD 720p"
+description = "run the optimized pipeline with 1280x720 video"
 demo = "high-resolution-video-detection"
 command = ["python3", "high-resolution-video-detection.py", "--combination", "2"]
+
+[[launchers]]
+id = "detection-wxga-video"
+title = "Detect objects in a 1280x800 video"
+category = "HIGH-RESOLUTION DETECTION"
+menu_title = "1280x800"
+description = "match the native resolution of a large LVDS display"
+demo = "high-resolution-video-detection"
+command = ["python3", "high-resolution-video-detection.py", "--combination", "8"]
+
+[[launchers]]
+id = "detection-full-hd-video"
+title = "Detect objects in a Full HD video"
+category = "HIGH-RESOLUTION DETECTION"
+menu_title = "Full HD"
+description = "run the optimized pipeline with 1920x1080 video"
+demo = "high-resolution-video-detection"
+command = ["python3", "high-resolution-video-detection.py", "--combination", "14"]
