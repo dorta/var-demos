@@ -4,7 +4,7 @@ version = 1
 name = "i.MX 8M Plus"
 compatible = ["fsl,imx8mp"]
 status = "validated"
-asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1"
+asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v2"
 
 [platforms.imx93]
 name = "i.MX 93"

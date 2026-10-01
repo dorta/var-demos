@@ -36,7 +36,7 @@ transient failures, and validates every file with SHA-256. By default it uses
 the versioned URL:
 
 ```text
-https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v1
+https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v2
 ```
 
 `ASSET_BASE_URL` and `INSTALL_ROOT` can be overridden in the environment. For
@@ -45,6 +45,11 @@ example:
 ```sh
 INSTALL_ROOT=/home/root/demos ./install.sh high-resolution-video-detection
 ```
+
+The validation videos are derived from
+[Jijiga](https://commons.wikimedia.org/wiki/File:Jijiga.ogv), recorded by
+Brian Dell and released under CC0 1.0. The installer provides H.264 variants
+at 1280x720, 1280x800, and 1920x1080.
 
 You can also:
 
