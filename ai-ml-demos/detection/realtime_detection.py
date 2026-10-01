@@ -16,13 +16,15 @@ except ImportError:
     sys.exit("No TensorFlow Lite Runtime module found!")
 
 from helper.config import TITLE
-from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
+from helper.opencv import (
+    create_window, fit_to_display, put_info_on_frame, put_fps_on_frame
+)
 from helper.utils import get_tensor, load_labels, Timer, Framerate
 
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
-def open_video_capture(width = 640, height = 480, framerate = "30/1"):
+def open_video_capture(width=720, height=480, framerate="30/1"):
     pipeline = "v4l2src device={} ! video/x-raw,width={},height={}," \
                "framerate={} ! queue leaky=downstream " \
                "max-size-buffers=1 ! videoconvert ! " \
@@ -50,6 +52,7 @@ def image_detection(args):
             check, frame = video_capture.read()
             if check is not True:
                 break
+            frame = fit_to_display(frame, args['windowed'])
 
             resized_frame = cv2.resize(frame, (model_width, model_height))
             resized_frame = np.expand_dims(resized_frame, axis = 0)

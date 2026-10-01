@@ -22,6 +22,44 @@ def create_window(title, windowed=False):
             title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
         )
 
+
+def fit_to_display(frame, windowed=False):
+    if windowed:
+        return frame
+
+    size = os.environ.get('VAR_AI_DISPLAY_SIZE')
+    if not size:
+        try:
+            with open(
+                '/sys/class/graphics/fb0/virtual_size',
+                encoding='utf-8'
+            ) as size_file:
+                size = size_file.read().strip()
+        except OSError:
+            return frame
+
+    try:
+        target_width, target_height = (
+            int(value) for value in size.replace('x', ',').split(',')
+        )
+    except ValueError:
+        return frame
+
+    frame_height, frame_width = frame.shape[:2]
+    target_ratio = target_width / target_height
+    frame_ratio = frame_width / frame_height
+    if frame_ratio > target_ratio:
+        crop_width = round(frame_height * target_ratio)
+        left = (frame_width - crop_width) // 2
+        frame = frame[:, left:left + crop_width]
+    elif frame_ratio < target_ratio:
+        crop_height = round(frame_width / target_ratio)
+        top = (frame_height - crop_height) // 2
+        frame = frame[top:top + crop_height, :]
+
+    return cv2.resize(frame, (target_width, target_height))
+
+
 def _blend_panel(frame, left, top, right, bottom, opacity=0.78):
     region = frame[top:bottom, left:right]
     panel = np.full_like(region, PANEL_COLOR)
