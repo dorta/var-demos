@@ -17,6 +17,7 @@ DRY_RUN=0
 LIST_ONLY=0
 REQUESTED_DEMOS=
 SOURCE_ROOT=
+UNINSTALL=0
 WORK_DIR=
 
 usage() {
@@ -32,6 +33,7 @@ Options:
   --list              List demos compatible with the detected board
   --prefix DIRECTORY  Installation directory
   --source DIRECTORY  Use a local ai-ml-demos source tree
+  --uninstall         Remove var-ai and every installed demo
   -h, --help          Show this help
 
 Known board ids are defined in catalog.toml.
@@ -41,6 +43,58 @@ EOF
 fail() {
     echo "Error: $*" >&2
     exit 1
+}
+
+validate_removal_path() {
+    path=$1
+    case "${path}" in
+        ''|/|/opt|/usr|/usr/bin|/home|/root|.|..)
+            fail "refusing unsafe removal path: ${path}"
+            ;;
+        /*) ;;
+        *) fail "removal path must be absolute: ${path}" ;;
+    esac
+}
+
+uninstall_demos() {
+    validate_removal_path "${INSTALL_ROOT}"
+    launcher="${BIN_DIR}/var-ai"
+    manager="${INSTALL_ROOT}/manager.py"
+
+    if [ "${DRY_RUN}" -eq 1 ]; then
+        echo "Would remove: ${INSTALL_ROOT}"
+        if [ -L "${launcher}" ] && \
+           [ "$(readlink "${launcher}")" = "${manager}" ]; then
+            echo "Would remove: ${launcher}"
+        fi
+        return
+    fi
+
+    if [ -e "${INSTALL_ROOT}" ]; then
+        [ -f "${INSTALL_ROOT}/manager.py" ] && \
+            [ -f "${INSTALL_ROOT}/catalog.toml" ] || \
+            fail "refusing to remove an unrecognized installation"
+    fi
+
+    if [ -L "${launcher}" ]; then
+        if [ "$(readlink "${launcher}")" = "${manager}" ]; then
+            rm -f -- "${launcher}"
+            echo "Removed ${launcher}"
+        else
+            echo "Keeping unrelated symlink: ${launcher}"
+        fi
+    elif [ -e "${launcher}" ]; then
+        echo "Keeping unrelated file: ${launcher}"
+    fi
+
+    if [ -e "${INSTALL_ROOT}" ]; then
+        rm -rf -- "${INSTALL_ROOT}"
+        echo "Removed ${INSTALL_ROOT}"
+    else
+        echo "Nothing installed at ${INSTALL_ROOT}"
+    fi
+
+    echo "Uninstall complete"
 }
 
 require_command() {
@@ -259,6 +313,10 @@ while [ "$#" -gt 0 ]; do
             SOURCE_ROOT=$2
             shift 2
             ;;
+        --uninstall)
+            UNINSTALL=1
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -270,6 +328,17 @@ while [ "$#" -gt 0 ]; do
             ;;
     esac
 done
+
+if [ "${UNINSTALL}" -eq 1 ]; then
+    [ "${LIST_ONLY}" -eq 0 ] || \
+        fail "--uninstall cannot be combined with --list"
+    [ -z "${REQUESTED_DEMOS}" ] || \
+        fail "--uninstall does not accept demo names"
+    require_command readlink
+    require_command rm
+    uninstall_demos
+    exit 0
+fi
 
 require_command install
 require_command python3

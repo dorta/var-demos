@@ -34,3 +34,14 @@ to start a demo. Press `Ctrl+C` to stop it and return to the menu.
 
 Models and media are downloaded separately and verified with SHA-256 during
 installation. Developer documentation is available inside each demo folder.
+
+== Uninstall
+
+Run the installed uninstaller as `root`:
+
+[source,console]
+----
+/opt/var-demos/ai-ml/install.sh --uninstall
+----
+
+Use `--dry-run` together with `--uninstall` to preview the paths first.
