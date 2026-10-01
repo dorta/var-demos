@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
+from functools import lru_cache
 
 import cv2
 import numpy as np
@@ -23,10 +24,8 @@ def create_window(title, windowed=False):
         )
 
 
-def fit_to_display(frame, windowed=False):
-    if windowed:
-        return frame
-
+@lru_cache(maxsize=1)
+def _display_size():
     size = os.environ.get('VAR_AI_DISPLAY_SIZE')
     if not size:
         try:
@@ -36,14 +35,23 @@ def fit_to_display(frame, windowed=False):
             ) as size_file:
                 size = size_file.read().strip()
         except OSError:
-            return frame
-
+            return None
     try:
-        target_width, target_height = (
+        return tuple(
             int(value) for value in size.replace('x', ',').split(',')
         )
     except ValueError:
+        return None
+
+
+def fit_to_display(frame, windowed=False):
+    if windowed:
         return frame
+
+    display_size = _display_size()
+    if display_size is None:
+        return frame
+    target_width, target_height = display_size
 
     frame_height, frame_width = frame.shape[:2]
     target_ratio = target_width / target_height
