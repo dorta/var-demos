@@ -36,7 +36,6 @@ PALETTE = (
 )
 PANEL_COLOR = (24, 28, 32)
 TEXT_COLOR = (242, 244, 246)
-MUTED_COLOR = (184, 190, 196)
 
 COMBINATIONS = [
     ("assets/videos/video_1280x720.mp4", (1280, 720), "lvds_small", (800, 480), "windowed"),
@@ -149,36 +148,26 @@ def _draw_badge(frame, text, row=0):
     )
 
 
-def _draw_metadata(frame, model_name, source_file):
+def _model_title(model_name):
+    name = os.path.basename(str(model_name)).lower()
+    if 'ssd_mobilenet_v1' in name:
+        return 'SSD MobileNet V1 | NPU'
+    return f"{os.path.splitext(name)[0].replace('_', ' ')} | NPU"
+
+
+def _draw_model(frame, model_name):
     scale = 0.42
-    lines = (
-        ('MODEL', os.path.basename(str(model_name))),
-        ('SOURCE', os.path.basename(str(source_file))),
-    )
-    rendered = [f'{key}  {value}' for key, value in lines]
-    sizes = [
-        cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
-        for text in rendered
-    ]
-    width = min(frame.shape[1] - 20, max(size[0] for size in sizes) + 20)
-    line_height = max(size[1] for size in sizes) + 8
+    text = _model_title(model_name)
+    size = cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
+    width = min(frame.shape[1] - 20, size[0] + 20)
     left = 10
     bottom = frame.shape[0] - 10
-    top = bottom - line_height * len(rendered) - 8
+    top = bottom - size[1] - 18
     _blend_panel(frame, left, top, left + width, bottom, 0.72)
-    for index, ((key, value), size) in enumerate(zip(lines, sizes)):
-        y = top + 10 + index * line_height + size[1]
-        cv2.putText(
-            frame, key, (left + 10, y), FONT['hershey'], scale,
-            MUTED_COLOR, 1, cv2.LINE_AA
-        )
-        key_width = cv2.getTextSize(
-            f'{key}  ', FONT['hershey'], scale, 1
-        )[0][0]
-        cv2.putText(
-            frame, value, (left + 10 + key_width, y), FONT['hershey'],
-            scale, TEXT_COLOR, 1, cv2.LINE_AA
-        )
+    cv2.putText(
+        frame, text, (left + 10, bottom - 9), FONT['hershey'], scale,
+        TEXT_COLOR, 1, cv2.LINE_AA
+    )
 
 
 def _draw_box(frame, bounds, label, color):
@@ -215,7 +204,7 @@ def _draw_box(frame, bounds, label, color):
 
 
 def put_info_on_frame(frame, results, inf_time, labels, model_name,
-                      source_file, fps=None):
+                      _source_file, fps=None):
     frame_height, frame_width = frame.shape[:2]
     for obj in results:
         y_min, x_min, y_max, x_max = obj['box']
@@ -236,7 +225,7 @@ def put_info_on_frame(frame, results, inf_time, labels, model_name,
     _draw_badge(frame, f'INFERENCE  {_inference_ms(inf_time):.1f} ms')
     if fps is not None:
         _draw_badge(frame, f'FPS  {fps:.1f}', row=1)
-    _draw_metadata(frame, model_name, source_file)
+    _draw_model(frame, model_name)
     return frame
 
 

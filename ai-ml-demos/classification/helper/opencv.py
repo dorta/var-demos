@@ -72,9 +72,11 @@ def _inference_ms(value):
     return total * 1000
 
 
-def _source_name(source):
-    source = str(source)
-    return source if source.startswith('/dev/') else os.path.basename(source)
+def _model_title(model_name):
+    name = os.path.basename(str(model_name)).lower()
+    if 'mobilenet_v1' in name:
+        return 'MobileNet V1 | NPU'
+    return f"{os.path.splitext(name)[0].replace('_', ' ')} | NPU"
 
 
 def _draw_badge(frame, text, row=0):
@@ -116,35 +118,26 @@ def _draw_results(frame, top_result, labels):
         )
 
 
-def _draw_metadata(frame, model_name, source_file):
+def _draw_model(frame, model_name):
     scale = 0.42
-    lines = (
-        f'MODEL  {os.path.basename(str(model_name))}',
-        f'SOURCE  {_source_name(source_file)}',
-    )
-    sizes = [
-        cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
-        for text in lines
-    ]
-    width = min(frame.shape[1] - 20, max(size[0] for size in sizes) + 20)
-    line_height = max(size[1] for size in sizes) + 8
+    text = _model_title(model_name)
+    size = cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
+    width = min(frame.shape[1] - 20, size[0] + 20)
     left = 10
     bottom = frame.shape[0] - 10
-    top = bottom - line_height * len(lines) - 8
+    top = bottom - size[1] - 18
     _blend_panel(frame, left, top, left + width, bottom, 0.72)
-    for row, (text, size) in enumerate(zip(lines, sizes)):
-        y = top + 10 + row * line_height + size[1]
-        cv2.putText(
-            frame, text, (left + 10, y), FONT['hershey'], scale,
-            TEXT_COLOR, 1, cv2.LINE_AA
-        )
+    cv2.putText(
+        frame, text, (left + 10, bottom - 9), FONT['hershey'], scale,
+        TEXT_COLOR, 1, cv2.LINE_AA
+    )
 
 
 def put_info_on_frame(frame, top_result, labels,
-                      inference_time, model_name, source_file):
+                      inference_time, model_name, _source_file):
     _draw_results(frame, top_result, labels)
     _draw_badge(frame, f'INFERENCE  {_inference_ms(inference_time):.1f} ms')
-    _draw_metadata(frame, model_name, source_file)
+    _draw_model(frame, model_name)
     return frame
 
 
