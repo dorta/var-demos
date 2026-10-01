@@ -43,7 +43,7 @@ def image_detection(args):
     model_height, model_width = input_details[0]['shape'][1:3]
 
     video_capture = open_video_capture()
-    create_window(TITLE, args['windowed'])
+    window_created = False
     framerate = Framerate()
     while video_capture.isOpened():
         with framerate.fpsit():
@@ -75,6 +75,9 @@ def image_detection(args):
             frame = put_info_on_frame(frame, result, timer.time, labels,
                                       args['model'], args['camera'])
             frame = put_fps_on_frame(frame, framerate.fps)
+            if not window_created:
+                create_window(TITLE, args['windowed'])
+                window_created = True
             cv2.imshow(TITLE, frame)
             if cv2.waitKey(1) == 27:
                 break

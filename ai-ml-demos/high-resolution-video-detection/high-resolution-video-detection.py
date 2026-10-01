@@ -155,14 +155,7 @@ def main(args):
     detected_frames = 0
     detection_count = 0
 
-    if args.headless:
-        pass
-    elif mode == "fullscreen":
-        cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty("Detection", cv2.WND_PROP_FULLSCREEN,
-                              cv2.WINDOW_FULLSCREEN)
-    else:
-        cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
+    window_created = False
 
     while True:
         frame = gst_read_frame(sink, args.debug)
@@ -189,6 +182,14 @@ def main(args):
             frame = resize_with_letterbox(frame, display_res)
 
         if not args.headless:
+            if not window_created:
+                cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
+                if mode == "fullscreen":
+                    cv2.setWindowProperty(
+                        "Detection", cv2.WND_PROP_FULLSCREEN,
+                        cv2.WINDOW_FULLSCREEN
+                    )
+                window_created = True
             cv2.imshow("Detection", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
             if cv2.waitKey(1) == 27:
                 break

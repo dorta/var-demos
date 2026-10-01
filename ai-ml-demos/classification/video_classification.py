@@ -45,7 +45,7 @@ def video_classification(args):
     _, height, width, _ = input_details[0]['shape']
 
     video_capture = open_video_capture(args)
-    create_window(TITLE, args['windowed'])
+    window_created = False
     framerate = Framerate()
     while video_capture.isOpened():
         with framerate.fpsit():
@@ -73,6 +73,9 @@ def video_classification(args):
             frame = put_info_on_frame(frame, result, labels,
                                       timer.time, args['model'], args['video'])
             frame = put_fps_on_frame(frame, framerate.fps)
+            if not window_created:
+                create_window(TITLE, args['windowed'])
+                window_created = True
             cv2.imshow(TITLE, frame)
             if cv2.waitKey(1) == 27:
                 break
