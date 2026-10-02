@@ -9,6 +9,7 @@ ASSET_BASE_URL=${ASSET_BASE_URL:-}
 BIN_DIR=${BIN_DIR:-/usr/bin}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
 IN_PLACE=0
+PREFETCH_ONLY=0
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
 VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-dorta/var-demos}
 
@@ -298,8 +299,20 @@ install_asset() {
         fi
     fi
 
+    [ "${PREFETCH_ONLY:-0}" -eq 0 ] || return 0
     install -d "$(dirname -- "${destination}")"
     install -m 0644 "${cache_file}" "${destination}"
+}
+
+prepare_demo_assets() {
+    manifest="${SOURCE_ROOT}/${DEMO_PATH}/${DEMO_MANIFEST}"
+    while read -r expected remote_path relative_path; do
+        case "${expected}" in
+            ''|'#'*) continue ;;
+        esac
+        install_asset "${DEMO_PATH}" "${expected}" \
+            "${remote_path}" "${relative_path}"
+    done < "${manifest}"
 }
 
 install_demo() {
@@ -315,14 +328,7 @@ install_demo() {
             "${INSTALL_ROOT}/${DEMO_PATH}/"
     fi
 
-    manifest="${SOURCE_ROOT}/${DEMO_PATH}/${DEMO_MANIFEST}"
-    while read -r expected remote_path relative_path; do
-        case "${expected}" in
-            ''|'#'*) continue ;;
-        esac
-        install_asset "${DEMO_PATH}" "${expected}" \
-            "${remote_path}" "${relative_path}"
-    done < "${manifest}"
+    prepare_demo_assets
 
     echo "  Run: cd ${INSTALL_ROOT}/${DEMO_PATH} && ${DEMO_ENTRYPOINT}"
 }
@@ -432,6 +438,15 @@ fi
 
 check_runtime
 ensure_not_running
+PREFETCH_ONLY=1
+selected_demos | while read -r demo; do
+    load_demo "${demo}"
+    demo_is_compatible "${demo}" || \
+        fail "${demo} is not compatible with ${BOARD}"
+    echo "Preparing assets for ${DEMO_TITLE}"
+    prepare_demo_assets
+done
+PREFETCH_ONLY=0
 install -d "${INSTALL_ROOT}"
 source_path=$(CDPATH= cd -- "${SOURCE_ROOT}" && pwd)
 install_path=$(CDPATH= cd -- "${INSTALL_ROOT}" && pwd)
