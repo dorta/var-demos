@@ -60,11 +60,20 @@ def image_detection(args):
                 'score': float(score),
             })
 
-    image = put_info_on_frame(image, result, timer.time, labels,
-                              args['model'], args['image'])
     create_window(TITLE, args['windowed'])
-    cv2.imshow(TITLE, image)
-    cv2.waitKey()
+    try:
+        while True:
+            frame = put_info_on_frame(
+                image.copy(), result, timer.time, labels,
+                args['model'], args['image'],
+            )
+            cv2.imshow(TITLE, frame)
+            if cv2.waitKey(1000) >= 0:
+                break
+            if cv2.getWindowProperty(TITLE, cv2.WND_PROP_VISIBLE) < 1:
+                break
+    finally:
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
