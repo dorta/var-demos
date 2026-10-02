@@ -120,8 +120,8 @@ detect_board() {
 }
 
 download() {
-    url=$1
-    destination=$2
+    download_url=$1
+    download_destination=$2
 
     curl \
         --fail \
@@ -129,8 +129,8 @@ download() {
         --retry 5 \
         --retry-all-errors \
         --connect-timeout 15 \
-        --output "${destination}" \
-        "${url}"
+        --output "${download_destination}" \
+        "${download_url}"
 }
 
 fetch_source() {
