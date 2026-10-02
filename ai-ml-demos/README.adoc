@@ -18,7 +18,7 @@ Run as `root` on the target:
 [source,console]
 ----
 curl -fsSL \
-  https://raw.githubusercontent.com/varigit/var-demos/demos/ai-ml-demos/install.sh \
+  https://raw.githubusercontent.com/dorta/var-demos/demos/ai-ml-demos/install.sh \
   | sh
 ----
 
@@ -34,6 +34,9 @@ to start a demo. Press `Ctrl+C` to stop it and return to the menu.
 
 Models and media are downloaded separately and verified with SHA-256 during
 installation. Developer documentation is available inside each demo folder.
+
+Run the install command again to update code and media. Files that already
+match the current SHA-256 manifest are reused.
 
 == Uninstall
 

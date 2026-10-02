@@ -10,7 +10,7 @@ BIN_DIR=${BIN_DIR:-/usr/bin}
 INSTALL_ROOT=${INSTALL_ROOT:-/opt/var-demos/ai-ml}
 IN_PLACE=0
 VAR_DEMOS_REF=${VAR_DEMOS_REF:-demos}
-VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-varigit/var-demos}
+VAR_DEMOS_REPOSITORY=${VAR_DEMOS_REPOSITORY:-dorta/var-demos}
 
 BOARD=
 DRY_RUN=0
@@ -47,12 +47,16 @@ fail() {
 
 validate_removal_path() {
     path=$1
+    [ ! -L "${path}" ] || fail "installation root must not be a symlink"
     case "${path}" in
         ''|/|/opt|/usr|/usr/bin|/home|/root|.|..)
             fail "refusing unsafe removal path: ${path}"
             ;;
         /*) ;;
         *) fail "removal path must be absolute: ${path}" ;;
+    esac
+    case "${path}/" in
+        *'/../'*|*'/./'*|*'//'*) fail "unsafe removal path: ${path}" ;;
     esac
 }
 
@@ -137,7 +141,8 @@ fetch_source() {
 
     script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd || true)
     if [ -n "${script_dir}" ] && \
-       [ -f "${script_dir}/catalog.toml" ]; then
+       [ -f "${script_dir}/catalog.toml" ] && \
+       [ ! -f "${script_dir}/.var-ai-installed" ]; then
         SOURCE_ROOT=${script_dir}
         return
     fi
@@ -397,6 +402,7 @@ if [ -e "${BIN_DIR}/var-ai" ] && [ ! -L "${BIN_DIR}/var-ai" ]; then
     fail "refusing to replace non-symlink: ${BIN_DIR}/var-ai"
 fi
 ln -sfn "${INSTALL_ROOT}/manager.py" "${BIN_DIR}/var-ai"
+touch "${INSTALL_ROOT}/.var-ai-installed"
 
 echo
 echo "Installation complete: ${INSTALL_ROOT}"
