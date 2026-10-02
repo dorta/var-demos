@@ -16,6 +16,7 @@ BOARD=
 DRY_RUN=0
 LIST_ONLY=0
 REQUESTED_DEMOS=
+REMOTE_SOURCE=0
 SOURCE_ROOT=
 UNINSTALL=0
 WORK_DIR=
@@ -167,6 +168,7 @@ fetch_source() {
     SOURCE_ROOT=$(find "${source_dir}" -type d \
         -path '*/ai-ml-demos' -print | head -n 1)
     [ -n "${SOURCE_ROOT}" ] || fail "ai-ml-demos not found"
+    REMOTE_SOURCE=1
 }
 
 catalog() {
@@ -359,6 +361,20 @@ WORK_DIR=$(mktemp -d)
 trap cleanup EXIT HUP INT TERM
 install -d "${WORK_DIR}/assets"
 fetch_source
+if [ "${REMOTE_SOURCE}" -eq 1 ]; then
+    # Run the installer from the same revision as the downloaded demo code.
+    set -- --source "${SOURCE_ROOT}" --prefix "${INSTALL_ROOT}" \
+        --bin-dir "${BIN_DIR}"
+    [ -z "${BOARD}" ] || set -- "$@" --board "${BOARD}"
+    [ "${DRY_RUN}" -eq 0 ] || set -- "$@" --dry-run
+    [ "${LIST_ONLY}" -eq 0 ] || set -- "$@" --list
+    for requested_demo in ${REQUESTED_DEMOS}; do
+        set -- "$@" "${requested_demo}"
+    done
+    export ASSET_BASE_URL
+    sh "${SOURCE_ROOT}/install.sh" "$@"
+    exit 0
+fi
 catalog validate --root "${SOURCE_ROOT}"
 
 if [ -z "${BOARD}" ]; then
@@ -402,6 +418,8 @@ else
         "${INSTALL_ROOT}/manager.py"
     install -m 0644 "${SOURCE_ROOT}/telemetry.py" \
         "${INSTALL_ROOT}/telemetry.py"
+    install -m 0644 "${SOURCE_ROOT}/runtime.py" \
+        "${INSTALL_ROOT}/runtime.py"
 fi
 selected_demos | while read -r demo; do
     install_demo "${demo}"
