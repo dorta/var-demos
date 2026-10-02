@@ -33,6 +33,9 @@ var-ai
 to start a demo. Press `Ctrl+C` to stop it and return to the menu.
 The HD demo asks which video to play and shows each sample's resolution.
 
+Continuous operation requires adequate cooling. Demos reduce frame rate when
+hot and pause inference to cool before the kernel's thermal protection trips.
+
 Models and media are downloaded separately and verified with SHA-256 during
 installation. Developer documentation is available inside each demo folder.
 

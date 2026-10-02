@@ -74,6 +74,7 @@ class ThermalPacer:
     def __init__(self):
         self.last_frame = monotonic()
         self.cooling = False
+        self.warm = False
         self.next_check = 0
         self.limited = False
 
@@ -84,6 +85,11 @@ class ThermalPacer:
                 self.limited = clock_is_limited()
                 self.next_check = now + 1
             value = temperature()
+            if value is not None:
+                if value >= 80:
+                    self.warm = True
+                elif value < 78:
+                    self.warm = False
             if self.limited or (value is not None and value >= 82):
                 if not self.cooling:
                     print('Cooling: inference paused until below 78 C.',
@@ -98,7 +104,7 @@ class ThermalPacer:
                         return False
                     sleep(0.1)
                     continue
-            rate = 15 if value is not None and value >= 80 else 30
+            rate = 15 if self.warm else 30
             remaining = 1 / rate - (now - self.last_frame)
             if remaining > 0:
                 sleep(remaining)

@@ -148,6 +148,7 @@ def run_with_dashboard(launcher, command, directory):
         )
         started = time.monotonic()
         last_elapsed = -1
+        cooling = False
         try:
             while process.poll() is None:
                 elapsed = int(time.monotonic() - started)
@@ -155,9 +156,13 @@ def run_with_dashboard(launcher, command, directory):
                     soc = SOC_TEMPERATURE.read()
                     soc_text = '--' if soc is None else f'{soc:.1f}'
                     peak = temperature()
-                    cooling = clock_is_limited() or (
+                    limited = clock_is_limited()
+                    if limited or (
                         peak is not None and peak >= 82
-                    )
+                    ):
+                        cooling = True
+                    elif peak is not None and peak < 78:
+                        cooling = False
                     state = 'Cooling' if cooling else 'Running'
                     print(
                         f"\r  {state:<7}  {elapsed // 60:02d}:"
