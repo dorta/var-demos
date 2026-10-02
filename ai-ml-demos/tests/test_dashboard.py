@@ -3,6 +3,7 @@ import io
 from pathlib import Path
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -47,7 +48,9 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('camera unavailable', log)
 
     def test_interrupt_stops_the_child_and_returns_to_the_menu(self):
-        with patch.object(manager.time, 'sleep', side_effect=KeyboardInterrupt):
+        with patch.object(manager, 'time') as clock:
+            clock.monotonic.side_effect = time.monotonic
+            clock.sleep.side_effect = KeyboardInterrupt
             result, output, _ = self.run_demo(
                 'import time; time.sleep(60)'
             )
