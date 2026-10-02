@@ -16,6 +16,9 @@ import tempfile
 import time
 import tomllib
 
+from telemetry import SOC_TEMPERATURE
+from runtime import clock_is_limited, temperature
+
 
 ROOT = Path(__file__).resolve().parent
 
@@ -149,9 +152,17 @@ def run_with_dashboard(launcher, command, directory):
             while process.poll() is None:
                 elapsed = int(time.monotonic() - started)
                 if elapsed != last_elapsed:
+                    soc = SOC_TEMPERATURE.read()
+                    soc_text = '--' if soc is None else f'{soc:.1f}'
+                    peak = temperature()
+                    cooling = clock_is_limited() or (
+                        peak is not None and peak >= 82
+                    )
+                    state = 'Cooling' if cooling else 'Running'
                     print(
-                        f"\r  Running  {elapsed // 60:02d}:"
-                        f"{elapsed % 60:02d}", end='', flush=True,
+                        f"\r  {state:<7}  {elapsed // 60:02d}:"
+                        f"{elapsed % 60:02d}  |  SoC {soc_text} C    ",
+                        end='', flush=True,
                     )
                     last_elapsed = elapsed
                 time.sleep(0.1)
@@ -161,10 +172,10 @@ def run_with_dashboard(launcher, command, directory):
             stop_process(process)
 
     if stopped:
-        print('\r  Stopped.             ')
+        print('\r  Stopped.                                       ')
         return 0
     if process.returncode == 0:
-        print('\r  Finished.            ')
+        print('\r  Finished.                                      ')
     else:
         print(f'\n  Demo failed (exit {process.returncode}).')
         print(f'  Diagnostic log: {log.name}')

@@ -1,6 +1,7 @@
 # Copyright 2021 Variscite LTD
 # SPDX-License-Identifier: BSD-3-Clause
 import argparse
+import sys
 from contextlib import contextmanager
 from datetime import timedelta
 from time import monotonic
@@ -19,9 +20,12 @@ from helper.config import TITLE
 from helper.opencv import create_window, put_info_on_frame
 from helper.utils import get_tensor, load_labels, Timer
 
+from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup
+
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
+@demo_session()
 def image_detection(args):
     labels = load_labels(args['label'])
 

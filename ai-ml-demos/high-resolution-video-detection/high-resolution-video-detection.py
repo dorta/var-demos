@@ -18,6 +18,7 @@ from utils import (
     COMBINATIONS,
     profile, resize_with_letterbox, show_available_combinations
 )
+from runtime import demo_session, register_cleanup, ThermalPacer
 
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +37,7 @@ def open_gst_pipeline(source, debug=False):
     with debug_profile("Gst get sink element", debug):
         sink = pipeline.get_by_name("sink")
     with debug_profile("Gst pipeline set_state PLAYING", debug):
+        register_cleanup(pipeline.set_state, Gst.State.NULL)
         pipeline.set_state(Gst.State.PLAYING)
     return pipeline, sink
 
@@ -120,6 +122,7 @@ def parse_results(interpreter, threshold=0.5, debug=False):
     return results
 
 @profile
+@demo_session()
 def main(args):
     if args.combination < 1 or args.combination > len(COMBINATIONS):
         print("Invalid combination number. Choose between 1 and",
@@ -156,8 +159,14 @@ def main(args):
     detection_count = 0
 
     window_created = False
+    pacer = ThermalPacer()
 
     while True:
+        poll_stop = (lambda: False) if args.headless else (
+            lambda: cv2.waitKey(1) == 27
+        )
+        if not pacer.wait(poll_stop):
+            break
         frame = gst_read_frame(sink, args.debug)
         if frame is None:
             break
@@ -194,8 +203,6 @@ def main(args):
             if cv2.waitKey(1) == 27:
                 break
 
-    pipeline.set_state(Gst.State.NULL)
-    cv2.destroyAllWindows()
     print(
         f"Processed {frame_count} frames; detected {detection_count} objects "
         f"across {detected_frames} frames."

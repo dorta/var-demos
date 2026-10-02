@@ -1,6 +1,7 @@
 # Copyright 2021 Variscite LTD
 # SPDX-License-Identifier: BSD-3-Clause
 import argparse
+import sys
 
 import cv2
 import numpy as np
@@ -16,6 +17,8 @@ from helper.config import TITLE
 from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
 from helper.utils import load_labels, Timer, Framerate
 
+from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup
+
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
@@ -29,8 +32,9 @@ def open_video_capture(args):
                    "videoconvert ! appsink".format(args['video'])
     else:
         raise SystemExit("videofmw: invalid value. Use 'opencv' or 'gstreamer'")
-    return cv2.VideoCapture(pipeline)
+    return managed_capture(pipeline)
 
+@demo_session()
 def video_classification(args):
     labels = load_labels(args['label'])
 
@@ -47,8 +51,11 @@ def video_classification(args):
     video_capture = open_video_capture(args)
     window_created = False
     framerate = Framerate()
+    pacer = ThermalPacer()
     while video_capture.isOpened():
         with framerate.fpsit():
+            if not pacer.wait(lambda: cv2.waitKey(1) == 27):
+                break
             check, frame = video_capture.read()
             if check is not True:
                 break
@@ -81,8 +88,6 @@ def video_classification(args):
             if cv2.waitKey(1) == 27:
                 break
 
-    video_capture.release()
-    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

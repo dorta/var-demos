@@ -8,8 +8,10 @@ from time import monotonic
 class SoCTemperature:
     """Read the SoC sensor at most once per second, not on every frame."""
 
-    def __init__(self, thermal_root='/sys/class/thermal'):
+    def __init__(self, thermal_root='/sys/class/thermal',
+                 sensor_name='soc-thermal'):
         self.root = Path(thermal_root)
+        self.sensor_name = sensor_name
         self.sensor = None
         self.next_read = 0
         self.value = None
@@ -26,7 +28,7 @@ class SoCTemperature:
                         name = (zone / 'type').read_text().strip()
                     except OSError:
                         continue
-                    if name == 'soc-thermal':
+                    if name == self.sensor_name:
                         self.sensor = zone / 'temp'
                         break
             self.value = (
