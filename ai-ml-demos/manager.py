@@ -7,13 +7,12 @@ import argparse
 from collections import deque
 import os
 from pathlib import Path
-import queue
-import shlex
+import re
 import shutil
 import signal
 import subprocess
 import sys
-import threading
+import tempfile
 import time
 import tomllib
 
@@ -111,80 +110,74 @@ def clear_screen():
         print("\033[2J\033[H", end="")
 
 
-def render_running(launcher, command, process, started, lines):
-    clear_screen()
-    elapsed = int(time.monotonic() - started)
-    print("VARISCITE AI/ML DEMOS")
-    print("=" * 50)
-    print(f"Running : {launcher['title']}")
-    print(f"Elapsed : {elapsed // 60:02d}:{elapsed % 60:02d}")
-    print(f"PID     : {process.pid}")
-    print(f"Command : {shlex.join(command)}")
-    print("\nPress Ctrl+C to stop this demo and return to the menu.")
-    print("\nLatest output")
-    print("-" * 50)
-    for line in lines:
-        print(line)
-    sys.stdout.flush()
-
-
-def collect_output(stream, messages):
-    for line in iter(stream.readline, ""):
-        messages.put(line.rstrip())
-    stream.close()
-
-
 def stop_process(process):
     if process.poll() is not None:
         return
-    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
     try:
         process.wait(timeout=3)
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
         process.wait()
 
 
 def run_with_dashboard(launcher, command, directory):
-    messages = queue.Queue()
-    lines = deque(maxlen=14)
-    process = subprocess.Popen(
-        command,
-        cwd=directory,
-        env=display_environment(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        start_new_session=True,
-    )
-    reader = threading.Thread(
-        target=collect_output,
-        args=(process.stdout, messages),
-        daemon=True,
-    )
-    reader.start()
-    started = time.monotonic()
+    print(f"\n  {launcher['title']}")
+    print("  The demo opens on the board's display.")
+    print("  Esc: close display  |  Ctrl+C: stop and return\n")
+    stopped = False
+    with tempfile.NamedTemporaryFile(
+        prefix='var-ai-', suffix='.log', delete=False
+    ) as log:
+        process = subprocess.Popen(
+            command,
+            cwd=directory,
+            env=display_environment(),
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        started = time.monotonic()
+        last_elapsed = -1
+        try:
+            while process.poll() is None:
+                elapsed = int(time.monotonic() - started)
+                if elapsed != last_elapsed:
+                    print(
+                        f"\r  Running  {elapsed // 60:02d}:"
+                        f"{elapsed % 60:02d}", end='', flush=True,
+                    )
+                    last_elapsed = elapsed
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            stopped = True
+        finally:
+            stop_process(process)
 
-    try:
-        while process.poll() is None:
-            while True:
-                try:
-                    lines.append(messages.get_nowait())
-                except queue.Empty:
-                    break
-            render_running(
-                launcher, command, process, started, lines
+    if stopped:
+        print('\r  Stopped.             ')
+        return 0
+    if process.returncode == 0:
+        print('\r  Finished.            ')
+    else:
+        print(f'\n  Demo failed (exit {process.returncode}).')
+        print(f'  Diagnostic log: {log.name}')
+        with open(log.name, encoding='utf-8', errors='replace') as output:
+            # Keep failure details visible without dumping startup chatter.
+            tail = deque(output, maxlen=8)
+        for line in tail:
+            line = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', line)
+            line = ''.join(
+                character for character in line.rstrip()
+                if character.isprintable() or character == '\t'
             )
-            time.sleep(0.25)
-    except KeyboardInterrupt:
-        lines.append("Stopping demo...")
-        stop_process(process)
-
-    reader.join(timeout=1)
-    while not messages.empty():
-        lines.append(messages.get_nowait())
-    render_running(launcher, command, process, started, lines)
+            print(f'  {line}')
     return process.returncode
 
 
@@ -204,6 +197,8 @@ def run_launcher(catalog, launcher, dashboard=True, video=None):
             command[index] = str(video['combination'])
 
     if dashboard and sys.stdout.isatty():
+        if video is not None:
+            launcher = dict(launcher, title=video['title'])
         return run_with_dashboard(launcher, command, directory)
     return subprocess.run(
         command,
@@ -256,7 +251,8 @@ def interactive(catalog, platform, launchers):
                 if video is None:
                     continue
             result = run_launcher(catalog, launcher, video=video)
-            print(f"\nDemo exited with status {result}.")
+            if result != 0:
+                print(f"\nThe demo could not finish (exit {result}).")
         except (OSError, RuntimeError) as error:
             print(f"\nError: {error}")
         try:
