@@ -400,6 +400,8 @@ else
         "${INSTALL_ROOT}/catalog.py"
     install -m 0755 "${SOURCE_ROOT}/manager.py" \
         "${INSTALL_ROOT}/manager.py"
+    install -m 0644 "${SOURCE_ROOT}/telemetry.py" \
+        "${INSTALL_ROOT}/telemetry.py"
 fi
 selected_demos | while read -r demo; do
     install_demo "${demo}"

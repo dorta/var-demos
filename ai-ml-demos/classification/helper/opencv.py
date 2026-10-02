@@ -2,12 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
+import sys
 from functools import lru_cache
+from pathlib import Path
 
 import cv2
 import numpy as np
 
 from helper.config import FONT
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from telemetry import draw_soc_temperature
 
 
 PANEL_COLOR = (24, 28, 32)
@@ -146,6 +151,7 @@ def put_info_on_frame(frame, top_result, labels,
     _draw_results(frame, top_result, labels)
     _draw_badge(frame, f'INFERENCE  {_inference_ms(inference_time):.1f} ms')
     _draw_model(frame, model_name)
+    draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR)
     return frame
 
 

@@ -4,12 +4,17 @@
 import collections
 import os
 import re
+import sys
+from pathlib import Path
 from contextlib import contextmanager
 from datetime import timedelta
 from time import monotonic
 
 import cv2
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from telemetry import draw_soc_temperature
 
 
 FONT = {
@@ -226,6 +231,7 @@ def put_info_on_frame(frame, results, inf_time, labels, model_name,
     if fps is not None:
         _draw_badge(frame, f'FPS  {fps:.1f}', row=1)
     _draw_model(frame, model_name)
+    draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR, rgb=True)
     return frame
 
 
