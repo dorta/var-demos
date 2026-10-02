@@ -188,12 +188,20 @@ def run_with_dashboard(launcher, command, directory):
     return process.returncode
 
 
-def run_launcher(catalog, launcher, dashboard=True):
+def run_launcher(catalog, launcher, dashboard=True, video=None):
     demo = find_demo(catalog, launcher["demo"])
     directory = ROOT / demo["path"]
     if not directory.is_dir():
         raise RuntimeError(f"demo is not installed: {demo['id']}")
     command = command_for(launcher)
+    if video is not None:
+        video_path = directory / video['path']
+        if not video_path.is_file():
+            raise RuntimeError(f"video is not installed: {video['title']}")
+        command.extend(['--video', str(video_path)])
+        if '--combination' in command:
+            index = command.index('--combination') + 1
+            command[index] = str(video['combination'])
 
     if dashboard and sys.stdout.isatty():
         return run_with_dashboard(launcher, command, directory)
@@ -235,12 +243,19 @@ def interactive(catalog, platform, launchers):
         if choice in {"q", "quit", "exit"}:
             return 0
         try:
+            if int(choice) < 1:
+                continue
             launcher = launchers[int(choice) - 1]
         except (ValueError, IndexError):
             continue
 
         try:
-            result = run_launcher(catalog, launcher)
+            video = None
+            if launcher.get('select_video'):
+                video = select_video(catalog, launcher['demo'])
+                if video is None:
+                    continue
+            result = run_launcher(catalog, launcher, video=video)
             print(f"\nDemo exited with status {result}.")
         except (OSError, RuntimeError) as error:
             print(f"\nError: {error}")
@@ -248,6 +263,33 @@ def interactive(catalog, platform, launchers):
             input("Press Enter to return to the menu...")
         except (EOFError, KeyboardInterrupt):
             print()
+
+
+def select_video(catalog, demo_id):
+    videos = [
+        video for video in catalog.get('videos', [])
+        if video['demo'] == demo_id
+    ]
+    if not videos:
+        raise RuntimeError('no videos are configured for this demo')
+    while True:
+        print('\nChoose a video:')
+        for index, video in enumerate(videos, start=1):
+            print(f"  {index}. {video['title']}")
+        print('  b. Back')
+        try:
+            choice = input('Video: ').strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return None
+        if choice in {'b', 'q'}:
+            return None
+        try:
+            index = int(choice) - 1
+            if 0 <= index < len(videos):
+                return videos[index]
+        except ValueError:
+            pass
 
 
 def main():
