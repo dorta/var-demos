@@ -25,7 +25,9 @@ def open_video_capture(width=720, height=480, framerate="30/1"):
     pipeline = "v4l2src device={} ! video/x-raw,width={},height={}," \
                "framerate={} ! queue leaky=downstream " \
                "max-size-buffers=1 ! videoconvert ! " \
-               "appsink".format(args['camera'], width, height, framerate)
+               "appsink max-buffers=1 drop=true".format(
+                   args['camera'], width, height, framerate
+               )
     return cv2.VideoCapture(pipeline)
 
 def realtime_classification(args):
@@ -52,6 +54,7 @@ def realtime_classification(args):
                 break
             frame = fit_to_display(frame, args['windowed'])
             resized_frame = cv2.resize(frame, (width, height))
+            resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
             resized_frame = np.expand_dims(resized_frame, axis = 0)
 
             interpreter.set_tensor(input_details[0]['index'], resized_frame)

@@ -53,6 +53,7 @@ def video_classification(args):
             if check is not True:
                 break
             resized_frame = cv2.resize(frame, (width, height))
+            resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
             resized_frame = np.expand_dims(resized_frame, axis = 0)
 
             interpreter.set_tensor(input_details[0]['index'], resized_frame)
