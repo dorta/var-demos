@@ -51,6 +51,10 @@ The validation videos are derived from
 Brian Dell and released under CC0 1.0. The installer provides H.264 variants
 at 1280x720, 1280x800, and 1920x1080.
 
+The installer also provides a 1280x720 Chicago traffic sample supplied by
+the repository maintainer. In `var-ai`, select **HD video**, then choose
+the footage and resolution. The menu passes the chosen file to `--video`.
+
 You can also:
 
 * provide your own video with `--video`; or

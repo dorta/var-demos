@@ -31,6 +31,7 @@ var-ai
 
 `var-ai` lists the demos supported by the detected platform. Select a number
 to start a demo. Press `Ctrl+C` to stop it and return to the menu.
+The HD demo asks which video to play and shows each sample's resolution.
 
 Models and media are downloaded separately and verified with SHA-256 during
 installation. Developer documentation is available inside each demo folder.
