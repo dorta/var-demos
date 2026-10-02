@@ -44,10 +44,17 @@ def open_gst_pipeline(source, debug=False):
 
 @profile
 def gst_read_frame(sink, debug=False):
-    with debug_profile("sink.emit(pull-sample)", debug):
-        sample = sink.emit("pull-sample")
+    with debug_profile("sink.emit(try-pull-sample)", debug):
+        sample = sink.emit("try-pull-sample", 2 * Gst.SECOND)
     if not sample:
-        return None
+        bus = sink.get_parent().get_bus()
+        message = bus.pop_filtered(Gst.MessageType.ERROR)
+        if message is not None:
+            error, details = message.parse_error()
+            raise RuntimeError(f'Video pipeline failed: {error}; {details}')
+        if sink.get_property('eos'):
+            return None
+        raise TimeoutError('Video pipeline stopped delivering frames')
 
     with debug_profile("sample.get_buffer", debug):
         buf = sample.get_buffer()

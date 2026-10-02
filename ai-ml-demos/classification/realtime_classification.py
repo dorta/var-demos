@@ -58,7 +58,7 @@ def realtime_classification(args):
                 break
             check, frame = video_capture.read()
             if check is not True:
-                break
+                raise RuntimeError('Camera stopped delivering frames')
             frame = fit_to_display(frame, args['windowed'])
             resized_frame = cv2.resize(frame, (width, height))
             resized_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)

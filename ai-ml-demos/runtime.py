@@ -61,7 +61,14 @@ def demo_session():
 def managed_capture(source):
     import cv2
 
-    capture = cv2.VideoCapture(source)
+    backend = (
+        cv2.CAP_GSTREAMER if isinstance(source, str) and ' ! ' in source
+        else cv2.CAP_ANY
+    )
+    capture = cv2.VideoCapture(source, backend, [
+        cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000,
+        cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2000,
+    ])
     register_cleanup(capture.release)
     if not capture.isOpened():
         raise RuntimeError('Cannot open the requested camera or video stream')

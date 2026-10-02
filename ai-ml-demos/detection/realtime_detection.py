@@ -60,7 +60,7 @@ def image_detection(args):
                 break
             check, frame = video_capture.read()
             if check is not True:
-                break
+                raise RuntimeError('Camera stopped delivering frames')
             frame = fit_to_display(frame, args['windowed'])
 
             resized_frame = cv2.resize(frame, (model_width, model_height))

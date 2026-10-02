@@ -33,6 +33,8 @@ class RuntimeTests(unittest.TestCase):
         fake_cv2 = SimpleNamespace(
             destroyAllWindows=MagicMock(),
             VideoCapture=MagicMock(return_value=capture),
+            CAP_ANY=0, CAP_GSTREAMER=1800,
+            CAP_PROP_OPEN_TIMEOUT_MSEC=53, CAP_PROP_READ_TIMEOUT_MSEC=54,
         )
         with patch.dict(sys.modules, {'cv2': fake_cv2}):
             with patch.object(runtime, 'clock_is_limited', return_value=False):
@@ -40,6 +42,9 @@ class RuntimeTests(unittest.TestCase):
                     with runtime.demo_session():
                         runtime.managed_capture('/dev/video4')
         capture.release.assert_called_once()
+        fake_cv2.VideoCapture.assert_called_once_with(
+            '/dev/video4', 0, [53, 5000, 54, 2000]
+        )
 
     def test_thermal_trip_blocks_startup(self):
         fake_cv2 = SimpleNamespace(destroyAllWindows=MagicMock())
