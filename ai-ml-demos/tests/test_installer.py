@@ -10,6 +10,32 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'install.sh'
 
 
 class InstallerTests(unittest.TestCase):
+    def test_active_installation_is_protected(self):
+        source = SCRIPT.read_text()
+        function = re.search(
+            r'^ensure_not_running\(\) \{\n.*?^\}', source,
+            flags=re.MULTILINE | re.DOTALL,
+        ).group()
+        with tempfile.TemporaryDirectory() as directory:
+            child = subprocess.Popen(
+                ['python3', '-c', 'import time; time.sleep(60)'],
+                cwd=directory,
+            )
+            try:
+                result = subprocess.run(
+                    ['sh', '-c', 'INSTALL_ROOT=$1\n'
+                     'require_command() { command -v "$1"; }\n'
+                     'fail() { echo "$*" >&2; exit 1; }\n' + function +
+                     '\nensure_not_running', 'test', directory],
+                    capture_output=True, text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('installation is in use', result.stderr)
+                self.assertIsNone(child.poll())
+            finally:
+                child.terminate()
+                child.wait()
+
     def test_download_replaces_the_demo_asset(self):
         source = SCRIPT.read_text()
         functions = '\n'.join(

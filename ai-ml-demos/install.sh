@@ -61,6 +61,33 @@ validate_removal_path() {
     esac
 }
 
+ensure_not_running() {
+    require_command python3
+    python3 - "${INSTALL_ROOT}" <<'PY' || fail "stop var-ai before continuing"
+import os
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1]).resolve()
+for process in Path('/proc').glob('[0-9]*'):
+    if process.name == str(os.getpid()):
+        continue
+    try:
+        arguments = (process / 'cmdline').read_bytes().split(b'\0')
+        if not Path(os.fsdecode(arguments[0])).name.startswith('python'):
+            continue
+        paths = [(process / 'cwd').resolve()]
+        if len(arguments) > 1:
+            script = Path(os.fsdecode(arguments[1]))
+            if script.is_absolute():
+                paths.append(script.resolve())
+        if any(path == root or root in path.parents for path in paths):
+            raise SystemExit(f'demo installation is in use by PID {process.name}')
+    except (OSError, ValueError):
+        continue
+PY
+}
+
 uninstall_demos() {
     validate_removal_path "${INSTALL_ROOT}"
     launcher="${BIN_DIR}/var-ai"
@@ -74,6 +101,8 @@ uninstall_demos() {
         fi
         return
     fi
+
+    ensure_not_running
 
     if [ -e "${INSTALL_ROOT}" ]; then
         [ -f "${INSTALL_ROOT}/manager.py" ] && \
@@ -402,6 +431,7 @@ if [ "${DRY_RUN}" -eq 1 ]; then
 fi
 
 check_runtime
+ensure_not_running
 install -d "${INSTALL_ROOT}"
 source_path=$(CDPATH= cd -- "${SOURCE_ROOT}" && pwd)
 install_path=$(CDPATH= cd -- "${INSTALL_ROOT}" && pwd)
