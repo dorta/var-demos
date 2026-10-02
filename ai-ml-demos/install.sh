@@ -152,8 +152,16 @@ fetch_source() {
     archive="${WORK_DIR}/source.tar.gz"
     source_dir="${WORK_DIR}/source"
     install -d "${source_dir}"
-    url="https://github.com/${VAR_DEMOS_REPOSITORY}/archive/refs/heads/${VAR_DEMOS_REF}.tar.gz"
-    echo "Downloading source from ${VAR_DEMOS_REPOSITORY}@${VAR_DEMOS_REF}"
+    ref_metadata="${WORK_DIR}/ref.json"
+    download \
+        "https://api.github.com/repos/${VAR_DEMOS_REPOSITORY}/commits/${VAR_DEMOS_REF}" \
+        "${ref_metadata}"
+    source_commit=$(python3 -c \
+        'import json,sys; print(json.load(open(sys.argv[1]))["sha"])' \
+        "${ref_metadata}")
+    [ "${#source_commit}" -eq 40 ] || fail "invalid source commit"
+    url="https://github.com/${VAR_DEMOS_REPOSITORY}/archive/${source_commit}.tar.gz"
+    echo "Downloading source from ${VAR_DEMOS_REPOSITORY}@${source_commit}"
     download "${url}" "${archive}"
     tar -xzf "${archive}" -C "${source_dir}"
     SOURCE_ROOT=$(find "${source_dir}" -type d \
