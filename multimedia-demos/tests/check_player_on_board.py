@@ -27,6 +27,7 @@ def verify(function):
 
 def pause():
     assert player.frames > 5, 'No decoded video frames reached the display'
+    assert player.full, 'Player did not enter fullscreen'
     player.set_playing(False)
 
 
@@ -34,10 +35,13 @@ def resume():
     assert player.pipeline.get_state(Gst.SECOND)[1] == Gst.State.PAUSED
     player.seek(5)
     player.set_playing(True)
+    player.toggle_fullscreen()
 
 
 def stop():
     assert player.playing
+    assert not player.full, 'Player did not leave fullscreen'
+    player.toggle_fullscreen()
     player.stop()
     assert player.pipeline.get_state(Gst.SECOND)[1] == Gst.State.READY
     assert not player.progress.get_sensitive()
@@ -47,7 +51,12 @@ def stop():
 GLib.timeout_add_seconds(2, verify(pause))
 GLib.timeout_add_seconds(4, verify(resume))
 GLib.timeout_add_seconds(7, verify(stop))
-GLib.timeout_add_seconds(10, verify(player.destroy))
+def close():
+    assert player.full, 'Player did not re-enter fullscreen'
+    player.destroy()
+
+
+GLib.timeout_add_seconds(10, verify(close))
 Gtk.main()
 assert player.pipeline.get_state(Gst.SECOND)[1] == Gst.State.NULL
 if errors:

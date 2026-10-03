@@ -18,10 +18,9 @@ try:
     import gi
     gi.require_version('Gtk', '3.0')
     gi.require_version('Gdk', '3.0')
-    gi.require_version('GdkPixbuf', '2.0')
     gi.require_version('Gst', '1.0')
     gi.require_version('GstVideo', '1.0')
-    from gi.repository import Gdk, GdkPixbuf, GLib, Gst, GstVideo, Gtk
+    from gi.repository import Gdk, GdkPixbuf, GLib, Gst, Gtk
 except (ImportError, ValueError) as error:
     raise SystemExit(f'GTK 3 / GStreamer Python bindings required: {error}')
 
@@ -34,7 +33,7 @@ def clock_text(seconds):
 
 
 def check_runtime():
-    for name in ('playbin', 'appsink', 'videoconvert', 'videoscale'):
+    for name in ('playbin', 'imxvideoconvert_g2d', 'appsink'):
         if Gst.ElementFactory.find(name) is None:
             raise RuntimeError(f'Missing GStreamer element: {name}')
 
@@ -50,38 +49,62 @@ class Player(Gtk.Window):
         self.finished = False
         self.seeking = False
         self.full = not windowed
+        self.requested_full = self.full
+        self.connect('window-state-event', self.window_state)
+        self.connect('map-event', self.mapped)
         self.frames = 0
         self.tick_id = None
         self.closed = False
         self.pipeline = Gst.ElementFactory.make('playbin', 'player')
-        # Bounded preview frames keep Python memory stable. GStreamer chooses
-        # the available decoder; the UI does not claim hardware acceleration.
-        sink_bin = Gst.parse_bin_from_description(
-            'videoconvert ! videoscale add-borders=true ! '
-            'video/x-raw,format=RGB,width=640,height=336,'
-            'pixel-aspect-ratio=1/1 ! appsink name=preview '
-            'max-buffers=1 drop=true sync=true wait-on-eos=false', True
-        )
-        self.sink = sink_bin.get_by_name('preview')
-        self.pipeline.set_property('video-sink', sink_bin)
+        # Resize and convert on the 2D accelerator, not on the CPU. Keep only
+        # the latest display-sized frame so the UI cannot accumulate latency.
+        video_bin = Gst.parse_bin_from_description(
+            'imxvideoconvert_g2d ! '
+            'video/x-raw,format=RGBA,width=640,height=360 ! '
+            'appsink name=video sync=true max-buffers=1 drop=true', True)
+        self.sink = video_bin.get_by_name('video')
+        self.pipeline.set_property('video-sink', video_bin)
+        self.pipeline.connect('deep-element-added', self.element_added)
+        self.decoder = 'Preparing decoder'
+        self.pixbuf = None
+        self.pixel_aspect = 1.0
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
         self.bus_id = self.bus.connect('message', self.on_message)
 
-        layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        layout.set_border_width(8)
+        self.get_style_context().add_class('var-player')
+        provider = Gtk.CssProvider()
+        provider.load_from_data(b'''
+        .var-player { background: #10171f; color: #e7edf3; }
+        .var-player button { background: #243240; color: #e7edf3;
+          border: 0; border-radius: 7px; padding: 8px 12px; box-shadow: none; }
+        .var-player button:hover { background: #344b5d; }
+        .var-player scale trough { background: #344352; min-height: 5px; }
+        .var-player scale highlight { background: #35bdd0; }
+        .var-player scale slider { background: #d8f5f7; }
+        .var-player .brand { color: #35bdd0; font-weight: bold; }
+        ''')
+        Gtk.StyleContext.add_provider_for_screen(
+            self.get_screen(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        layout.set_border_width(12)
         self.add(layout)
         header = Gtk.Box(spacing=8)
         layout.pack_start(header, False, False, 0)
-        title = Gtk.Label(label='VARISCITE  /  VIDEO PLAYER')
+        title = Gtk.Label(label='VARISCITE  /  PLAYER')
+        title.get_style_context().add_class('brand')
         header.pack_start(title, False, False, 0)
         self.filename = Gtk.Label(label='Open a local movie')
         self.filename.set_ellipsize(3)
         header.pack_start(self.filename, True, True, 0)
         self.button(header, 'Open', self.choose_file)
         self.button(header, 'Exit', lambda _: self.destroy())
-        self.image = Gtk.Image()
-        layout.pack_start(self.image, True, True, 0)
+        self.video = Gtk.DrawingArea()
+        self.video.set_size_request(320, 180)
+        self.video.set_hexpand(True)
+        self.video.set_vexpand(True)
+        self.video.connect('draw', self.draw_video)
+        layout.pack_start(self.video, True, True, 0)
 
         timeline = Gtk.Box(spacing=8)
         layout.pack_start(timeline, False, False, 0)
@@ -100,7 +123,9 @@ class Player(Gtk.Window):
         layout.pack_start(controls, False, False, 0)
         self.play_button = self.button(controls, 'Play', self.toggle_play)
         self.button(controls, 'Stop', self.stop)
-        self.button(controls, 'Fullscreen', self.toggle_fullscreen)
+        self.full_button = self.button(
+            controls, 'Window' if self.full else 'Fullscreen',
+            self.toggle_fullscreen)
         controls.pack_start(Gtk.Label(label='Volume'), False, False, 0)
         volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, .05)
         volume.set_size_request(110, -1)
@@ -110,12 +135,10 @@ class Player(Gtk.Window):
                        self.pipeline.set_property('volume', scale.get_value()))
         self.pipeline.set_property('volume', .7)
         controls.pack_start(volume, False, False, 0)
-        self.status = Gtk.Label(label='Space: play/pause  |  Esc: exit')
+        self.status = Gtk.Label(label='Space: pause  |  F: fullscreen')
         controls.pack_start(self.status, True, True, 0)
         self.show_all()
-        if self.full:
-            self.fullscreen()
-        self.tick_id = GLib.timeout_add(33, self.tick)
+        self.tick_id = GLib.timeout_add(16, self.tick)
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM,
                              self.signal_quit)
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT,
@@ -128,6 +151,40 @@ class Player(Gtk.Window):
         button.connect('clicked', callback)
         parent.pack_start(button, False, False, 0)
         return button
+
+    def draw_video(self, widget, context):
+        context.set_source_rgb(.025, .035, .045)
+        context.paint()
+        if self.pixbuf is None:
+            return False
+        allocation = widget.get_allocation()
+        width, height = self.pixbuf.get_width(), self.pixbuf.get_height()
+        display_width = width * self.pixel_aspect
+        scale = min(allocation.width / display_width,
+                    allocation.height / height)
+        context.translate((allocation.width - display_width * scale) / 2,
+                          (allocation.height - height * scale) / 2)
+        context.scale(scale * self.pixel_aspect, scale)
+        Gdk.cairo_set_source_pixbuf(context, self.pixbuf, 0, 0)
+        context.paint()
+        return False
+
+    def mapped(self, *_):
+        if self.requested_full:
+            self.fullscreen()
+        return False
+
+    def window_state(self, _window, event):
+        self.full = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
+        self.full_button.set_label('Window' if self.full else 'Fullscreen')
+        return False
+
+    def element_added(self, _pipeline, _bin, element):
+        factory = element.get_factory()
+        if factory and 'Decoder' in factory.get_metadata('klass') and \
+                'Video' in factory.get_metadata('klass'):
+            self.decoder = factory.get_name()
+            print(f'Video decoder: {self.decoder}', flush=True)
 
     def choose_file(self, _):
         dialog = Gtk.FileChooserDialog(
@@ -188,8 +245,9 @@ class Player(Gtk.Window):
         self.progress.set_value(0)
         self.progress.set_sensitive(False)
         self.time_label.set_text('00:00 / 00:00')
-        self.image.clear()
         self.status.set_text('Stopped')
+        self.pixbuf = None
+        self.video.queue_draw()
 
     def begin_seek(self, *_):
         self.seeking = True
@@ -212,8 +270,11 @@ class Player(Gtk.Window):
             self.status.set_text('This stream does not support seeking')
 
     def toggle_fullscreen(self, _=None):
-        self.full = not self.full
-        self.fullscreen() if self.full else self.unfullscreen()
+        self.requested_full = not self.requested_full
+        if self.requested_full:
+            self.fullscreen()
+        else:
+            self.unfullscreen()
 
     def on_key(self, _window, event):
         if event.keyval == Gdk.KEY_Escape:
@@ -245,15 +306,21 @@ class Player(Gtk.Window):
     def tick(self):
         sample = self.sink.emit('try-pull-sample', 0)
         if sample:
-            info = GstVideo.VideoInfo.new_from_caps(sample.get_caps())
+            caps = sample.get_caps().get_structure(0)
+            width, height = caps.get_value('width'), caps.get_value('height')
+            got_aspect, numerator, denominator = caps.get_fraction(
+                'pixel-aspect-ratio')
+            self.pixel_aspect = (numerator / denominator
+                                 if got_aspect and denominator else 1.0)
             buffer = sample.get_buffer()
-            data = GLib.Bytes.new(buffer.extract_dup(0, buffer.get_size()))
-            pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
-                data, GdkPixbuf.Colorspace.RGB, False, 8,
-                info.width, info.height, info.stride[0]
-            )
-            self.image.set_from_pixbuf(pixbuf)
+            pixels = GLib.Bytes.new(buffer.extract_dup(0, buffer.get_size()))
+            self.pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+                pixels, GdkPixbuf.Colorspace.RGB, True, 8,
+                width, height, width * 4)
             self.frames += 1
+            self.video.queue_draw()
+        if self.playing:
+            self.status.set_text(f'Playing | {self.decoder}')
         if not self.seeking:
             got_duration, duration = self.pipeline.query_duration(Gst.Format.TIME)
             got_position, position = self.pipeline.query_position(Gst.Format.TIME)
