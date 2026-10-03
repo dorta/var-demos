@@ -340,10 +340,14 @@ def main():
             and os.environ.get('TERM', 'dumb') != 'dumb'):
         try:
             import curses
-            from terminal_ui import TerminalUI
+            from terminal_ui import TerminalUI, serial_console
         except ImportError:
             return interactive(catalog, platform, launchers)
         try:
+            if serial_console():
+                # The serial login defaults to Linux-console capabilities,
+                # but minicom emulates VT100, not the Linux console.
+                os.environ['TERM'] = 'vt100'
             return curses.wrapper(
                 lambda screen: TerminalUI(
                     screen, catalog, platform, launchers,

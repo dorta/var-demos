@@ -58,6 +58,30 @@ class TerminalTests(unittest.TestCase):
     def test_control_characters_are_removed(self):
         self.assertEqual(safe_text('hello\n\x00world'), 'helloworld')
 
+    @patch('terminal_ui.curses.doupdate')
+    @patch('terminal_ui.SOC_TEMPERATURE.read', return_value=70)
+    def test_screen_change_forces_refresh_only_once(self, *_):
+        ui = self.make_ui([])
+        ui.header('Menu')
+        ui.footer('Help')
+        ui.screen.refresh.assert_called_once()
+        ui.header('Menu')
+        ui.footer('Help')
+        self.assertEqual(ui.screen.refresh.call_count, 1)
+        ui.header('Videos')
+        ui.footer('Help')
+        self.assertEqual(ui.screen.refresh.call_count, 2)
+
+    @patch('terminal_ui.curses.resizeterm')
+    @patch('terminal_ui.serial_console', return_value=True)
+    def test_serial_uses_small_ascii_screen(self, _, resize):
+        ui = self.make_ui([], (61, 201))
+        resize.assert_called_once_with(24, 80)
+        ui.text(1, 2, 'Chicago \u2014 HD')
+        self.assertEqual(ui.screen.addnstr.call_args.args[2], 'Chicago - HD')
+        ui.screen.idcok.assert_called_once_with(False)
+        ui.screen.idlok.assert_called_once_with(False)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,8 +3,10 @@
 
 from collections import deque
 import curses
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import textwrap
 import time
@@ -28,6 +30,15 @@ def safe_text(text):
                    if character.isprintable())
 
 
+def serial_console():
+    try:
+        device = os.ttyname(sys.stdin.fileno())
+    except (OSError, ValueError):
+        return False
+    return device.startswith(('/dev/ttymxc', '/dev/ttyS', '/dev/ttyAMA',
+                              '/dev/ttyUSB', '/dev/ttyACM'))
+
+
 def log_tail(path):
     with Path(path).open(encoding='utf-8', errors='replace') as output:
         return [safe_text(line) for line in deque(output, maxlen=8)]
@@ -41,15 +52,24 @@ class TerminalUI:
         self.launchers = launchers
         self.api = api
         self.notice = ''
+        self.serial = serial_console()
+        self.view = None
+        self.full_refresh = True
+        if self.serial:
+            # Serial links do not propagate the emulator's window size.
+            height, width = screen.getmaxyx()
+            curses.resizeterm(min(height, 24), min(width, 80))
         self.accent = curses.A_BOLD
         self.selected_style = curses.A_REVERSE | curses.A_BOLD
         screen.keypad(True)
         screen.timeout(200)
+        screen.idcok(False)
+        screen.idlok(False)
         try:
             curses.curs_set(0)
         except curses.error:
             pass
-        if curses.has_colors():
+        if not self.serial and curses.has_colors():
             curses.start_color()
             background = curses.COLOR_BLACK
             try:
@@ -63,16 +83,24 @@ class TerminalUI:
             self.selected_style = curses.color_pair(2) | curses.A_BOLD
 
     def text(self, row, column, text, style=0):
+        text = safe_text(text)
+        if self.serial:
+            text = text.replace('\u2014', '-').replace('\u2013', '-')
+            text = text.encode('ascii', errors='replace').decode('ascii')
         height, width = self.screen.getmaxyx()
         if 0 <= row < height and 0 <= column < width - 1:
             try:
                 self.screen.addnstr(
-                    row, column, safe_text(text), width - column - 1, style
+                    row, column, text, width - column - 1, style
                 )
             except curses.error:
                 pass
 
     def header(self, title):
+        view = (title, self.screen.getmaxyx())
+        if view != self.view:
+            self.full_refresh = True
+            self.view = view
         self.screen.erase()
         height, width = self.screen.getmaxyx()
         if height < 12 or width < 45:
@@ -91,8 +119,13 @@ class TerminalUI:
         height, _ = self.screen.getmaxyx()
         self.text(height - 2, 2, text, self.accent)
         # curses sends changed cells only; no full-screen clear per refresh.
-        self.screen.noutrefresh()
-        curses.doupdate()
+        if self.full_refresh:
+            self.screen.clearok(True)
+            self.screen.refresh()
+            self.full_refresh = False
+        else:
+            self.screen.noutrefresh()
+            curses.doupdate()
 
     def choose(self, title, items, back_label='Back'):
         if not items:
