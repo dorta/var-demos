@@ -1,7 +1,6 @@
 # Copyright 2026 Variscite Ltd.
 # SPDX-License-Identifier: BSD-3-Clause
 
-from collections import deque
 import curses
 import json
 import os
@@ -41,8 +40,13 @@ def serial_console():
 
 
 def log_tail(path):
-    with Path(path).open(encoding='utf-8', errors='replace') as output:
-        return [safe_text(line) for line in deque(output, maxlen=8)]
+    # Read a bounded tail; long event runs must not scan the entire log on
+    # each screen refresh, even if a backend floods diagnostics.
+    with Path(path).open('rb') as output:
+        output.seek(0, 2)
+        output.seek(max(0, output.tell() - 65536))
+        tail = output.read().decode('utf-8', errors='replace')
+    return [safe_text(line) for line in tail.splitlines()[-8:]]
 
 
 def summary_lines(path, elapsed):

@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from terminal_ui import TerminalUI, navigate, safe_text, summary_lines
+from terminal_ui import TerminalUI, log_tail, navigate, safe_text, summary_lines
 
 
 class TerminalTests(unittest.TestCase):
@@ -70,6 +70,38 @@ class TerminalTests(unittest.TestCase):
         self.assertEqual(ui.main(), 0)
         self.assertEqual(ui.choose.call_count, 3)
         self.assertEqual(ui.choose.call_args_list[1].args[2], 'Back')
+
+    def test_launch_failure_keeps_menu_available(self):
+        ui = self.make_ui([])
+        launcher = {'id': 'camera', 'title': 'Camera'}
+        ui.choose = Mock(side_effect=[launcher, None])
+        ui.run = Mock(side_effect=RuntimeError('Camera unavailable'))
+        ui.message = Mock()
+        self.assertEqual(ui.main(), 0)
+        ui.message.assert_called_once_with(
+            'Cannot start demo', ['Camera unavailable'])
+        self.assertEqual(ui.choose.call_count, 2)
+
+    @patch('terminal_ui.subprocess.Popen')
+    def test_crashed_child_is_reported_without_raising(self, popen):
+        ui = self.make_ui([])
+        launcher = {'title': 'Camera'}
+        ui.api.prepare_launch.return_value = (launcher, ['demo'], '/tmp')
+        process = popen.return_value
+        process.poll.return_value = -11
+        process.returncode = -11
+        ui.message = Mock()
+        ui.run(launcher)
+        self.assertIn('exit -11', ui.notice)
+        ui.message.assert_called_once()
+
+    def test_log_tail_is_bounded_and_keeps_latest_lines(self):
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.log') as log:
+            log.write('old diagnostic\n' * 10000 + 'latest output\n')
+            log.flush()
+            lines = log_tail(log.name)
+        self.assertEqual(len(lines), 8)
+        self.assertEqual(lines[-1], 'latest output')
 
     def test_summary_reads_structured_metrics(self):
         with tempfile.NamedTemporaryFile(mode='w+', suffix='.log') as log:

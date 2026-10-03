@@ -132,8 +132,11 @@ def stop_process(process):
 
 def run_with_dashboard(launcher, command, directory):
     print(f"\n  {launcher['title']}")
-    print("  The demo opens on the board's display.")
-    print("  Esc: close display  |  Ctrl+C: stop and return\n")
+    if launcher.get('terminal_output'):
+        print('  Results will appear in the terminal when finished.')
+    else:
+        print("  The demo opens on the board's display.")
+    print("  Ctrl+C: stop and return\n")
     stopped = False
     with tempfile.NamedTemporaryFile(
         prefix='var-ai-', suffix='.log', delete=False
@@ -157,9 +160,9 @@ def run_with_dashboard(launcher, command, directory):
                     soc_text = '--' if soc is None else f'{soc:.1f}'
                     peak = temperature()
                     limited = clock_is_limited()
-                    if limited or (
-                        peak is not None and peak >= 82
-                    ):
+                    inference_demo = launcher.get('group', 'ai-ml') == 'ai-ml'
+                    if inference_demo and (limited or (
+                            peak is not None and peak >= 82)):
                         cooling = True
                     elif peak is not None and peak < 78:
                         cooling = False
@@ -178,8 +181,7 @@ def run_with_dashboard(launcher, command, directory):
 
     if stopped:
         print('\r  Stopped.                                       ')
-        return 0
-    if process.returncode == 0:
+    elif process.returncode == 0:
         print('\r  Finished.                                      ')
     else:
         print(f'\n  Demo failed (exit {process.returncode}).')
@@ -194,7 +196,22 @@ def run_with_dashboard(launcher, command, directory):
                 if character.isprintable() or character == '\t'
             )
             print(f'  {line}')
-    return process.returncode
+    if stopped or process.returncode == 0:
+        try:
+            from terminal_ui import log_tail, summary_lines
+            lines = (log_tail(log.name) if launcher.get('terminal_output') else
+                     summary_lines(log.name, time.monotonic() - started))
+        except ImportError:
+            # The plain interface remains usable on images without curses.
+            with open(log.name, 'rb') as output:
+                output.seek(0, 2)
+                output.seek(max(0, output.tell() - 65536))
+                lines = output.read().decode('utf-8', errors='replace').splitlines()[-8:]
+        for line in lines:
+            line = ''.join(character for character in line
+                           if character.isprintable())
+            print(f'  {line}')
+    return 0 if stopped else process.returncode
 
 
 def prepare_launch(catalog, launcher, video=None):
@@ -242,25 +259,51 @@ def run_launcher(catalog, launcher, dashboard=True, video=None):
     ).returncode
 
 
-def show_menu(platform, launchers):
+def show_menu(platform, launchers, back=False, suite=False):
     clear_screen()
-    print("VARISCITE AI/ML DEMOS")
+    print('VARISCITE DEMOS' if suite else 'VARISCITE AI/ML DEMOS')
     print(f"Platform: {platform}")
     category = None
     for index, launcher in enumerate(launchers, start=1):
         if launcher.get("category") != category:
             category = launcher.get("category")
-            print(category)
+            if category:
+                print(category)
         title = launcher.get("menu_title", launcher["title"])
         description = launcher.get("description", "")
         print(f"  {index}. {title:<9} {description}")
-    print("\n  q. Quit")
+    print('\n  q. Back' if back else '\n  q. Quit')
     print("Demos open fullscreen. Press Esc to close the display.")
 
 
 def interactive(catalog, platform, launchers):
+    all_launchers = launchers
+    groups = [group for group in catalog.get('groups', []) if any(
+        item.get('group') == group['id'] for item in launchers)]
+    selected_group = None
     while True:
-        show_menu(platform, launchers)
+        if groups and selected_group is None:
+            clear_screen()
+            print(f'VARISCITE DEMOS | {platform}\n')
+            for index, group in enumerate(groups, 1):
+                print(f"  {index}. {group['title']}")
+            print('\n  q. Quit')
+            try:
+                choice = input('Choose a category: ').strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                return 0
+            if choice in {'q', 'quit', 'exit'}:
+                return 0
+            try:
+                index = int(choice) - 1
+                if not 0 <= index < len(groups):
+                    continue
+                selected_group = groups[index]
+            except ValueError:
+                continue
+            launchers = [item for item in all_launchers
+                         if item.get('group') == selected_group['id']]
+        show_menu(platform, launchers, back=bool(groups), suite=bool(groups))
         try:
             choice = input(
                 f"\nSelect a demo [1-{len(launchers)}]: "
@@ -270,6 +313,9 @@ def interactive(catalog, platform, launchers):
             return 0
 
         if choice in {"q", "quit", "exit"}:
+            if groups:
+                selected_group = None
+                continue
             return 0
         try:
             if int(choice) < 1:
