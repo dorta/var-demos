@@ -42,3 +42,17 @@ Do not equate an isolated inference benchmark with application FPS.
 
 Models and example media belong on DigitalOcean Spaces, never Git LFS.
 Keep unvalidated models out of the default install catalog.
+
+## Model sources
+
+Start with [NXP eIQ Model Zoo](https://github.com/NXP/eiq-model-zoo) and
+its i.MX 8M Plus NNStreamer enablement matrix linked above. Prioritize
+MoveNet Lightning and DeepLabV3 after the existing demos are stable.
+
+[PINTO Model Zoo](https://github.com/PINTO0309/PINTO_model_zoo) offers
+converted models, including MoveNet and body/head/hand detection. A TFLite
+export alone does not establish VX delegate compatibility or NPU speed.
+Check the license in each model directory: conversion-script licensing
+does not replace the original model's licensing terms.
+
+These are research candidates, not additional installed or validated demos.
