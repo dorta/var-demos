@@ -3,6 +3,7 @@
 
 from collections import deque
 import curses
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -42,6 +43,34 @@ def serial_console():
 def log_tail(path):
     with Path(path).open(encoding='utf-8', errors='replace') as output:
         return [safe_text(line) for line in deque(output, maxlen=8)]
+
+
+def summary_lines(path, elapsed):
+    lines = [f'Elapsed: {elapsed:.1f} seconds']
+    with Path(path).open('rb') as output:
+        output.seek(0, 2)
+        output.seek(max(0, output.tell() - 65536))
+        tail = output.read().decode('utf-8', errors='replace')
+    for line in reversed(tail.splitlines()):
+        if not line.startswith('VAR_AI_STATS '):
+            continue
+        try:
+            stats = json.loads(line.removeprefix('VAR_AI_STATS '))
+            lines.append(f"Frames with inference: {int(stats['frames'])}")
+            for key, label, unit in (
+                ('processing_fps', 'Average processing rate', 'FPS'),
+                ('inference_ms', 'Average inference', 'ms'),
+                ('soc_peak_c', 'Peak sampled SoC temperature', 'C'),
+            ):
+                value = stats.get(key)
+                if isinstance(value, (int, float)):
+                    lines.append(f'{label}: {value:.1f} {unit}')
+            break
+        except (ValueError, TypeError, KeyError):
+            continue
+    if len(lines) == 1:
+        lines.append('Processing statistics unavailable for this run.')
+    return lines
 
 
 class TerminalUI:
@@ -232,6 +261,10 @@ class TerminalUI:
         else:
             self.notice = f'Demo failed (exit {process.returncode}).'
             self.message(self.notice, log_tail(log.name) + [f'Log: {log.name}'])
+            return
+        self.message(self.notice, summary_lines(
+            log.name, time.monotonic() - started
+        ))
 
     def main(self):
         while True:

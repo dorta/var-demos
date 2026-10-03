@@ -4,11 +4,12 @@
 import curses
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from terminal_ui import TerminalUI, navigate, safe_text
+from terminal_ui import TerminalUI, navigate, safe_text, summary_lines
 
 
 class TerminalTests(unittest.TestCase):
@@ -51,12 +52,31 @@ class TerminalTests(unittest.TestCase):
         ui.api.prepare_launch.return_value = (launcher, ['demo'], '/tmp')
         process = popen.return_value
         process.poll.return_value = None
+        ui.message = Mock()
         ui.run(launcher)
         ui.api.stop_process.assert_called_once_with(process)
         self.assertIn('stopped', ui.notice)
+        ui.message.assert_called_once()
 
     def test_control_characters_are_removed(self):
         self.assertEqual(safe_text('hello\n\x00world'), 'helloworld')
+
+    def test_summary_reads_structured_metrics(self):
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.log') as log:
+            log.write('driver warning\nVAR_AI_STATS {"frames": 15, '
+                      '"inference_ms": 8.5, "processing_fps": 29.5, '
+                      '"soc_peak_c": 75}\n')
+            log.flush()
+            lines = summary_lines(log.name, 1.2)
+        self.assertIn('Frames with inference: 15', lines)
+        self.assertIn('Average inference: 8.5 ms', lines)
+
+    def test_incomplete_run_does_not_invent_statistics(self):
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.log') as log:
+            log.write('VAR_AI_STATS truncated\n')
+            log.flush()
+            lines = summary_lines(log.name, 2)
+        self.assertIn('Processing statistics unavailable for this run.', lines)
 
     @patch('terminal_ui.curses.doupdate')
     @patch('terminal_ui.SOC_TEMPERATURE.read', return_value=70)

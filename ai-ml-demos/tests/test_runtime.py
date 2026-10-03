@@ -15,6 +15,25 @@ SPEC.loader.exec_module(runtime)
 
 
 class RuntimeTests(unittest.TestCase):
+    def test_statistics_use_invoke_time_not_process_duration(self):
+        stats = runtime.RunStatistics()
+        with patch.object(runtime, 'monotonic', side_effect=[1.0, 1.1]), \
+                patch.object(runtime.SOC_TEMPERATURE, 'read',
+                             side_effect=[70, 72]):
+            stats.record(0.01)
+            stats.record(0.02)
+        summary = stats.summary()
+        self.assertEqual(summary['frames'], 2)
+        self.assertAlmostEqual(summary['inference_ms'], 15)
+        self.assertAlmostEqual(summary['processing_fps'], 2 / 0.11)
+        self.assertEqual(summary['soc_peak_c'], 72)
+
+    def test_empty_statistics_do_not_invent_metrics(self):
+        summary = runtime.RunStatistics().summary()
+        self.assertEqual(summary['frames'], 0)
+        self.assertIsNone(summary['inference_ms'])
+        self.assertIsNone(summary['processing_fps'])
+
     def test_cleanup_runs_when_a_demo_fails(self):
         cleanup = MagicMock()
         fake_cv2 = SimpleNamespace(destroyAllWindows=MagicMock())

@@ -3,6 +3,7 @@
 
 from contextlib import contextmanager, ExitStack
 from contextvars import ContextVar
+import json
 from pathlib import Path
 import signal
 from time import monotonic, sleep
@@ -11,8 +12,47 @@ from telemetry import SOC_TEMPERATURE, SoCTemperature
 
 
 RESOURCES = ContextVar('demo_resources')
+STATISTICS = ContextVar('demo_statistics', default=None)
 CPU_TEMPERATURE = SoCTemperature(sensor_name='cpu-thermal')
 CLOCK_SCALE = Path('/sys/bus/platform/drivers/galcore/gpu3DClockScale')
+
+
+class RunStatistics:
+    def __init__(self):
+        self.frames = 0
+        self.total_inference = 0.0
+        self.first_frame = None
+        self.last_frame = None
+        self.soc_peak = None
+
+    def record(self, seconds):
+        now = monotonic()
+        if self.first_frame is None:
+            self.first_frame = now - seconds
+        self.last_frame = now
+        self.frames += 1
+        self.total_inference += seconds
+        value = SOC_TEMPERATURE.read()
+        if value is not None:
+            self.soc_peak = max(value, self.soc_peak or value)
+
+    def summary(self):
+        elapsed = (self.last_frame - self.first_frame
+                   if self.frames else 0)
+        return {
+            'frames': self.frames,
+            'processing_fps': (self.frames / elapsed
+                               if self.frames > 1 and elapsed > 0 else None),
+            'inference_ms': (1000 * self.total_inference / self.frames
+                             if self.frames else None),
+            'soc_peak_c': self.soc_peak,
+        }
+
+
+def record_inference(seconds):
+    statistics = STATISTICS.get()
+    if statistics is not None:
+        statistics.record(seconds)
 
 
 def clock_is_limited():
@@ -39,6 +79,8 @@ def demo_session():
         raise KeyboardInterrupt
 
     previous = signal.signal(signal.SIGTERM, terminate)
+    statistics = RunStatistics()
+    stats_token = STATISTICS.set(statistics)
     try:
         with ExitStack() as resources:
             token = RESOURCES.set(resources)
@@ -55,6 +97,8 @@ def demo_session():
             finally:
                 RESOURCES.reset(token)
     finally:
+        STATISTICS.reset(stats_token)
+        print('VAR_AI_STATS ' + json.dumps(statistics.summary()), flush=True)
         signal.signal(signal.SIGTERM, previous)
 
 

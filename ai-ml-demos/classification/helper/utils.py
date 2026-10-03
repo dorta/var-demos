@@ -5,6 +5,7 @@ import collections
 from contextlib import contextmanager
 from datetime import timedelta
 from time import monotonic
+from runtime import record_inference
 
 class Timer:
     def __init__(self):
@@ -15,6 +16,10 @@ class Timer:
         begin = monotonic()
         try:
             yield
+        except BaseException:
+            raise
+        else:
+            record_inference(monotonic() - begin)
         finally:
             end = monotonic()
             self.convert(end - begin)
@@ -40,5 +45,4 @@ class Framerate:
 def load_labels(labels_file: str) -> list:
     with open(labels_file, 'r') as f:
         return [line.strip() for line in f.readlines()]
-
 

@@ -33,6 +33,8 @@ var-ai
 and `Enter` to select a demo. Press `Esc` to stop and return to the menu.
 Press `l` while running to view diagnostic logs. Use `var-ai --plain` for
 terminals without curses support.
+Serial consoles use a compact VT100-compatible layout. After a demo ends,
+review its measured statistics and press `Enter` or `Esc` to return.
 The HD demo asks which video to play and shows each sample's resolution.
 
 Continuous operation requires adequate cooling. Demos reduce frame rate when

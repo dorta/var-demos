@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 import re
 from time import monotonic
+from runtime import record_inference
 
 import numpy as np
 
@@ -18,6 +19,10 @@ class Timer:
         begin = monotonic()
         try:
             yield
+        except BaseException:
+            raise
+        else:
+            record_inference(monotonic() - begin)
         finally:
             end = monotonic()
             self.convert(end - begin)

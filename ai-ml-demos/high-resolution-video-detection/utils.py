@@ -15,6 +15,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from telemetry import draw_soc_temperature
+from runtime import record_inference
 
 
 FONT = {
@@ -87,6 +88,10 @@ class Timer:
         begin = monotonic()
         try:
             yield
+        except BaseException:
+            raise
+        else:
+            record_inference(monotonic() - begin)
         finally:
             end = monotonic()
             self.convert(end - begin)
