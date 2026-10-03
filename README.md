@@ -11,8 +11,8 @@ curl -fsSL \
 var-demos
 ```
 
-Use arrows and Enter to select; Esc returns to the menu. `var-ai` remains
-an AI/ML shortcut. Models and media come from DigitalOcean Spaces, with
+Use arrows and Enter to select; Esc returns to the menu.
+Models and media come from DigitalOcean Spaces, with
 SHA-256 verification. No Git LFS.
 
 `catalog.toml` selects the installed categories. Other folders, including

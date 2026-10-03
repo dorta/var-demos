@@ -18,7 +18,7 @@ Run as `root` on the target:
 [source,console]
 ----
 curl -fsSL \
-  https://raw.githubusercontent.com/dorta/var-demos/demos/ai-ml-demos/install.sh \
+  https://raw.githubusercontent.com/dorta/var-demos/demos/install.sh \
   | sh
 ----
 
@@ -26,12 +26,12 @@ curl -fsSL \
 
 [source,console]
 ----
-var-ai
+var-demos
 ----
 
-`var-ai` shows a terminal menu for the detected platform. Use the arrow keys
+`var-demos` shows a terminal menu; select the AI / ML category. Use the arrows
 and `Enter` to select a demo. Press `Esc` to stop and return to the menu.
-Press `l` while running to view diagnostic logs. Use `var-ai --plain` for
+Press `l` while running to view diagnostic logs. Use `var-demos --plain` for
 terminals without curses support.
 Serial consoles use a compact VT100-compatible layout. After a demo ends,
 review its measured statistics and press `Enter` or `Esc` to return.

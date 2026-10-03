@@ -20,6 +20,7 @@ REQUESTED_DEMOS=
 REMOTE_SOURCE=0
 SOURCE_ROOT=
 UNINSTALL=0
+NO_LAUNCHER=0
 WORK_DIR=
 
 usage() {
@@ -31,6 +32,7 @@ Install every compatible demo, or only the demos named on the command line.
 Options:
   --board BOARD       Override automatic board detection
   --bin-dir DIRECTORY Install the var-ai command in this directory
+  --no-launcher       Install as a module without the var-ai command
   --dry-run           Show what would be installed
   --list              List demos compatible with the detected board
   --prefix DIRECTORY  Installation directory
@@ -345,6 +347,10 @@ while [ "$#" -gt 0 ]; do
             BIN_DIR=$2
             shift 2
             ;;
+        --no-launcher)
+            NO_LAUNCHER=1
+            shift
+            ;;
         --dry-run)
             DRY_RUN=1
             shift
@@ -403,6 +409,7 @@ if [ "${REMOTE_SOURCE}" -eq 1 ]; then
     [ -z "${BOARD}" ] || set -- "$@" --board "${BOARD}"
     [ "${DRY_RUN}" -eq 0 ] || set -- "$@" --dry-run
     [ "${LIST_ONLY}" -eq 0 ] || set -- "$@" --list
+    [ "${NO_LAUNCHER}" -eq 0 ] || set -- "$@" --no-launcher
     for requested_demo in ${REQUESTED_DEMOS}; do
         set -- "$@" "${requested_demo}"
     done
@@ -472,13 +479,15 @@ selected_demos | while read -r demo; do
     install_demo "${demo}"
 done
 
-install -d "${BIN_DIR}"
-if [ -e "${BIN_DIR}/var-ai" ] && [ ! -L "${BIN_DIR}/var-ai" ]; then
-    fail "refusing to replace non-symlink: ${BIN_DIR}/var-ai"
+if [ "${NO_LAUNCHER}" -eq 0 ]; then
+    install -d "${BIN_DIR}"
+    if [ -e "${BIN_DIR}/var-ai" ] && [ ! -L "${BIN_DIR}/var-ai" ]; then
+        fail "refusing to replace non-symlink: ${BIN_DIR}/var-ai"
+    fi
+    ln -sfn "${INSTALL_ROOT}/manager.py" "${BIN_DIR}/var-ai"
 fi
-ln -sfn "${INSTALL_ROOT}/manager.py" "${BIN_DIR}/var-ai"
 touch "${INSTALL_ROOT}/.var-ai-installed"
 
 echo
 echo "Installation complete: ${INSTALL_ROOT}"
-echo "Run the demo manager: var-ai"
+[ "${NO_LAUNCHER}" -eq 1 ] || echo "Run the demo manager: var-ai"

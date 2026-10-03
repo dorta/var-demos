@@ -65,6 +65,28 @@ class InstallerTests(unittest.TestCase):
                 installer.link_command(directory, 'var-demos', ROOT / 'suite.py')
             self.assertEqual(launcher.read_text(), 'user file')
 
+    def test_update_removes_only_owned_legacy_shortcuts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'suite'
+            bin_dir = Path(temporary) / 'bin'
+            bin_dir.mkdir()
+            for name, relative in [('var-ai', 'ai-ml/manager.py'),
+                                   ('var-media', 'multimedia/video-player/player.py')]:
+                (bin_dir / name).symlink_to(root / relative)
+            installer.remove_legacy_commands(bin_dir, root)
+            self.assertFalse((bin_dir / 'var-ai').is_symlink())
+            self.assertFalse((bin_dir / 'var-media').is_symlink())
+
+    def test_update_preserves_unrelated_legacy_names(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / 'var-ai').write_text('user command')
+            (directory / 'var-media').symlink_to('/unrelated/player')
+            installer.remove_legacy_commands(directory, directory / 'suite')
+            self.assertEqual((directory / 'var-ai').read_text(), 'user command')
+            self.assertEqual((directory / 'var-media').readlink(),
+                             Path('/unrelated/player'))
+
     def test_uninstall_rejects_unrecognized_installation_before_removal(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / 'suite'

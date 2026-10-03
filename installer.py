@@ -61,6 +61,15 @@ def link_command(bin_dir, name, target):
     link.symlink_to(target)
 
 
+def remove_legacy_commands(bin_dir, root):
+    for name, relative in [('var-ai', 'ai-ml/manager.py'),
+                           ('var-media', 'multimedia/video-player/player.py')]:
+        link = bin_dir / name
+        if link.is_symlink() and link.readlink() == root / relative:
+            link.unlink()
+            print(f'Removed obsolete shortcut: {link}')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=Path,
@@ -151,8 +160,7 @@ def main():
             subprocess.run([sys.executable,
                 str(source / group['source'] / 'vector_add.py'),
                 '--check'], check=True)
-    for name, relative in [('var-demos', 'suite.py'),
-                           ('var-media', 'multimedia/video-player/player.py')]:
+    for name, relative in [('var-demos', 'suite.py')]:
         link = args.bin_dir / name
         if (link.exists() or link.is_symlink()) and (
                 not link.is_symlink() or link.readlink() != root / relative):
@@ -178,7 +186,7 @@ def main():
                 subprocess.run(['sh', str(source / 'ai-ml-demos/install.sh'),
                     '--source', str(source / 'ai-ml-demos'), '--prefix',
                     str(target), '--bin-dir', str(args.bin_dir), '--board',
-                    board], check=True)
+                    board, '--no-launcher'], check=True)
             else:
                 shutil.copytree(source / group['source'], target,
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns(
@@ -200,9 +208,7 @@ def main():
         (root / '.var-demos-installed').touch()
         args.bin_dir.mkdir(parents=True, exist_ok=True)
         link_command(args.bin_dir, 'var-demos', root / 'suite.py')
-        if (root / 'multimedia/video-player/player.py').is_file():
-            link_command(args.bin_dir, 'var-media',
-                         root / 'multimedia/video-player/player.py')
+        remove_legacy_commands(args.bin_dir, root)
     print('Installation complete. Run: var-demos')
 
 

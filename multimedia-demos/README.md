@@ -1,6 +1,6 @@
 # Multimedia demos
 
-Launch the video player from `var-demos`, or run `var-media` directly.
+Launch the video player from the Multimedia category in `var-demos`.
 
 Open a local movie. Use Play/Pause, Stop, the seek bar and volume slider.
 Space toggles playback; S stops; F toggles fullscreen; Esc exits.
