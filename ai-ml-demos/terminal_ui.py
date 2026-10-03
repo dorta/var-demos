@@ -227,7 +227,9 @@ class TerminalUI:
                     state = (elapsed, show_logs, self.screen.getmaxyx())
                     if state != previous:
                         peak = temperature()
-                        if clock_is_limited() or (peak is not None and peak >= 82):
+                        inference_demo = launcher.get('group', 'ai-ml') == 'ai-ml'
+                        if inference_demo and (clock_is_limited() or
+                                              (peak is not None and peak >= 82)):
                             cooling = True
                         elif peak is not None and peak < 78:
                             cooling = False
@@ -237,7 +239,10 @@ class TerminalUI:
                             self.text(7, 2, status, self.accent)
                             self.text(8, 2,
                                       f'Elapsed  {elapsed // 60:02d}:{elapsed % 60:02d}')
-                            self.text(10, 2, 'Video output: board display', curses.A_DIM)
+                            output = ('Output: terminal summary'
+                                      if launcher.get('terminal_output')
+                                      else 'Video output: board display')
+                            self.text(10, 2, output, curses.A_DIM)
                             if show_logs:
                                 height, _ = self.screen.getmaxyx()
                                 for index, line in enumerate(log_tail(log.name)):
