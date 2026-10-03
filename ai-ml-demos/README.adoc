@@ -29,8 +29,10 @@ curl -fsSL \
 var-ai
 ----
 
-`var-ai` lists the demos supported by the detected platform. Select a number
-to start a demo. Press `Ctrl+C` to stop it and return to the menu.
+`var-ai` shows a terminal menu for the detected platform. Use the arrow keys
+and `Enter` to select a demo. Press `Esc` to stop and return to the menu.
+Press `l` while running to view diagnostic logs. Use `var-ai --plain` for
+terminals without curses support.
 The HD demo asks which video to play and shows each sample's resolution.
 
 Continuous operation requires adequate cooling. Demos reduce frame rate when

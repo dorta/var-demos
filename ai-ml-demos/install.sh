@@ -465,6 +465,8 @@ else
         "${INSTALL_ROOT}/telemetry.py"
     install -m 0644 "${SOURCE_ROOT}/runtime.py" \
         "${INSTALL_ROOT}/runtime.py"
+    install -m 0644 "${SOURCE_ROOT}/terminal_ui.py" \
+        "${INSTALL_ROOT}/terminal_ui.py"
 fi
 selected_demos | while read -r demo; do
     install_demo "${demo}"

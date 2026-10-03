@@ -197,7 +197,7 @@ def run_with_dashboard(launcher, command, directory):
     return process.returncode
 
 
-def run_launcher(catalog, launcher, dashboard=True, video=None):
+def prepare_launch(catalog, launcher, video=None):
     demo = find_demo(catalog, launcher["demo"])
     directory = ROOT / demo["path"]
     if not directory.is_dir():
@@ -212,9 +212,14 @@ def run_launcher(catalog, launcher, dashboard=True, video=None):
             index = command.index('--combination') + 1
             command[index] = str(video['combination'])
 
+    if video is not None:
+        launcher = dict(launcher, title=video['title'])
+    return launcher, command, directory
+
+
+def run_launcher(catalog, launcher, dashboard=True, video=None):
+    launcher, command, directory = prepare_launch(catalog, launcher, video)
     if dashboard and sys.stdout.isatty():
-        if video is not None:
-            launcher = dict(launcher, title=video['title'])
         return run_with_dashboard(launcher, command, directory)
     return subprocess.run(
         command,
@@ -309,6 +314,8 @@ def main():
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--run", metavar="LAUNCHER")
     parser.add_argument("--platform")
+    parser.add_argument("--plain", action="store_true",
+                        help="use the simple text interface")
     args = parser.parse_args()
 
     catalog = load_catalog()
@@ -329,6 +336,24 @@ def main():
             raise SystemExit(f"unknown launcher: {args.run}") from error
         return run_launcher(catalog, launcher)
 
+    if (not args.plain and sys.stdin.isatty() and sys.stdout.isatty()
+            and os.environ.get('TERM', 'dumb') != 'dumb'):
+        try:
+            import curses
+            from terminal_ui import TerminalUI
+        except ImportError:
+            return interactive(catalog, platform, launchers)
+        try:
+            return curses.wrapper(
+                lambda screen: TerminalUI(
+                    screen, catalog, platform, launchers,
+                    sys.modules[__name__],
+                ).main()
+            )
+        except curses.error as error:
+            print(f'Terminal UI unavailable: {error}; using text mode.')
+        except KeyboardInterrupt:
+            return 0
     return interactive(catalog, platform, launchers)
 
 
