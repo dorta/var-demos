@@ -61,6 +61,16 @@ class TerminalTests(unittest.TestCase):
     def test_control_characters_are_removed(self):
         self.assertEqual(safe_text('hello\n\x00world'), 'helloworld')
 
+    def test_category_back_returns_to_category_menu(self):
+        ui = self.make_ui([])
+        group = {'id': 'opencl', 'title': 'OpenCL'}
+        ui.catalog = {'groups': [group]}
+        ui.launchers = [{'id': 'vector', 'group': 'opencl'}]
+        ui.choose = Mock(side_effect=[group, None, None])
+        self.assertEqual(ui.main(), 0)
+        self.assertEqual(ui.choose.call_count, 3)
+        self.assertEqual(ui.choose.call_args_list[1].args[2], 'Back')
+
     def test_summary_reads_structured_metrics(self):
         with tempfile.NamedTemporaryFile(mode='w+', suffix='.log') as log:
             log.write('driver warning\nVAR_AI_STATS {"frames": 15, '

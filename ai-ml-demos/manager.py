@@ -141,7 +141,7 @@ def run_with_dashboard(launcher, command, directory):
         process = subprocess.Popen(
             command,
             cwd=directory,
-            env=display_environment(),
+            env=environment_for(launcher),
             stdout=log,
             stderr=subprocess.STDOUT,
             start_new_session=True,
@@ -217,6 +217,19 @@ def prepare_launch(catalog, launcher, video=None):
     return launcher, command, directory
 
 
+def environment_for(launcher):
+    environment = display_environment()
+    if launcher.get('native_wayland'):
+        environment['GDK_BACKEND'] = 'wayland'
+        runtime = Path(environment['XDG_RUNTIME_DIR'])
+        sockets = sorted(path for path in runtime.glob('wayland-*')
+                         if path.is_socket())
+        if not sockets:
+            raise RuntimeError(f'No Wayland display socket in {runtime}')
+        environment['WAYLAND_DISPLAY'] = sockets[0].name
+    return environment
+
+
 def run_launcher(catalog, launcher, dashboard=True, video=None):
     launcher, command, directory = prepare_launch(catalog, launcher, video)
     if dashboard and sys.stdout.isatty():
@@ -224,7 +237,7 @@ def run_launcher(catalog, launcher, dashboard=True, video=None):
     return subprocess.run(
         command,
         cwd=directory,
-        env=display_environment(),
+        env=environment_for(launcher),
         check=False,
     ).returncode
 

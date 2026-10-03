@@ -136,7 +136,8 @@ class TerminalUI:
             self.text(0, 0, 'Resize terminal to at least 45 x 12.')
             self.text(1, 0, 'Esc / q: back or stop')
             return False
-        self.text(1, 2, 'VARISCITE  /  AI + ML', self.accent)
+        brand = 'DEMOS' if self.catalog.get('groups') else 'AI + ML'
+        self.text(1, 2, f'VARISCITE  /  {brand}', self.accent)
         value = SOC_TEMPERATURE.read()
         thermal = 'SoC --.- C' if value is None else f'SoC {value:.1f} C'
         self.text(1, width - len(thermal) - 3, thermal, curses.A_BOLD)
@@ -215,7 +216,7 @@ class TerminalUI:
             prefix='var-ai-', suffix='.log', delete=False
         ) as log:
             process = subprocess.Popen(
-                command, cwd=directory, env=self.api.display_environment(),
+                command, cwd=directory, env=self.api.environment_for(launcher),
                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
             )
             started = time.monotonic()
@@ -262,14 +263,32 @@ class TerminalUI:
             self.notice = f'Demo failed (exit {process.returncode}).'
             self.message(self.notice, log_tail(log.name) + [f'Log: {log.name}'])
             return
-        self.message(self.notice, summary_lines(
+        lines = summary_lines(
             log.name, time.monotonic() - started
-        ))
+        )
+        if launcher.get('terminal_output'):
+            lines = lines[:1] + log_tail(log.name)
+        self.message(self.notice, lines)
 
     def main(self):
         while True:
-            launcher = self.choose('Choose a demo', self.launchers, 'Quit')
+            launchers = self.launchers
+            groups = self.catalog.get('groups', [])
+            if groups:
+                groups = [group for group in groups if any(
+                    launcher.get('group') == group['id']
+                    for launcher in self.launchers
+                )]
+                group = self.choose('Choose a category', groups, 'Quit')
+                if group is None:
+                    return 0
+                launchers = [launcher for launcher in self.launchers
+                             if launcher.get('group') == group['id']]
+            launcher = self.choose('Choose a demo', launchers,
+                                   'Back' if groups else 'Quit')
             if launcher is None:
+                if groups:
+                    continue
                 return 0
             try:
                 video = None
