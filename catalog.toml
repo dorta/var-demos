@@ -53,3 +53,25 @@ group = "opencl"
 demo = "opencl"
 command = ["python3", "vector_add.py"]
 terminal_output = true
+
+# Curated image-provided binaries: discovered in place, never installed.
+[[external_demos]]
+id = "fractal"
+title = "GPU fractal animation"
+description = "NXP SDK: animated fractals rendered with OpenGL ES"
+executable = "/opt/imx-gpu-sdk/GLES3/FractalShader___Wayland/GLES3.FractalShader___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "render-texture"
+title = "GPU render to texture"
+description = "NXP SDK: offscreen rendering and texture composition"
+executable = "/opt/imx-gpu-sdk/GLES3/RenderToTexture___Wayland/GLES3.RenderToTexture___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "opencl-filter"
+title = "OpenCL Gaussian image filter"
+description = "NXP SDK: GPU image filtering with graphical output"
+executable = "/opt/imx-gpu-sdk/GLES3/OpenCLGaussianFilter___Wayland/GLES3.OpenCLGaussianFilter___Wayland"
+platforms = ["imx8mplus"]

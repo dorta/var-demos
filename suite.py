@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from pathlib import Path
+import os
 import sys
 import tomllib
 
@@ -11,6 +12,38 @@ sys.path.insert(0, str(ROOT / 'lib'))
 sys.path.insert(0, str(ROOT / 'ai-ml'))
 sys.path.insert(0, str(ROOT / 'ai-ml-demos'))
 import manager
+
+
+def add_external_demos(catalog):
+    """Expose curated BSP executables without installing or owning them."""
+    available = []
+    for entry in catalog.get('external_demos', []):
+        executable = Path(entry['executable'])
+        if (not executable.is_absolute()
+                or '..' in executable.parts
+                or not executable.is_relative_to('/opt/imx-gpu-sdk')
+                or not executable.is_file()
+                or not os.access(executable, os.X_OK)):
+            continue
+        demo_id = 'bsp/' + entry['id']
+        catalog['demos'].append({
+            'id': demo_id, 'path': str(executable.parent),
+            'platforms': entry['platforms'],
+        })
+        available.append({
+            'id': demo_id, 'demo': demo_id, 'group': 'bsp',
+            'title': entry['title'], 'description': entry['description'],
+            'command': [str(executable)], 'native_wayland': True,
+        })
+    if available:
+        catalog['groups'].append({
+            'id': 'bsp', 'title': 'Installed BSP demos /opt',
+            'description': 'Existing GPU examples supplied with the image',
+            'platforms': sorted({platform
+                                 for entry in catalog['external_demos']
+                                 for platform in entry['platforms']}),
+        })
+        catalog['launchers'].extend(available)
 
 
 def load_suite():
@@ -39,6 +72,7 @@ def load_suite():
         for video in ai.get('videos', []):
             video['demo'] = 'ai-ml/' + video['demo']
         catalog['videos'] = ai.get('videos', [])
+    add_external_demos(catalog)
     return catalog
 
 

@@ -17,6 +17,8 @@ SHA-256 verification. No Git LFS.
 
 `catalog.toml` selects the installed categories. Other folders, including
 TPM, Docker and VS Code examples, are not installed by this command.
+The menu also lists selected GPU demos already present in
+`/opt/imx-gpu-sdk`. These run in place; uninstall leaves them untouched.
 
 Uninstall:
 
