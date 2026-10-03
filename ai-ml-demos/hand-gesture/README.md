@@ -8,6 +8,8 @@ use light temporal smoothing. Losing the hand clears both immediately.
 No external actions are executed.
 
 Launch from `var-demos` or `var-ai`. Esc stops and returns to the manager.
+Only the live camera is offered in the menu. The reference photograph is
+an internal regression/warmup asset and is never shown by the camera demo.
 Fullscreen fills the display using a central crop; use `--windowed` to
 retain the entire camera image. First inference includes model preparation
 and can take tens of seconds. Both models prepare before camera capture,

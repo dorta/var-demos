@@ -58,15 +58,6 @@ demo = "hand-gesture"
 command = ["python3", "demo.py", "--camera", "{camera}"]
 
 [[launchers]]
-id = "hand-gesture-sample"
-title = "Check hand landmarks on a reference image"
-category = "HAND AND GESTURES"
-menu_title = "Reference image"
-description = "verify 21 landmarks on the known open-hand sample"
-demo = "hand-gesture"
-command = ["python3", "demo.py", "--sample"]
-
-[[launchers]]
 id = "classification-image"
 title = "Classify an image"
 category = "CLASSIFICATION"
