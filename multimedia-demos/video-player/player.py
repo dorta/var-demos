@@ -91,7 +91,17 @@ class Player(Gtk.Window):
         self.add(layout)
         header = Gtk.Box(spacing=8)
         layout.pack_start(header, False, False, 0)
-        title = Gtk.Label(label='VARISCITE  /  PLAYER')
+        logo = Path(__file__).with_name('media') / 'variscite-logo-white.png'
+        if logo.is_file():
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                str(logo), 150, 28, True)
+            brand = Gtk.Image.new_from_pixbuf(pixbuf)
+            brand.set_tooltip_text('Variscite')
+            brand.get_accessible().set_name('Variscite logo')
+        else:
+            brand = Gtk.Label(label='VARISCITE')
+        header.pack_start(brand, False, False, 0)
+        title = Gtk.Label(label='/  PLAYER')
         title.get_style_context().add_class('brand')
         header.pack_start(title, False, False, 0)
         self.filename = Gtk.Label(label='Open a local movie')

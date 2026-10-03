@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -13,6 +14,14 @@ spec.loader.exec_module(installer)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_brand_asset_requires_its_expected_checksum(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            asset = Path(temporary) / 'logo.png'
+            asset.write_bytes(b'logo fixture')
+            digest = hashlib.sha256(b'logo fixture').hexdigest()
+            self.assertTrue(installer.verified(asset, digest))
+            self.assertFalse(installer.verified(asset, '0' * 64))
+
     def run_installer(self, *arguments):
         return subprocess.run([sys.executable, str(ROOT / 'installer.py'),
                                *arguments], capture_output=True, text=True)

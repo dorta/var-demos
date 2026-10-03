@@ -11,6 +11,9 @@ from player import GLib, Gst, Gtk, Player
 if not Gtk.init_check()[0]:
     raise SystemExit('Board display unavailable')
 player = Player(sys.argv[1])
+assert any(isinstance(widget, Gtk.Image)
+           for widget in player.get_child().get_children()[0].get_children()), \
+    'Installed player header is missing the Variscite logo'
 errors = []
 
 

@@ -15,6 +15,9 @@ import tomllib
 SAMPLE_URL = ('https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/'
               'machine-learning/imx8mplus/v2/media/chicago_1280x720.mp4')
 SAMPLE_HASH = 'bb0a4ababcf63f98548ac2e7106ef1774e3d96fc756ef4d9c45c48c2315689ff'
+LOGO_URL = ('https://nyc3.digitaloceanspaces.com/variscite-marketing/'
+            'demos/branding/v1/variscite-logo-white.png')
+LOGO_HASH = 'ba878adab3671263d6907d91ec87be6c1abd049cdef30ee896fd11857b4c9a5c'
 OWNED = '.var-demos-owned'
 
 
@@ -45,11 +48,11 @@ def valid_root(value):
     return path.resolve()
 
 
-def verified(path):
+def verified(path, digest=SAMPLE_HASH):
     if not path.is_file():
         return False
     with path.open('rb') as source:
-        return hashlib.file_digest(source, 'sha256').hexdigest() == SAMPLE_HASH
+        return hashlib.file_digest(source, 'sha256').hexdigest() == digest
 
 
 def link_command(bin_dir, name, target):
@@ -167,7 +170,17 @@ def main():
             raise RuntimeError(f'Refusing to overwrite unrelated {link}')
     with tempfile.TemporaryDirectory(prefix='var-demos-') as temporary:
         cache = Path(temporary) / 'chicago.mp4'
+        logo_cache = Path(temporary) / 'variscite-logo-white.png'
         if any(group['id'] == 'multimedia' for group in groups):
+            previous_logo = (root / 'multimedia/video-player/media'
+                             / 'variscite-logo-white.png')
+            if verified(previous_logo, LOGO_HASH):
+                shutil.copy2(previous_logo, logo_cache)
+            else:
+                subprocess.run(['curl', '-fSL', '--retry', '2', LOGO_URL,
+                                '-o', str(logo_cache)], check=True)
+            if not verified(logo_cache, LOGO_HASH):
+                raise RuntimeError('Player logo SHA-256 mismatch')
             previous = [root / 'multimedia/video-player/media/chicago.mp4',
                 root / 'ai-ml/high-resolution-video-detection/assets/videos/'
                        'chicago_1280x720.mp4']
@@ -196,6 +209,7 @@ def main():
                 media = target / 'video-player/media'
                 media.mkdir(exist_ok=True)
                 shutil.copy2(cache, media / 'chicago.mp4')
+                shutil.copy2(logo_cache, media / 'variscite-logo-white.png')
                 (target / 'video-player/player.py').chmod(0o755)
         lib = root / 'lib'
         lib.mkdir(exist_ok=True)
