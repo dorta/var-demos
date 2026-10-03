@@ -40,8 +40,9 @@ The HD demo asks which video to play and shows each sample's resolution.
 Continuous operation requires adequate cooling. Demos reduce frame rate when
 hot and pause inference to cool before the kernel's thermal protection trips.
 
-Models and media are downloaded separately and verified with SHA-256 during
-installation. Developer documentation is available inside each demo folder.
+Models and media are hosted on DigitalOcean Spaces, downloaded with curl,
+and verified with SHA-256 during installation. Git LFS is not used.
+Developer documentation is available inside each demo folder.
 
 Run the install command again to update code and media. Files that already
 match the current SHA-256 manifest are reused.
