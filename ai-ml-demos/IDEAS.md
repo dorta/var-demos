@@ -1,15 +1,15 @@
 # AI and ML demo experiments
 
-Proposals for i.MX 8M Plus. These are not installed demos and have not been
-benchmarked on our board. Each implementation gets its own directory here
-and enters the installer only after validation.
+Experiments for i.MX 8M Plus. Hand landmarks now have an experimental
+implementation and initial CPU/NPU checks; see its README for limitations.
+The other entries remain proposals, not installed or benchmarked demos.
 
 ## Priority experiments
 
 1. **Hand and gesture recognition** (`hand-gesture`): detect palms, estimate
-   21 hand landmarks and recognize common gestures. First compare available
-   models and CPU/NPU execution. Then add temporal stabilization to prevent
-   flickering labels and repeated accidental actions.
+   21 hand landmarks and recognize common gestures. Initial implementation
+   uses four geometric labels with temporal stabilization. Expand real-hand
+   accuracy tests and multi-hour runs before treating it as event-ready.
 2. **Human pose** (`pose-estimation`): MoveNet Lightning, with skeleton
    overlay and measured camera/video latency.
 3. **Segmentation** (`semantic-segmentation`): DeepLabV3 or a small person

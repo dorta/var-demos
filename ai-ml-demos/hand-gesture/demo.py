@@ -76,6 +76,12 @@ def draw(frame, points, gesture, fps, inference):
 
 @demo_session()
 def run(args):
+    if not args.sample:
+        if (not args.camera.startswith('/dev/video') or
+                not args.camera.removeprefix('/dev/video').isdigit()):
+            raise ValueError('Expected a /dev/video camera device')
+        if not Path(args.camera).is_char_device():
+            raise RuntimeError(f'Camera unavailable: {args.camera}')
     print('Preparing palm and landmark models; first inference may take '
           'several seconds.', flush=True)
     pacer = ThermalPacer()
@@ -98,10 +104,6 @@ def run(args):
     if args.sample:
         sample = reference
     else:
-        if not args.camera.startswith('/dev/video'):
-            raise ValueError('Expected a /dev/video camera device')
-        if not args.camera.removeprefix('/dev/video').isdigit():
-            raise ValueError('Invalid camera device')
         pipeline = (f'v4l2src device={args.camera} ! '
                     'video/x-raw,width=640,height=480,framerate=30/1 ! '
                     'queue leaky=downstream max-size-buffers=1 ! '
@@ -123,7 +125,7 @@ def run(args):
             ok, frame = capture.read()
             if not ok:
                 raise RuntimeError('Camera stopped delivering frames')
-        if not args.headless:
+        if not args.headless and not args.sample:
             frame = display_frame(frame, args.windowed)
         points, _ = tracker(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         record_inference(tracker.inference_seconds)

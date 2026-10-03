@@ -40,6 +40,32 @@ platforms = ["imx8mplus"]
 entrypoint = "python3 high-resolution-video-detection.py --combination 2"
 manifest = "assets.manifest"
 
+[[demos]]
+id = "hand-gesture"
+title = "Experimental hand landmarks and gestures"
+path = "hand-gesture"
+platforms = ["imx8mplus"]
+entrypoint = "python3 demo.py --camera /dev/video4"
+manifest = "assets.manifest"
+
+[[launchers]]
+id = "hand-gesture-camera"
+title = "Recognize a hand and gestures (experimental)"
+category = "HAND AND GESTURES"
+menu_title = "Camera"
+description = "single hand; open, fist, pointing or victory; experimental"
+demo = "hand-gesture"
+command = ["python3", "demo.py", "--camera", "{camera}"]
+
+[[launchers]]
+id = "hand-gesture-sample"
+title = "Check hand landmarks on a reference image"
+category = "HAND AND GESTURES"
+menu_title = "Reference image"
+description = "verify 21 landmarks on the known open-hand sample"
+demo = "hand-gesture"
+command = ["python3", "demo.py", "--sample"]
+
 [[launchers]]
 id = "classification-image"
 title = "Classify an image"
