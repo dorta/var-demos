@@ -1,0 +1,100 @@
+import importlib.util
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import tomllib
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('installer', ROOT / 'installer.py')
+installer = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(installer)
+
+
+class InstallerTests(unittest.TestCase):
+    def run_installer(self, *arguments):
+        return subprocess.run([sys.executable, str(ROOT / 'installer.py'),
+                               *arguments], capture_output=True, text=True)
+
+    def test_catalog_excludes_legacy_modules(self):
+        with (ROOT / 'catalog.toml').open('rb') as source:
+            catalog = tomllib.load(source)
+        self.assertEqual({entry['source'] for entry in catalog['groups']},
+                         {'ai-ml-demos', 'multimedia-demos', 'opencl/python'})
+
+    def test_dry_run_does_not_create_installation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            prefix = Path(temporary) / 'demos'
+            result = self.run_installer('--board', 'imx8mplus', '--dry-run',
+                                        '--prefix', str(prefix))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(prefix.exists())
+            self.assertNotIn('TPM', result.stdout)
+
+    def test_only_selects_one_group(self):
+        result = self.run_installer('--board', 'imx8mplus', '--only', 'opencl',
+                                    '--dry-run')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('OpenCL', result.stdout)
+        self.assertNotIn('AI / ML', result.stdout)
+
+    def test_unvalidated_board_is_rejected(self):
+        result = self.run_installer('--board', 'imx93', '--dry-run')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('not been validated', result.stderr)
+
+    def test_broad_paths_are_rejected(self):
+        for value in ('/', '/opt', '/usr/bin', '/home', 'relative'):
+            with self.assertRaises(RuntimeError):
+                installer.valid_root(value)
+
+    def test_symlink_prefix_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            link = Path(temporary) / 'link'
+            link.symlink_to(ROOT, target_is_directory=True)
+            with self.assertRaises(RuntimeError):
+                installer.valid_root(str(link))
+
+    def test_launcher_collision_is_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            launcher = directory / 'var-demos'
+            launcher.write_text('user file')
+            with self.assertRaises(RuntimeError):
+                installer.link_command(directory, 'var-demos', ROOT / 'suite.py')
+            self.assertEqual(launcher.read_text(), 'user file')
+
+    def test_uninstall_rejects_unrecognized_installation_before_removal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'suite'
+            root.mkdir()
+            (root / 'catalog.toml').write_bytes((ROOT / 'catalog.toml').read_bytes())
+            module = root / 'multimedia'
+            module.mkdir()
+            (module / installer.OWNED).touch()
+            result = self.run_installer('--uninstall', '--prefix', str(root))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(module.is_dir())
+
+    def test_uninstall_preserves_unrelated_root_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'suite'
+            root.mkdir()
+            (root / 'catalog.toml').write_bytes((ROOT / 'catalog.toml').read_bytes())
+            (root / '.var-demos-installed').touch()
+            (root / 'lib').mkdir()
+            (root / 'keep.txt').write_text('user data')
+            for name in ('multimedia', 'opencl'):
+                module = root / name
+                module.mkdir()
+                (module / installer.OWNED).touch()
+            result = self.run_installer('--uninstall', '--prefix', str(root),
+                                       '--bin-dir', str(Path(temporary) / 'bin'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((root / 'keep.txt').read_text(), 'user data')
+            self.assertFalse((root / 'multimedia').exists())
+
+
+if __name__ == '__main__':
+    unittest.main()

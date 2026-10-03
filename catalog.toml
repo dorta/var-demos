@@ -1,0 +1,55 @@
+version = 1
+
+[platforms.imx8mplus]
+name = "i.MX 8M Plus"
+compatible = ["fsl,imx8mp"]
+status = "validated"
+
+[platforms.imx93]
+name = "i.MX 93"
+compatible = ["fsl,imx93"]
+status = "pending"
+
+[platforms.imx95]
+name = "i.MX 95"
+compatible = ["fsl,imx95"]
+status = "pending"
+
+[[groups]]
+id = "ai-ml"
+title = "AI / ML"
+description = "Image, camera and video inference on the NPU"
+source = "ai-ml-demos"
+platforms = ["imx8mplus"]
+
+[[groups]]
+id = "multimedia"
+title = "Multimedia / GStreamer"
+description = "Play local movies with playback controls"
+source = "multimedia-demos"
+platforms = ["imx8mplus"]
+
+[[groups]]
+id = "opencl"
+title = "OpenCL / GPU compute"
+description = "Run and verify a GPU vector-addition kernel"
+source = "opencl/python"
+platforms = ["imx8mplus"]
+
+[[launchers]]
+id = "video-player"
+title = "Video player"
+description = "Open a movie; play, pause, stop, seek and adjust volume"
+group = "multimedia"
+demo = "multimedia"
+command = ["python3", "video-player/player.py"]
+native_wayland = true
+
+[[launchers]]
+id = "opencl-vector"
+title = "Verify GPU vector addition"
+description = "Compile an OpenCL kernel, check its results and measure it"
+group = "opencl"
+demo = "opencl"
+command = ["python3", "vector_add.py"]
+terminal_output = true
