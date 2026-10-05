@@ -75,3 +75,45 @@ title = "OpenCL Gaussian image filter"
 description = "NXP SDK: GPU image filtering with graphical output"
 executable = "/opt/imx-gpu-sdk/GLES3/OpenCLGaussianFilter___Wayland/GLES3.OpenCLGaussianFilter___Wayland"
 platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "particles"
+title = "GPU particle animation"
+description = "NXP SDK: animated particles rendered with OpenGL ES"
+executable = "/opt/imx-gpu-sdk/GLES3/ParticleSystem___Wayland/GLES3.ParticleSystem___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "bloom"
+title = "GPU bloom lighting"
+description = "NXP SDK: a 3D scene with a bloom post-processing effect"
+executable = "/opt/imx-gpu-sdk/GLES3/Bloom___Wayland/GLES3.Bloom___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "skybox"
+title = "GPU panoramic skybox"
+description = "NXP SDK: a cubemap environment rendered with OpenGL ES"
+executable = "/opt/imx-gpu-sdk/GLES3/Skybox___Wayland/GLES3.Skybox___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "model-viewer"
+title = "GPU 3D model viewer"
+description = "NXP SDK: render a textured 3D model with per-pixel lighting"
+executable = "/opt/imx-gpu-sdk/GLES3/ModelViewer___Wayland/GLES3.ModelViewer___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "verlet"
+title = "Verlet physics animation"
+description = "NXP SDK: a graphical Verlet integration example"
+executable = "/opt/imx-gpu-sdk/GLES3/VerletIntegration101___Wayland/GLES3.VerletIntegration101___Wayland"
+platforms = ["imx8mplus"]
+
+[[external_demos]]
+id = "spring-background"
+title = "Spring background animation"
+description = "NXP SDK: an animated spring-based background"
+executable = "/opt/imx-gpu-sdk/GLES3/SpringBackground___Wayland/GLES3.SpringBackground___Wayland"
+platforms = ["imx8mplus"]

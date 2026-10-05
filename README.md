@@ -27,6 +27,11 @@ Use arrows and Enter to choose; Esc stops the demo and returns to the menu.
 - [OpenCL](opencl/python/): GPU computation with verified results.
 - **Installed BSP demos:** selected graphical examples found in `/opt`.
 
+The BSP menu includes fractals, render-to-texture, a Gaussian filter,
+particles, bloom lighting, a skybox, a 3D model viewer, Verlet physics and
+spring animation. Entries appear only when their executables are installed
+with the board image. These use the GPU, not the AI inference NPU.
+
 ## Manage
 
 ```sh
