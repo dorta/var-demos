@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from pathlib import Path
+import argparse
 import os
 import sys
 import tomllib
@@ -76,7 +77,96 @@ def load_suite():
     return catalog
 
 
-if __name__ == '__main__':
+def show_status():
+    installed = (ROOT / '.var-demos-installed').is_file()
+    print('VARISCITE DEMOS')
+    print(f'Installation: {ROOT}')
+    if not installed:
+        print('State: not a recognized installed suite')
+        return 1
+    catalog = load_suite()
+    try:
+        platform = manager.detect_platform(catalog)
+    except RuntimeError as error:
+        print(f'Board: {error}')
+        return 1
+    print(f'Board: {catalog["platforms"][platform]["name"]}')
+    launchers = manager.launchers_for(catalog, platform)
+    for group in catalog['groups']:
+        count = sum(item.get('group') == group['id'] for item in launchers)
+        if count:
+            print(f'{group["title"]}: {count} demos')
+    missing = []
+    for demo in catalog['demos']:
+        if (platform not in demo.get('platforms', [])
+                or demo['id'].startswith('bsp/')):
+            continue
+        directory = ROOT / demo['path']
+        manifest = directory / 'assets.manifest'
+        if manifest.is_file():
+            for line in manifest.read_text().splitlines():
+                if not line.strip() or line.lstrip().startswith('#'):
+                    continue
+                fields = line.split()
+                if len(fields) != 3:
+                    missing.append(f'Invalid manifest: {manifest}')
+                elif not (directory / fields[2]).is_file():
+                    missing.append(str(directory / fields[2]))
+    if any(group['id'] == 'multimedia' for group in catalog['groups']):
+        media = ROOT / 'multimedia/video-player/media'
+        for filename in ('chicago.mp4', 'variscite-logo-white.png'):
+            if not (media / filename).is_file():
+                missing.append(str(media / filename))
+    print('Assets: present (checksums verified at install)' if not missing
+          else f'Assets: {len(missing)} missing or invalid entries')
+    for filename in missing:
+        print(f'  {filename}')
+    value = manager.SOC_TEMPERATURE.read()
+    print('SoC temperature: unavailable' if value is None
+          else f'SoC temperature: {value:.1f} C')
+    print('GPU/NPU clock: thermally limited' if manager.clock_is_limited()
+          else 'GPU/NPU clock: not reporting thermal limitation')
+    return 1 if missing else 0
+
+
+def main():
+    arguments = sys.argv[1:]
+    if arguments == ['status']:
+        return show_status()
+    parser = argparse.ArgumentParser(description='Variscite demo manager')
+    parser.add_argument('--status', action='store_true',
+                        help='show installed demos, assets and board status')
+    parser.add_argument('--uninstall', action='store_true',
+                        help='remove this installed suite, preserving BSP demos')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='preview --uninstall without removing files')
+    parser.add_argument('--list', action='store_true', help='list available demos')
+    parser.add_argument('--run', metavar='LAUNCHER', help='run a demo by id')
+    parser.add_argument('--platform', help='select a catalog platform')
+    parser.add_argument('--plain', action='store_true', help='use the text menu')
+    args = parser.parse_args(arguments)
+    if args.uninstall:
+        if args.status or args.list or args.run or args.platform or args.plain:
+            parser.error('--uninstall only accepts --dry-run')
+        if not (ROOT / '.var-demos-installed').is_file():
+            raise SystemExit('Unrecognized suite installation')
+        command = [sys.executable, str(ROOT / 'installer.py'),
+                   '--prefix', str(ROOT), '--uninstall']
+        if args.dry_run:
+            command.append('--dry-run')
+        # Replace the caller so the active-process guard does not count it.
+        os.execv(sys.executable, command)
+        return 0
+    if args.dry_run:
+        parser.error('--dry-run requires --uninstall')
+    if args.status:
+        if args.list or args.run or args.platform or args.plain:
+            parser.error('--status cannot be combined with demo options')
+        return show_status()
     manager.ROOT = ROOT
     manager.load_catalog = load_suite
-    raise SystemExit(manager.main())
+    return manager.main()
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
