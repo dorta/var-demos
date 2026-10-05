@@ -1,101 +1,32 @@
 // Copyright 2021 Variscite LTD
 // SPDX-License-Identifier: BSD-3-Clause
 
-ifdef::env-github[]
-:tip-caption: :bulb:
-:note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
-:warning-caption: :warning:
-:source-highlighter: :rouge:
-endif::[]
+= Object detection
 
-== Detection Examples
+Locate and label objects in images, videos or camera frames on i.MX 8M Plus.
+SSD MobileNet V1 runs through TensorFlow Lite and the VX NPU delegate.
 
-=== Get Started with the Initial Steps
+== Run
 
-. Get the source code from this demo repository:
-+
-[source,console]
-----
-git clone https://github.com/varigit/var-demos.git ~/var-demos
-----
-+
-. Copy the entire detection folder to the target module:
-+
-[source,console]
-----
-scp -r ~/var-demos/tflite/detection root@<target-ip>:/home/root
-----
+Use the link:../../README.md[root installer], then run `var-demos`.
+Choose *AI / ML* and an image, video or camera object-detection demo.
+The manager selects an available camera; assets are downloaded and verified.
+HD/Full HD footage uses the separate high-resolution video demo.
 
-=== Usage
+== Display and stability
 
-The examples open in fullscreen by default. Press `Esc` to close video and
-realtime examples. Use `--windowed` to open any example in a regular window.
+The overlay shows boxes, labels, confidence, FPS, inference time and the
+`soc-thermal` temperature. Camera fullscreen uses a central crop.
+Press `Esc` to stop. Thermal pacing can reduce FPS or pause inference;
+adequate cooling is required.
 
-==== Image Detection Example
+A 10-minute camera check on 2026-10-05 processed 9,414 frames at 15.8 FPS
+overall, with 9.0 ms average inference and a 78 C SoC peak. Stop/restart
+also completed. This is not multi-hour or visual-flicker certification.
 
-. To run the detection example using a single image:
-+
-[source,console]
-----
-cd /home/root/detection
-python3 image_detection.py
-----
-+
-. Check the available arguments:
-+
-[source,console]
-----
-python3 image_detection.py -h
-----
-+
-Default values::
-* `--model`: model/ssd_mobilenet_v1_1_default_1.tflite
-* `--label`: model/labels_ssd_mobilenet_v1.txt
-* `--image`: data/image.jpg
+== Developer options
 
-==== Video Detection Example
-
-. To run the detection example using a video file:
-+
-[source,console]
-----
-cd /home/root/detection
-python3 video_detection.py
-----
-+
-. Check the available arguments:
-+
-[source,console]
-----
-python3 video_detection.py -h
-----
-+
-Default values::
-* `--model`: model/ssd_mobilenet_v1_1_default_1.tflite
-* `--label`: model/labels_ssd_mobilenet_v1.txt
-* `--video`: data/video.mp4
-* `--videofmw`: opencv
-
-==== Realtime Detection Example
-
-. To run the detection example in realtime:
-+
-[source,console]
-----
-cd /home/root/detection
-python3 realtime_detection.py
-----
-+
-. Check the available arguments:
-+
-[source,console]
-----
-python3 realtime_detection.py -h
-----
-+
-Default values::
-* `--model`: model/ssd_mobilenet_v1_1_default_1.tflite
-* `--label`: model/labels_ssd_mobilenet_v1.txt
-* `--camera`: /dev/video1
+Installed directory: `/opt/var-demos/ai-ml/detection`.
+Each script supports `--help`; use `--camera` for an explicit device and
+`--windowed` for a regular window. Direct GUI execution needs the display
+environment set by the manager. Prefer `var-demos` for normal use.

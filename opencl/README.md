@@ -1,5 +1,10 @@
 # OpenCL Examples
 
+For the maintained workflow, see the [Python demo](python/README.md) and
+[root installer](../README.md). The C examples below are retained as legacy
+references; the installer does not deploy them. Benchmark tables describe
+historical configurations, not current MPlus measurements.
+
 OpenCL:tm: (Open Computing Language) is an open, royalty-free standard for
 cross-platform, parallel programming of diverse accelerators found in
 supercomputers, cloud servers, personal computers, mobile devices and embedded

@@ -7,7 +7,8 @@ and victory. Other poses show `Unknown`. Labels settle for 350 ms; landmarks
 use light temporal smoothing. Losing the hand clears both immediately.
 No external actions are executed.
 
-Launch from `var-demos` or `var-ai`. Esc stops and returns to the manager.
+Use the [root installer](../../README.md), then launch from **AI / ML** in
+`var-demos`. Esc stops and returns to the manager.
 Only the live camera is offered in the menu. The reference photograph is
 an internal regression/warmup asset and is never shown by the camera demo.
 Fullscreen fills the display using a central crop; use `--windowed` to
@@ -16,7 +17,7 @@ and can take tens of seconds. Both models prepare before camera capture,
 avoiding a delayed stall when the first hand enters the scene. The video
 window opens after a valid frame.
 
-Developer checks, from the installed demo directory:
+Developer checks, from `/opt/var-demos/ai-ml/hand-gesture`:
 
 ```sh
 python3 check_on_board.py

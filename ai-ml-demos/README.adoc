@@ -3,11 +3,11 @@
 
 = AI/ML Demos
 
-Ready-to-run AI/ML demos for Variscite Systems on Module.
+Classification, object detection, HD video and experimental hand gestures.
 
 == Support
 
-* i.MX 8M Plus: validated;
+* i.MX 8M Plus: current test platform; see each demo's limitations;
 * i.MX 93: pending hardware validation;
 * i.MX 95: pending hardware validation.
 
@@ -53,7 +53,7 @@ Run the installed uninstaller as `root`:
 
 [source,console]
 ----
-/opt/var-demos/ai-ml/install.sh --uninstall
+var-demos --uninstall
 ----
 
 Use `--dry-run` together with `--uninstall` to preview the paths first.

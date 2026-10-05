@@ -1,45 +1,46 @@
 # Variscite demos
 
-Demos for i.MX 8M Plus, installed and launched through one command.
-i.MX 93 and 95 support is pending; their demos are not installed.
+AI/ML, multimedia and GPU demos for i.MX 8M Plus.
 
-The installer is `install.sh` at the root of the `demos` branch.
+## Install
+
 Run as root on the board:
 
 ```sh
 curl -fsSL \
   https://raw.githubusercontent.com/dorta/var-demos/demos/install.sh | sh
+```
+
+The installer lives at the root of the `demos` branch. Run the same command
+to update, with the manager and demos closed.
+
+## Run
+
+```sh
 var-demos
 ```
 
-Use arrows and Enter to select; Esc returns to the menu.
-Choose a category:
+Use arrows and Enter to choose; Esc stops the demo and returns to the menu.
 
-- AI / ML: image, video and camera classification and object detection;
-  HD/Full HD video selection; experimental hand landmarks and gestures.
-- Multimedia: video player with play/pause, seek, stop, volume and fullscreen.
-- OpenCL: GPU vector computation with result verification.
-- Installed BSP demos /opt: available fractal, render-to-texture and graphical
-  OpenCL filter examples from the image's GPU SDK.
+- [AI / ML](ai-ml-demos/): classification, detection, HD video and hand gestures.
+- [Multimedia](multimedia-demos/): video player with playback controls.
+- [OpenCL](opencl/python/): GPU computation with verified results.
+- **Installed BSP demos:** selected graphical examples found in `/opt`.
 
-Only `var-demos` is installed as a launcher. Updates remove the old `var-ai`
-and `var-media` shortcuts when they belong to this installation.
-Models, videos and the player logo are downloaded from DigitalOcean Spaces
-and verified with SHA-256. No Git LFS. Original `combined_videos` files have
-not been recovered; the video menu contains the current replacement samples.
-
-`catalog.toml` selects the installed categories. Other folders, including
-TPM, Docker and VS Code examples, are not installed by this command.
-The menu also lists selected GPU demos already present in
-`/opt/imx-gpu-sdk`. These run in place; uninstall leaves them untouched.
-
-Uninstall:
+## Manage
 
 ```sh
-/opt/var-demos/install.sh --uninstall
+var-demos status
+var-demos --list
+var-demos --uninstall
 ```
 
-Use `--list`, `--dry-run` or `--only ai-ml` with the installer when needed.
-Re-run the same curl command to update; close the manager and demos first.
-Camera demos require a supported capture device. Continuous operation needs
-adequate cooling; multi-hour event stability is still under validation.
+Preview removal with `var-demos --uninstall --dry-run`.
+BSP demos and unrelated files are preserved.
+
+## Support
+
+i.MX 93 and 95 are not enabled yet. Hand gestures are experimental;
+continuous operation needs cooling and further multi-hour validation.
+Models and media use DigitalOcean Spaces with SHA-256 checks, not Git LFS.
+See each demo's README for details and limitations.

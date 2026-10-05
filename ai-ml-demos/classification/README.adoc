@@ -1,104 +1,25 @@
 // Copyright 2021 Variscite LTD
 // SPDX-License-Identifier: BSD-3-Clause
 
-ifdef::env-github[]
-:tip-caption: :bulb:
-:note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
-:warning-caption: :warning:
-:source-highlighter: :rouge:
-endif::[]
+= Classification
 
-== Classification Examples
+Classify the main subject in an image, video or camera frame on i.MX 8M Plus.
+MobileNet V1 runs through TensorFlow Lite and the VX NPU delegate.
+Classification labels the whole frame; it does not locate individual objects.
 
-=== Get Started with the Initial Steps
+== Run
 
-. Get the source code from this demo repository:
-+
-[source,console]
-----
-git clone https://github.com/varigit/var-demos.git ~/var-demos
-----
-+
-. Copy the entire classification folder to the target module:
-+
-[source,console]
-----
-scp -r ~/var-demos/tflite/classification root@<target-ip>:/home/root
-----
+Use the link:../../README.md[root installer], then run `var-demos`.
+Choose *AI / ML* and an image, video or camera classification demo.
+The manager selects an available camera; assets are downloaded and verified.
 
-=== Usage
+Fullscreen is the default. Camera fullscreen uses a central crop;
+windowed mode retains the full frame. Press `Esc` to stop.
+The overlay shows results, performance and the `soc-thermal` temperature.
 
-The examples open in fullscreen by default. Press `Esc` to close video and
-realtime examples. Use `--windowed` to open any example in a regular window.
+== Developer options
 
-==== Image Classification Example
-
-. To run the classification example using a single image:
-+
-[source,console]
-----
-cd /home/root/classification
-python3 image_classification.py
-----
-+
-. Check the available arguments:
-+
-[source,console]
-----
-python3 image_classification.py -h
-----
-+
-Default values::
-* `--model`: mobilenet_v1_1.0_224_quant.tflite
-* `--label`: labels_mobilenet_quant_v1_224.txt
-* `--image`: data/image.jpg
-* `--kresults`: 3
-
-==== Video Classification Example
-
-. To run the classification example using a video file:
-+
-[source,console]
-----
-cd /home/root/classification
-python3 video_classification.py
-----
-+
-. Check the available arguments:
-+
-[source,console]
-----
-python3 video_classification.py -h
-----
-+
-Default values::
-* `--model`: mobilenet_v1_1.0_224_quant.tflite
-* `--label`: labels_mobilenet_quant_v1_224.txt
-* `--video`: data/video.mp4
-* `--videofmw`: opencv
-* `--kresults`: 3
-
-==== Realtime Classification Example
-
-. To run the classification example in realtime:
-+
-[source,console]
-----
-cd /home/root/classification
-python3 realtime_classification.py
-----
-+
-. Check the available arguments:
-+
-[source,console]
-----
-python3 realtime_classification.py -h
-----
-+
-Default values::
-* `--model`: mobilenet_v1_1.0_224_quant.tflite
-* `--label`: labels_mobilenet_quant_v1_224.txt
-* `--camera`: /dev/video1
-* `--kresults`: 3
+Installed directory: `/opt/var-demos/ai-ml/classification`.
+Each script supports `--help`; `--windowed` requests a regular window.
+Direct GUI execution needs the display environment set by the manager.
+Prefer `var-demos` for normal use.
