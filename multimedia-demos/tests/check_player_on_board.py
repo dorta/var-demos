@@ -11,9 +11,19 @@ from player import GLib, Gst, Gtk, Player
 if not Gtk.init_check()[0]:
     raise SystemExit('Board display unavailable')
 player = Player(sys.argv[1])
+def widgets(root):
+    yield root
+    if isinstance(root, Gtk.Container):
+        for child in root.get_children():
+            yield from widgets(child)
+
+
 assert any(isinstance(widget, Gtk.Image)
-           for widget in player.get_child().get_children()[0].get_children()), \
+           and widget.get_accessible().get_name() == 'Variscite logo'
+           for widget in widgets(player)), \
     'Installed player header is missing the Variscite logo'
+assert isinstance(player.get_child(), Gtk.Overlay)
+assert not hasattr(player, 'filename'), 'Movie filename is visible in header'
 errors = []
 
 

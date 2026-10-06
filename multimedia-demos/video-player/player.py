@@ -32,10 +32,31 @@ def clock_text(seconds):
     return f'{seconds // 60:02d}:{seconds % 60:02d}'
 
 
+def video_converter():
+    if Gst.ElementFactory.find('imxvideoconvert_g2d'):
+        return 'imxvideoconvert_g2d'
+    # MX93 has PXP, not a 3D GPU. GL plugins may be installed without usable
+    # hardware, so do not select EGL just because their factories exist.
+    if Gst.ElementFactory.find('imxvideoconvert_pxp'):
+        return ('imxvideoconvert_pxp ! '
+                'video/x-raw,format=BGRx,width=640,height=360 ! videoconvert')
+    # MX95's decoder emits DMA_DRM buffers. Its OCL converter cannot negotiate
+    # this RGBA appsink path; import and scale those buffers with EGL instead.
+    if all(Gst.ElementFactory.find(name) for name in
+           ('glupload', 'glcolorconvert', 'glcolorscale', 'gldownload')):
+        os.environ.setdefault('GST_GL_PLATFORM', 'egl')
+        os.environ.setdefault('GST_GL_WINDOW', 'wayland')
+        return ('glupload ! glcolorconvert ! glcolorscale ! '
+                'video/x-raw(memory:GLMemory),format=RGBA,width=640,height=360 ! '
+                'gldownload')
+    raise RuntimeError('Missing tested accelerated i.MX video conversion path')
+
+
 def check_runtime():
-    for name in ('playbin', 'imxvideoconvert_g2d', 'appsink'):
+    for name in ('playbin', 'appsink'):
         if Gst.ElementFactory.find(name) is None:
             raise RuntimeError(f'Missing GStreamer element: {name}')
+    video_converter()
 
 
 class Player(Gtk.Window):
@@ -56,10 +77,10 @@ class Player(Gtk.Window):
         self.tick_id = None
         self.closed = False
         self.pipeline = Gst.ElementFactory.make('playbin', 'player')
-        # Resize and convert on the 2D accelerator, not on the CPU. Keep only
+        # Resize and convert with the BSP accelerator, not on the CPU. Keep only
         # the latest display-sized frame so the UI cannot accumulate latency.
         video_bin = Gst.parse_bin_from_description(
-            'imxvideoconvert_g2d ! '
+            video_converter() + ' ! '
             'video/x-raw,format=RGBA,width=640,height=360 ! '
             'appsink name=video sync=true max-buffers=1 drop=true', True)
         self.sink = video_bin.get_by_name('video')
@@ -76,9 +97,14 @@ class Player(Gtk.Window):
         provider = Gtk.CssProvider()
         provider.load_from_data(b'''
         .var-player { background: #10171f; color: #e7edf3; }
-        .var-player button { background: #243240; color: #e7edf3;
-          border: 0; border-radius: 7px; padding: 8px 12px; box-shadow: none; }
-        .var-player button:hover { background: #344b5d; }
+        .var-player button { background: rgba(40, 58, 70, 0.85);
+          color: #e7edf3; border: 0; border-radius: 999px;
+          min-width: 22px; min-height: 22px; padding: 9px; box-shadow: none; }
+        .var-player button:hover { background: #377080; }
+        .var-player .controls-bar { background: rgba(14, 22, 29, 0.76);
+          border-radius: 14px; padding: 10px 14px; }
+        .var-player .brand-badge { background: rgba(14, 22, 29, 0.55);
+          border-radius: 9px; padding: 8px 12px; }
         .var-player scale trough { background: #344352; min-height: 5px; }
         .var-player scale highlight { background: #35bdd0; }
         .var-player scale slider { background: #d8f5f7; }
@@ -86,10 +112,20 @@ class Player(Gtk.Window):
         ''')
         Gtk.StyleContext.add_provider_for_screen(
             self.get_screen(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        overlay = Gtk.Overlay()
+        self.add(overlay)
+        self.video = Gtk.DrawingArea()
+        self.video.set_size_request(320, 180)
+        self.video.set_hexpand(True)
+        self.video.set_vexpand(True)
+        self.video.connect('draw', self.draw_video)
+        overlay.add(self.video)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         layout.set_border_width(12)
-        self.add(layout)
+        overlay.add_overlay(layout)
         header = Gtk.Box(spacing=8)
+        header.set_halign(Gtk.Align.START)
+        header.get_style_context().add_class('brand-badge')
         layout.pack_start(header, False, False, 0)
         logo = Path(__file__).with_name('media') / 'variscite-logo-white.png'
         if logo.is_file():
@@ -101,23 +137,12 @@ class Player(Gtk.Window):
         else:
             brand = Gtk.Label(label='VARISCITE')
         header.pack_start(brand, False, False, 0)
-        title = Gtk.Label(label='/  PLAYER')
-        title.get_style_context().add_class('brand')
-        header.pack_start(title, False, False, 0)
-        self.filename = Gtk.Label(label='Open a local movie')
-        self.filename.set_ellipsize(3)
-        header.pack_start(self.filename, True, True, 0)
-        self.button(header, 'Open', self.choose_file)
-        self.button(header, 'Exit', lambda _: self.destroy())
-        self.video = Gtk.DrawingArea()
-        self.video.set_size_request(320, 180)
-        self.video.set_hexpand(True)
-        self.video.set_vexpand(True)
-        self.video.connect('draw', self.draw_video)
-        layout.pack_start(self.video, True, True, 0)
-
+        layout.pack_start(Gtk.Box(), True, True, 0)
+        bottom = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        bottom.get_style_context().add_class('controls-bar')
+        layout.pack_start(bottom, False, False, 0)
         timeline = Gtk.Box(spacing=8)
-        layout.pack_start(timeline, False, False, 0)
+        bottom.pack_start(timeline, False, False, 0)
         self.progress = Gtk.Scale.new_with_range(
             Gtk.Orientation.HORIZONTAL, 0, 100, 0.1
         )
@@ -130,13 +155,15 @@ class Player(Gtk.Window):
         self.time_label = Gtk.Label(label='00:00 / 00:00')
         timeline.pack_start(self.time_label, False, False, 0)
         controls = Gtk.Box(spacing=8)
-        layout.pack_start(controls, False, False, 0)
-        self.play_button = self.button(controls, 'Play', self.toggle_play)
-        self.button(controls, 'Stop', self.stop)
+        bottom.pack_start(controls, False, False, 0)
+        self.play_button = self.button(controls, 'Play', self.toggle_play,
+                                       'media-playback-start-symbolic')
+        self.button(controls, 'Stop', self.stop, 'media-playback-stop-symbolic')
         self.full_button = self.button(
             controls, 'Window' if self.full else 'Fullscreen',
-            self.toggle_fullscreen)
-        controls.pack_start(Gtk.Label(label='Volume'), False, False, 0)
+            self.toggle_fullscreen, 'view-fullscreen-symbolic')
+        controls.pack_start(Gtk.Image.new_from_icon_name(
+            'audio-volume-high-symbolic', Gtk.IconSize.BUTTON), False, False, 0)
         volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, .05)
         volume.set_size_request(110, -1)
         volume.set_value(.7)
@@ -145,8 +172,12 @@ class Player(Gtk.Window):
                        self.pipeline.set_property('volume', scale.get_value()))
         self.pipeline.set_property('volume', .7)
         controls.pack_start(volume, False, False, 0)
-        self.status = Gtk.Label(label='Space: pause  |  F: fullscreen')
+        self.status = Gtk.Label(label='Ready')
         controls.pack_start(self.status, True, True, 0)
+        self.button(controls, 'Open movie', self.choose_file,
+                    'folder-open-symbolic')
+        self.button(controls, 'Exit', lambda _: self.destroy(),
+                    'window-close-symbolic')
         self.show_all()
         self.tick_id = GLib.timeout_add(16, self.tick)
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM,
@@ -156,11 +187,19 @@ class Player(Gtk.Window):
         if filename:
             GLib.idle_add(self.open_file, filename)
 
-    def button(self, parent, label, callback):
-        button = Gtk.Button(label=label)
+    def button(self, parent, label, callback, icon):
+        button = Gtk.Button()
+        self.button_icon(button, label, icon)
         button.connect('clicked', callback)
         parent.pack_start(button, False, False, 0)
         return button
+
+    @staticmethod
+    def button_icon(button, label, icon):
+        button.set_image(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON))
+        button.set_always_show_image(True)
+        button.set_tooltip_text(label)
+        button.get_accessible().set_name(label)
 
     def draw_video(self, widget, context):
         context.set_source_rgb(.025, .035, .045)
@@ -186,7 +225,10 @@ class Player(Gtk.Window):
 
     def window_state(self, _window, event):
         self.full = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
-        self.full_button.set_label('Window' if self.full else 'Fullscreen')
+        self.button_icon(self.full_button,
+                         'Window' if self.full else 'Fullscreen',
+                         'view-restore-symbolic' if self.full
+                         else 'view-fullscreen-symbolic')
         return False
 
     def element_added(self, _pipeline, _bin, element):
@@ -221,7 +263,6 @@ class Player(Gtk.Window):
             return False
         self.pipeline.set_state(Gst.State.NULL)
         self.uri = path.as_uri()
-        self.filename.set_text(path.name)
         self.pipeline.set_property('uri', self.uri)
         self.frames = 0
         self.finished = False
@@ -241,7 +282,9 @@ class Player(Gtk.Window):
             self.status.set_text('Cannot start playback; inspect diagnostic log')
             return
         self.playing = playing
-        self.play_button.set_label('Pause' if playing else 'Play')
+        self.button_icon(self.play_button, 'Pause' if playing else 'Play',
+                         'media-playback-pause-symbolic' if playing
+                         else 'media-playback-start-symbolic')
         self.status.set_text('Playing' if playing else 'Paused')
 
     def toggle_play(self, _=None):
@@ -251,7 +294,7 @@ class Player(Gtk.Window):
         self.pipeline.set_state(Gst.State.READY)
         self.playing = False
         self.finished = False
-        self.play_button.set_label('Play')
+        self.button_icon(self.play_button, 'Play', 'media-playback-start-symbolic')
         self.progress.set_value(0)
         self.progress.set_sensitive(False)
         self.time_label.set_text('00:00 / 00:00')
@@ -309,7 +352,8 @@ class Player(Gtk.Window):
             self.pipeline.set_state(Gst.State.PAUSED)
             self.playing = False
             self.finished = True
-            self.play_button.set_label('Replay')
+            self.button_icon(self.play_button, 'Replay',
+                             'media-playlist-repeat-symbolic')
             self.status.set_text('Finished')
             print(f'Playback finished; displayed {self.frames} frames.', flush=True)
 
@@ -330,7 +374,7 @@ class Player(Gtk.Window):
             self.frames += 1
             self.video.queue_draw()
         if self.playing:
-            self.status.set_text(f'Playing | {self.decoder}')
+            self.status.set_text('Playing')
         if not self.seeking:
             got_duration, duration = self.pipeline.query_duration(Gst.Format.TIME)
             got_position, position = self.pipeline.query_position(Gst.Format.TIME)
@@ -372,7 +416,9 @@ def main():
         return
     if not Gtk.init_check()[0]:
         raise SystemExit('Cannot connect to the board display')
-    sample = Path(__file__).with_name('media') / 'chicago.mp4'
+    media = Path(__file__).with_name('media')
+    sample = next((media / name for name in ('buildings.mp4', 'buildings.avi')
+                   if (media / name).is_file()), media / 'chicago.mp4')
     filename = args.movie or (str(sample) if sample.is_file() else None)
     Player(filename, args.windowed)
     Gtk.main()
