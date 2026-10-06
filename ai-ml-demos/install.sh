@@ -256,8 +256,8 @@ check_runtime() {
     require_command python3
     require_command sha256sum
 
-    [ -r /usr/lib/libvx_delegate.so ] || \
-        fail "missing NPU delegate: /usr/lib/libvx_delegate.so"
+    delegate=$(catalog platform-field "${BOARD}" delegate_path)
+    [ -r "${delegate}" ] || fail "missing NPU delegate: ${delegate}"
 
     python3 - <<'PY' || fail "required Python modules are missing"
 import cv2
@@ -266,7 +266,8 @@ import tflite_runtime.interpreter
 PY
 
     require_command gst-inspect-1.0
-    for plugin in appsink decodebin imxvideoconvert_g2d; do
+    plugins=$(catalog platform-field "${BOARD}" runtime_plugins)
+    for plugin in ${plugins}; do
         gst-inspect-1.0 "${plugin}" >/dev/null 2>&1 || \
             fail "missing GStreamer plugin: ${plugin}"
     done

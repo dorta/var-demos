@@ -9,7 +9,8 @@ Classification, object detection, HD video and experimental hand gestures.
 
 * i.MX 8M Plus: current test platform; see each demo's limitations;
 * i.MX 93: pending hardware validation;
-* i.MX 95: pending hardware validation.
+* DART-MX95: Neutron camera classification and preview on Wrynose 6.18.20;
+  see link:neutron-classification/README.md[MX95 camera and performance notes].
 
 == Install
 

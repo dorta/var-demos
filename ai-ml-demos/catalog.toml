@@ -5,6 +5,8 @@ name = "i.MX 8M Plus"
 compatible = ["fsl,imx8mp"]
 status = "validated"
 asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v2"
+delegate_path = "/usr/lib/libvx_delegate.so"
+runtime_plugins = "appsink decodebin imxvideoconvert_g2d"
 
 [platforms.imx93]
 name = "i.MX 93"
@@ -14,7 +16,32 @@ status = "pending"
 [platforms.imx95]
 name = "i.MX 95"
 compatible = ["fsl,imx95"]
-status = "pending"
+status = "validated"
+asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx95/v1"
+delegate_path = "/usr/lib/libneutron_delegate.so"
+runtime_plugins = "appsink v4l2src videoconvert"
+
+[[demos]]
+id = "neutron-classification"
+title = "Neutron camera classification and preview"
+path = "neutron-classification"
+platforms = ["imx95"]
+entrypoint = "python3 demo.py"
+manifest = "assets.manifest"
+
+[[launchers]]
+id = "neutron-camera"
+title = "Classify the camera with Neutron"
+description = "MobileNet V1 on the MX95 NPU; tested CSI0 OV5640 camera"
+demo = "neutron-classification"
+command = ["python3", "demo.py", "--camera", "/dev/video0"]
+
+[[launchers]]
+id = "mx95-camera-preview"
+title = "Preview the MX95 camera"
+description = "CSI0 OV5640 live preview without inference"
+demo = "neutron-classification"
+command = ["python3", "demo.py", "--preview", "--camera", "/dev/video0"]
 
 [[demos]]
 id = "classification"
