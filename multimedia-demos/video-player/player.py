@@ -20,7 +20,7 @@ try:
     gi.require_version('Gdk', '3.0')
     gi.require_version('Gst', '1.0')
     gi.require_version('GstVideo', '1.0')
-    from gi.repository import Gdk, GdkPixbuf, GLib, Gst, Gtk
+    from gi.repository import Gdk, GdkPixbuf, GLib, Gst, GstVideo, Gtk
 except (ImportError, ValueError) as error:
     raise SystemExit(f'GTK 3 / GStreamer Python bindings required: {error}')
 
@@ -82,6 +82,9 @@ class Player(Gtk.Window):
         video_bin = Gst.parse_bin_from_description(
             video_converter() + ' ! '
             'video/x-raw,format=RGBA,width=640,height=360 ! '
+            # PXP can provide valid RGB with alpha=0. Video is opaque, so
+            # discard that channel rather than render fully transparent frames.
+            'videoconvert ! video/x-raw,format=RGB ! '
             'appsink name=video sync=true max-buffers=1 drop=true', True)
         self.sink = video_bin.get_by_name('video')
         self.pipeline.set_property('video-sink', video_bin)
@@ -367,10 +370,11 @@ class Player(Gtk.Window):
             self.pixel_aspect = (numerator / denominator
                                  if got_aspect and denominator else 1.0)
             buffer = sample.get_buffer()
+            info = GstVideo.VideoInfo.new_from_caps(sample.get_caps())
             pixels = GLib.Bytes.new(buffer.extract_dup(0, buffer.get_size()))
             self.pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
-                pixels, GdkPixbuf.Colorspace.RGB, True, 8,
-                width, height, width * 4)
+                pixels, GdkPixbuf.Colorspace.RGB, False, 8,
+                width, height, info.stride[0])
             self.frames += 1
             self.video.queue_draw()
         if self.playing:

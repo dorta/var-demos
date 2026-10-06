@@ -40,8 +40,8 @@ def verify(function):
 
 def pause():
     assert player.frames > 5, 'No decoded video frames reached the display'
-    pixels = player.pixbuf.get_pixels()
-    rgb = [value for index, value in enumerate(pixels) if index % 4 != 3]
+    assert not player.pixbuf.get_has_alpha(), 'Video must be opaque'
+    rgb = player.pixbuf.get_pixels()
     assert max(rgb) - min(rgb) > 24, 'Decoded reference frame is blank'
     assert sum(rgb) / len(rgb) > 10, 'Decoded reference frame is black'
     assert player.full, 'Player did not enter fullscreen'
