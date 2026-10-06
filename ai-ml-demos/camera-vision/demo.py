@@ -16,7 +16,8 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runtime import (demo_session, managed_capture, record_inference,
-                     register_cleanup, startup_step, ThermalPacer)
+                     register_cleanup, startup_step, ThermalPacer,
+                     display_view, display_box)
 from telemetry import SoCTemperature
 from postprocess import decode_postprocessed, decode_ssdlite
 
@@ -29,6 +30,15 @@ def capture_tail(video):
     name = 'frames' if video else 'opencvsink'
     return ('videoconvert ! video/x-raw,format=BGR ! '
             f'appsink name={name} max-buffers=1 drop=true')
+
+
+def gpu_video_conversion():
+    # Force a GL render before download. The BSP's direct conversion path
+    # negotiates RGBA but can return entirely zeroed CPU pixels. No size caps:
+    # preserve native video dimensions for inference.
+    return ('glupload ! glcolorconvert ! glcolorscale ! '
+            'video/x-raw(memory:GLMemory),format=RGBA ! gldownload ! '
+            'video/x-raw,format=RGBA ! ')
 
 
 def board():
@@ -107,7 +117,7 @@ def load_model(platform, task):
 
 
 def badge(frame, text, x, y, right=False):
-    font, scale = cv2.FONT_HERSHEY_SIMPLEX, .48
+    font, scale = cv2.FONT_HERSHEY_SIMPLEX, .6
     (width, height), baseline = cv2.getTextSize(text, font, scale, 1)
     if right:
         x -= width + 16
@@ -121,16 +131,16 @@ def badge(frame, text, x, y, right=False):
                     (240, 246, 248), 1, cv2.LINE_AA)
 
 
-def overlay(frame, detections, labels, title, fps, ms, thermal, sensor):
+def overlay(frame, detections, labels, title, fps, ms, thermal, sensor,
+            box_area=None):
     height, width = frame.shape[:2]
+    box_area = box_area or (0, 0, width, height)
     for box, class_id, score in detections:
-        y0, x0, y1, x1 = box
-        left, top, right, bottom = (int(x0 * (width - 1)),
-            int(y0 * (height - 1)), int(x1 * (width - 1)), int(y1 * (height - 1)))
+        left, top, right, bottom = display_box(box, box_area)
         color = COLORS[class_id % len(COLORS)]
         cv2.rectangle(frame, (left, top), (right, bottom), color, 2, cv2.LINE_AA)
         text = f'{labels.get(class_id, "object")}  {score:.0%}'
-        badge(frame, text, left, max(0, top - 32))
+        badge(frame, text, left, max(0, top - 36))
     badge(frame, f'{fps:.1f} FPS  |  {ms:.1f} ms', width - 8, 8, right=True)
     badge(frame, title, 8, height - 36)
     value = thermal.read()
@@ -160,8 +170,7 @@ def run(args):
             os.environ.setdefault('GST_GL_PLATFORM', 'egl')
             os.environ.setdefault('GST_GL_WINDOW', 'wayland')
             os.environ.setdefault('QT_QPA_PLATFORM', 'xcb')
-            pipeline += ('glupload ! glcolorconvert ! gldownload ! '
-                         'video/x-raw,format=RGBA ! ')
+            pipeline += gpu_video_conversion()
     else:
         configure_camera(platform, args.camera)
         dimensions = ('format=YUY2,width=1280,height=720' if platform == 'imx95'
@@ -225,8 +234,10 @@ def run(args):
             if frames == 1:
                 startup_step('Frames and NPU inference ready', ready=True)
             continue
+        frame, box_area = display_view(frame)
         overlay(frame, detections, labels, title,
-                frames / max(monotonic() - started, .001), ms, thermal, 'CPU')
+                frames / max(monotonic() - started, .001), ms, thermal, 'CPU',
+                box_area)
         if args.task == 'classification':
             scores = values[0][0].astype(np.float32)
             scale, zero = outputs[0]['quantization']
@@ -234,7 +245,7 @@ def run(args):
                 scores = (scores - zero) * scale
             for row, index in enumerate(np.argsort(scores)[-3:][::-1]):
                 badge(frame, f'{labels[int(index)]}  {scores[index]:.0%}',
-                      8, 8 + row * 34)
+                      8, 8 + row * 38)
         cv2.imshow(title, frame)
         if frames == 1:
             startup_step('Frames and NPU inference ready', ready=True)

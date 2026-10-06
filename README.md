@@ -53,7 +53,7 @@ Every demo in the support matrix is listed for every SoM. Video detection
 has separate 720p and 1080p rows; the NPU is identified above each table.
 
 - **Measured:** a recorded run with FPS and inference timing.
-- **Functional:** opened and processed frames; timing is not reported here.
+- **Functional:** ran successfully; timing is not reported here.
 - **Experimental:** available, but still needs representative validation.
 - **Not enabled:** not installed or offered on this SoM.
 - **—:** no recorded measurement, not a failed or unsupported demo.
@@ -101,13 +101,15 @@ Neutron NPU · MobileNet V1 classification · SSD-Lite V2 detection.
 | Camera classification | 1280×720 | Measured | 10 s | 5.90 | 1.40 ms |
 | Camera detection | 1280×720 | Measured | 12 s | 5.83 | 3.72 ms |
 | 720p video detection | 720p H.264 | Functional | — | — | — |
-| 1080p video detection | 1080p H.264 | Measured | 30 s | 1.33 | 3.67 ms |
+| 1080p video detection | 1080p H.264 | Functional | — | — | — |
 | Video player | 720p H.264 | Functional | — | — | — |
 | OpenCL / GPU examples | GPU | Functional | — | — | — |
 | Hand gestures | — | Not enabled | — | — | — |
 
-The Full HD run reached 81.92 °C and paused to cool. Its FPS includes that
-pause; camera throughput is currently limited by capture.
+The previous Full HD timing was withdrawn: its GL conversion delivered
+black frames. The corrected path was checked with visible detections;
+representative sustained video timings must be measured again. Thermal
+pauses still occur around 82 °C; camera throughput is limited by capture.
 
 These are existing validation results, not one standardized benchmark.
 Different camera resolutions, models, codecs, durations and temperatures

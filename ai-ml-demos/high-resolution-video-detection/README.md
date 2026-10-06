@@ -2,7 +2,7 @@
 
 Object detection on i.MX 8M Plus using GStreamer, SSD MobileNet V1 and the
 TensorFlow Lite VX delegate. A resized frame enters the model; detections
-are drawn before display scaling. This is a video-pipeline demo, not a new
+are drawn after display scaling. This is a video-pipeline demo, not a new
 model or a claim of improved model accuracy.
 
 ## Run
@@ -20,6 +20,9 @@ are replacement samples, not the original compilations.
 Jijiga variants come from [Brian Dell's CC0 footage](https://commons.wikimedia.org/wiki/File:Jijiga.ogv).
 
 Press Esc to stop. The display preserves aspect ratio, with bars when needed.
+Text and detection labels use display pixels, not source-video pixels:
+720p and 1080p remain equally readable on the same panel. Display presets
+select the presentation size without changing the model input.
 Decoder, codec and resources limit supported inputs; arbitrary 4K sources
 and sustained source-rate inference are not guaranteed. Cooling is required.
 

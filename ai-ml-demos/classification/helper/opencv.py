@@ -13,6 +13,7 @@ from helper.config import FONT
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from telemetry import draw_soc_temperature
+from runtime import display_view
 
 
 PANEL_COLOR = (24, 28, 32)
@@ -93,7 +94,7 @@ def _model_title(model_name):
 
 
 def _draw_badge(frame, text, row=0):
-    scale = 0.48
+    scale = 0.6
     size, baseline = cv2.getTextSize(text, FONT['hershey'], scale, 1)
     right = frame.shape[1] - 10
     top = 10 + row * (size[1] + baseline + 22)
@@ -107,7 +108,7 @@ def _draw_badge(frame, text, row=0):
 
 
 def _draw_results(frame, top_result, labels):
-    scale = 0.52
+    scale = 0.6
     lines = [f'{labels[index]}  {score:.0%}' for index, score in top_result]
     sizes = [
         cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
@@ -132,7 +133,7 @@ def _draw_results(frame, top_result, labels):
 
 
 def _draw_model(frame, model_name):
-    scale = 0.42
+    scale = 0.5
     text = _model_title(model_name)
     size = cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
     width = min(frame.shape[1] - 20, size[0] + 20)
@@ -148,6 +149,7 @@ def _draw_model(frame, model_name):
 
 def put_info_on_frame(frame, top_result, labels,
                       inference_time, model_name, _source_file):
+    frame, _ = display_view(frame)
     _draw_results(frame, top_result, labels)
     _draw_badge(frame, f'INFERENCE  {_inference_ms(inference_time):.1f} ms')
     _draw_model(frame, model_name)

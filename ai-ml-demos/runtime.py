@@ -3,6 +3,7 @@
 
 from contextlib import contextmanager, ExitStack
 from contextvars import ContextVar
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,61 @@ STATISTICS = ContextVar('demo_statistics', default=None)
 CPU_TEMPERATURE = SoCTemperature(sensor_name='cpu-thermal')
 A55_TEMPERATURE = SoCTemperature(sensor_name='a55-thermal')
 CLOCK_SCALE = Path('/sys/bus/platform/drivers/galcore/gpu3DClockScale')
+
+
+@lru_cache(maxsize=1)
+def display_size():
+    """Use display pixels, not source-video pixels, for presentation."""
+    size = os.environ.get('VAR_AI_DISPLAY_SIZE')
+    if not size:
+        try:
+            size = Path('/sys/class/graphics/fb0/virtual_size').read_text()
+        except OSError:
+            return (800, 480)
+    try:
+        width, height = (int(part) for part in
+                         size.strip().lower().replace('x', ',').split(','))
+        if 160 <= width <= 7680 and 120 <= height <= 4320:
+            return width, height
+    except (ValueError, TypeError):
+        pass
+    return (800, 480)
+
+
+def viewport_geometry(shape, target):
+    """Return the image rectangle inside an aspect-preserving viewport."""
+    height, width = shape[:2]
+    target_width, target_height = target
+    if min(height, width, target_width, target_height) <= 0:
+        raise ValueError('Image and display dimensions must be positive')
+    scale = min(target_width / width, target_height / height)
+    resized_width = max(1, min(target_width, round(width * scale)))
+    resized_height = max(1, min(target_height, round(height * scale)))
+    return ((target_width - resized_width) // 2,
+            (target_height - resized_height) // 2,
+            resized_width, resized_height)
+
+
+def display_view(frame, target=None):
+    """Fit a copy for annotation after inference; keep the source untouched."""
+    import cv2
+    import numpy as np
+
+    target = target or display_size()
+    x, y, width, height = viewport_geometry(frame.shape, target)
+    canvas = np.zeros((target[1], target[0], frame.shape[2]), dtype=frame.dtype)
+    canvas[y:y + height, x:x + width] = cv2.resize(frame, (width, height))
+    return canvas, (x, y, width, height)
+
+
+def display_box(box, area):
+    """Project normalized model coordinates into the letterboxed image."""
+    y0, x0, y1, x1 = box
+    x, y, width, height = area
+    return (x + round(max(0., min(1., x0)) * (width - 1)),
+            y + round(max(0., min(1., y0)) * (height - 1)),
+            x + round(max(0., min(1., x1)) * (width - 1)),
+            y + round(max(0., min(1., y1)) * (height - 1)))
 
 
 def startup_step(message, ready=False):

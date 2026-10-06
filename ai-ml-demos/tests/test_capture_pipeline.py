@@ -9,15 +9,24 @@ import unittest
 # The pipeline builder is pure; load it without importing target-only TFLite.
 SOURCE = Path(__file__).resolve().parents[1] / 'camera-vision/demo.py'
 tree = ast.parse(SOURCE.read_text())
-builder = next(node for node in tree.body
-               if isinstance(node, ast.FunctionDef)
-               and node.name == 'capture_tail')
+builders = [node for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name in ('capture_tail', 'gpu_video_conversion')]
 namespace = {}
-exec(compile(ast.Module(body=[builder], type_ignores=[]), str(SOURCE), 'exec'),
+exec(compile(ast.Module(body=builders, type_ignores=[]), str(SOURCE), 'exec'),
      namespace)
 
 
 class CapturePipelineTests(unittest.TestCase):
+    def test_gpu_download_renders_without_resizing_model_source(self):
+        description = namespace['gpu_video_conversion']()
+        self.assertIn('glcolorscale ! ', description)
+        self.assertIn('video/x-raw(memory:GLMemory),format=RGBA', description)
+        self.assertLess(description.index('glcolorscale'),
+                        description.index('gldownload'))
+        self.assertNotIn('width=', description)
+        self.assertNotIn('height=', description)
+
     def test_live_sink_is_discoverable_by_opencv(self):
         description = namespace['capture_tail'](False)
         self.assertIn('appsink name=opencvsink ', description)

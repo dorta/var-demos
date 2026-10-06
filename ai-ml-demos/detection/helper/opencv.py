@@ -13,6 +13,7 @@ from helper.config import FONT
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from telemetry import draw_soc_temperature
+from runtime import display_view, display_box
 
 
 PALETTE = (
@@ -109,7 +110,7 @@ def _model_title(model_name):
 
 
 def _draw_badge(frame, text, row=0):
-    scale = 0.48
+    scale = 0.6
     thickness = 1
     padding_x = 9
     padding_y = 7
@@ -128,7 +129,7 @@ def _draw_badge(frame, text, row=0):
 
 
 def _draw_model(frame, model_name):
-    scale = 0.42
+    scale = 0.5
     thickness = 1
     text = _model_title(model_name)
     size = cv2.getTextSize(text, FONT['hershey'], scale, thickness)[0]
@@ -162,7 +163,7 @@ def _draw_box(frame, bounds, label, color):
     ):
         cv2.line(frame, start, end, color, 3, cv2.LINE_AA)
 
-    scale = 0.46
+    scale = 0.55
     thickness = 1
     text_size, baseline = cv2.getTextSize(
         label, FONT['hershey'], scale, thickness
@@ -182,14 +183,10 @@ def _draw_box(frame, bounds, label, color):
 
 
 def put_info_on_frame(frame, result, time, labels, model_name, _source_file):
-    frame_height, frame_width = frame.shape[:2]
+    frame, box_area = display_view(frame)
     for obj in result:
-        y_min, x_min, y_max, x_max = obj['pos']
         class_id = int(obj['_id'])
-        left = max(0, min(frame_width - 1, int(x_min * frame_width)))
-        right = max(0, min(frame_width - 1, int(x_max * frame_width)))
-        top = max(0, min(frame_height - 1, int(y_min * frame_height)))
-        bottom = max(0, min(frame_height - 1, int(y_max * frame_height)))
+        left, top, right, bottom = display_box(obj['pos'], box_area)
         if right <= left or bottom <= top:
             continue
 

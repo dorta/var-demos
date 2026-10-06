@@ -20,6 +20,12 @@ MX93 decodes MJPEG AVI on the CPU. MX95 decodes H.264 MP4 with the hardware
 decoder and uses EGL for color conversion. MJPEG copies preserve resolution,
 frame rate and duration, but change the encoding and are much larger.
 
+Annotations are drawn after fitting the image to the display, so 720p and
+1080p use the same readable text size on an 800x480 panel. Letterboxing
+preserves aspect ratio and detection coordinates; model input is unchanged.
+The framebuffer supplies the display size; `VAR_AI_DISPLAY_SIZE=800x480`
+overrides it when needed.
+
 Startup stages report model loading, NPU warmup and the first actual frame.
 Esc stops a graphical demo; Ctrl+C stops a direct invocation. Windows and
 capture resources are released on exit. Models and media are downloaded

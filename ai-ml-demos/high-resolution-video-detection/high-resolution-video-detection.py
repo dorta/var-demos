@@ -16,7 +16,7 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 from utils import (
     Framerate, Timer, put_info_on_frame, load_labels, debug_profile,
     COMBINATIONS,
-    profile, resize_with_letterbox, show_available_combinations
+    profile, show_available_combinations
 )
 from runtime import demo_session, register_cleanup, ThermalPacer
 
@@ -191,11 +191,9 @@ def main(args):
             detected_frames += 1
         fps = framerate.update()
         frame = put_info_on_frame(
-            frame, results, timer.time, labels, args.model, video, fps
+            frame, results, timer.time, labels, args.model, video, fps,
+            display_res
         )
-
-        if mode == "fullscreen":
-            frame = resize_with_letterbox(frame, display_res)
 
         if not args.headless:
             if not window_created:
