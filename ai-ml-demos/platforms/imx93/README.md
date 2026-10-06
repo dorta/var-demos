@@ -1,8 +1,9 @@
 # Running Machine Learning on the i.MX 93
 
 Legacy reference, not enabled by the [root installer](../../../README.md).
-Hardware validation and runtime/model updates are pending. These historical
-instructions are not the current `var-demos` installation workflow.
+Current Ethos-U65 camera/video demos are in
+[camera-vision](../../camera-vision/README.md). These historical instructions
+are not the current `var-demos` installation workflow.
 
 The i.MX 93 is slightly different from the i.MX8M Plus when we need to run
 Machine Learning examples on the NPU. For more information, please read the

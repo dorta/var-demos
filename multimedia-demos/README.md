@@ -7,8 +7,12 @@ Open a local movie. Use Play/Pause, Stop, the seek bar and volume slider.
 Space toggles playback; S stops; F toggles fullscreen; Esc exits.
 
 The player uses GStreamer hardware decoding when available and the i.MX
-2D accelerator for a bounded 640 x 360 RGBA preview. GTK preserves the
+G2D (MPlus), PXP (MX93) or EGL (MX95) for a bounded RGBA preview.
+GTK preserves the
 display aspect ratio. This is not a zero-copy or native-resolution renderer.
 Fullscreen state follows the compositor; the button shows the next action.
 The header uses the Variscite logo, downloaded and SHA-256 verified by the
-installer. A Chicago traffic sample is installed; Open selects a local movie.
+installer. High-rise buildings A in 720p is installed as the default.
+Open selects a local movie. The AI/ML video selector also includes both
+High-rise clips in 720p and 1080p, downloaded by the same installer.
+MX93 uses MJPEG AVI copies because the tested image lacks an H.264 decoder.

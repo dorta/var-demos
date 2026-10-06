@@ -8,9 +8,9 @@ Classification, object detection, HD video and experimental hand gestures.
 == Support
 
 * i.MX 8M Plus: current test platform; see each demo's limitations;
-* i.MX 93: pending hardware validation;
-* DART-MX95: Neutron camera classification and preview on Wrynose 6.18.20;
-  see link:neutron-classification/README.md[MX95 camera and performance notes].
+* i.MX 93: Ethos-U65 camera/video classification and detection;
+* DART-MX95: Neutron camera/video classification and detection;
+  see link:camera-vision/README.md[Camera, decoder and model notes].
 
 == Install
 
@@ -37,6 +37,8 @@ terminals without curses support.
 Serial consoles use a compact VT100-compatible layout. After a demo ends,
 review its measured statistics and press `Enter` or `Esc` to return.
 The HD demo asks which video to play and shows each sample's resolution.
+High-rise buildings A and B are available in 720p and 1080p. The default is
+720p. MX93 uses MJPEG versions; MPlus and MX95 use H.264 MP4 versions.
 
 Continuous operation requires adequate cooling. Demos reduce frame rate when
 hot and pause inference to cool before the kernel's thermal protection trips.

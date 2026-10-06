@@ -56,10 +56,14 @@ The tested Wrynose 6.18.20 image reported driver microcode 3.1.2; an older
 locally compiled SSD reported microcode 3.0.0 and produced a mismatch warning.
 That older artifact is not selected for installation.
 
-MobileNet V1 and SSD-Lite were benchmarked using the matching
+MobileNet V1 and SSD-Lite camera/video inference were tested using the matching
 [NXP model release](https://github.com/nxp-imx-support/nxp-demo-experience-assets/tree/lf-6.18.20_2.0.0/models).
 For custom models, follow the matching SDK converter instructions. A custom
 conversion with the current SDK has not yet been validated in this project.
+Use the BSP's `tflite_runtime` with its delegate. On this image, switching
+to the installed `ai_edge_litert` runtime crashed during tensor allocation;
+the presence of an importable runtime does not establish delegate ABI
+compatibility.
 
 ## Validation before publishing
 
@@ -71,5 +75,7 @@ conversion with the current SDK has not yet been validated in this project.
    the platform catalog only after testing the installed demo.
 
 NPU availability does not imply video decoder availability. The tested MX93
-image has a working camera but no GStreamer H.264 decoder; its current MP4
-samples cannot be treated as validated video demos.
+image has a working camera but no GStreamer H.264 decoder. Its video demos
+use MJPEG AVI copies decoded on the CPU, preserving source resolution,
+frame rate and duration. This does not preserve the original encoding or
+make video throughput a like-for-like comparison with the other boards.

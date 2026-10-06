@@ -10,6 +10,7 @@ model or a claim of improved model accuracy.
 Use the [root installer](../../README.md), then run `var-demos`.
 Choose **AI / ML → Detect objects in a high-resolution video**, then a sample:
 
+- High-rise buildings A and B: 1280×720 or 1920×1080; 720p is the default.
 - Chicago traffic: 1280×720.
 - Jijiga street: 1280×720, 1280×800 or 1920×1080.
 

@@ -13,6 +13,13 @@ on the CPU. MX95 uses matching Neutron models; SSD-Lite box decoding and
 non-maximum suppression run on the CPU. Label indices and SSD anchors are
 model-specific. The video resolution is not the model input resolution.
 
+Both High-rise buildings clips are installed in 720p and 1080p at 25 FPS.
+Clip A lasts 34.08 seconds; clip B lasts 31.80 seconds. Select a video
+before starting classification or detection; 720p is the first choice.
+MX93 decodes MJPEG AVI on the CPU. MX95 decodes H.264 MP4 with the hardware
+decoder and uses EGL for color conversion. MJPEG copies preserve resolution,
+frame rate and duration, but change the encoding and are much larger.
+
 Startup stages report model loading, NPU warmup and the first actual frame.
 Esc stops a graphical demo; Ctrl+C stops a direct invocation. Windows and
 capture resources are released on exit. Models and media are downloaded
