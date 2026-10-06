@@ -70,6 +70,27 @@ class SuiteCommandTests(unittest.TestCase):
             with patch.object(suite, 'ROOT', Path(temporary)):
                 self.assertEqual(suite.show_status(), 1)
 
+    @patch('builtins.print')
+    def test_mx95_status_names_sensors_and_does_not_infer_clock(self, output):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / '.var-demos-installed').touch()
+            catalog = self.catalog()
+            catalog['platforms'] = {'imx95': {'name': 'i.MX 95'}}
+            with patch.object(suite, 'ROOT', root), \
+                    patch.object(suite, 'load_suite', return_value=catalog), \
+                    patch.object(suite.manager, 'detect_platform',
+                                 return_value='imx95'), \
+                    patch.object(suite, 'SoCTemperature') as sensor, \
+                    patch.object(suite.manager, 'clock_is_limited') as clock:
+                sensor.return_value.read.return_value = 45.0
+                self.assertEqual(suite.show_status(), 0)
+                clock.assert_not_called()
+                text = '\n'.join(str(call) for call in output.call_args_list)
+                self.assertIn('a55-thermal', text)
+                self.assertIn('ana-thermal', text)
+                self.assertIn('limitation indicator: unavailable', text)
+
     def test_list_still_uses_manager_without_opening_ui(self):
         with patch.object(sys, 'argv', ['var-demos', '--list']), \
                 patch.object(suite.manager, 'main', return_value=0) as manager:

@@ -69,6 +69,7 @@ MX93 are in progress; its installer support is not enabled yet.
 | MX93 / MobileNet V1 benchmark | Model input 224x224 | Not measured | 3.92 ms |
 | MX93 / MobileNet V1 camera, 60 seconds | 640x480 | 29.98 | 4.12 ms |
 | MX93 / SSD benchmark | Model input 300x300 | Not measured | 9.23 ms |
+| MX93 / SSD camera, 60 seconds | 640x480 | 29.97 | 8.64 ms |
 | MX95 / MobileNet V1 camera, 10 seconds | 1280x720 | 5.9 | 1.4 ms |
 | MX95 / SSD-Lite benchmark | Model input 300x300 | Not measured | 3.80 ms |
 

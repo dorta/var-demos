@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT / 'lib'))
 sys.path.insert(0, str(ROOT / 'ai-ml'))
 sys.path.insert(0, str(ROOT / 'ai-ml-demos'))
 import manager
+from runtime import CLOCK_SCALE
+from telemetry import SoCTemperature
 
 
 def add_external_demos(catalog):
@@ -121,11 +123,25 @@ def show_status():
           else f'Assets: {len(missing)} missing or invalid entries')
     for filename in missing:
         print(f'  {filename}')
-    value = manager.SOC_TEMPERATURE.read()
-    print('SoC temperature: unavailable' if value is None
-          else f'SoC temperature: {value:.1f} C')
-    print('GPU/NPU clock: thermally limited' if manager.clock_is_limited()
-          else 'GPU/NPU clock: not reporting thermal limitation')
+    if platform == 'imx8mplus':
+        sensors = [('SoC temperature', manager.SOC_TEMPERATURE)]
+    elif platform == 'imx93':
+        sensors = [('CPU temperature (cpu-thermal)',
+                    SoCTemperature(sensor_name='cpu-thermal'))]
+    else:
+        sensors = [('CPU temperature (a55-thermal)',
+                    SoCTemperature(sensor_name='a55-thermal')),
+                   ('Analog temperature (ana-thermal)',
+                    SoCTemperature(sensor_name='ana-thermal'))]
+    for label, sensor in sensors:
+        value = sensor.read()
+        print(f'{label}: unavailable' if value is None
+              else f'{label}: {value:.1f} C')
+    if platform != 'imx8mplus' or not CLOCK_SCALE.is_file():
+        print('GPU/NPU clock limitation indicator: unavailable')
+    else:
+        print('GPU/NPU clock: thermally limited' if manager.clock_is_limited()
+              else 'GPU/NPU clock: not reporting thermal limitation')
     return 1 if missing else 0
 
 
