@@ -116,7 +116,8 @@ def show_status():
                     missing.append(str(directory / fields[2]))
     if any(group['id'] == 'multimedia' for group in catalog['groups']):
         media = ROOT / 'multimedia/video-player/media'
-        for filename in ('chicago.mp4', 'variscite-logo-white.png'):
+        sample = 'buildings.avi' if platform == 'imx93' else 'buildings.mp4'
+        for filename in (sample, 'variscite-logo-white.png'):
             if not (media / filename).is_file():
                 missing.append(str(media / filename))
     print('Assets: present (checksums verified at install)' if not missing

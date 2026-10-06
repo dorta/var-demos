@@ -11,7 +11,10 @@ runtime_plugins = "appsink decodebin imxvideoconvert_g2d"
 [platforms.imx93]
 name = "i.MX 93"
 compatible = ["fsl,imx93"]
-status = "pending"
+status = "validated"
+asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx93/v1"
+delegate_path = "/usr/lib/libethosu_delegate.so"
+runtime_plugins = "appsink v4l2src videoconvert avidemux jpegdec"
 
 [platforms.imx95]
 name = "i.MX 95"
@@ -19,29 +22,91 @@ compatible = ["fsl,imx95"]
 status = "validated"
 asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx95/v1"
 delegate_path = "/usr/lib/libneutron_delegate.so"
-runtime_plugins = "appsink v4l2src videoconvert"
+runtime_plugins = "appsink v4l2src videoconvert glupload glcolorconvert gldownload"
 
 [[demos]]
-id = "neutron-classification"
-title = "Neutron camera classification and preview"
-path = "neutron-classification"
+id = "vision-imx93"
+title = "Ethos-U65 camera and video inference"
+path = "camera-vision"
+platforms = ["imx93"]
+entrypoint = "python3 demo.py --task detection"
+manifest = "assets-imx93.manifest"
+
+[[demos]]
+id = "vision-imx95"
+title = "Neutron camera and video inference"
+path = "camera-vision"
 platforms = ["imx95"]
-entrypoint = "python3 demo.py"
-manifest = "assets.manifest"
+entrypoint = "python3 demo.py --task detection"
+manifest = "assets-imx95.manifest"
 
 [[launchers]]
-id = "neutron-camera"
+id = "ethosu-classification-camera"
+title = "Classify the camera with Ethos-U65"
+description = "MobileNet V1 on the MX93 NPU; OV5640 camera"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "classification"]
+
+[[launchers]]
+id = "ethosu-detection-camera"
+title = "Detect objects in the MX93 camera"
+description = "SSD MobileNet V1; NPU inference and CPU box postprocessing"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "detection"]
+
+[[launchers]]
+id = "ethosu-classification-video"
+title = "Classify a video with Ethos-U65"
+description = "Choose a real HD sample; MJPEG decoding on the CPU"
+demo = "vision-imx93"
+startup_progress = true
+select_video = true
+command = ["python3", "demo.py", "--task", "classification"]
+
+[[launchers]]
+id = "ethosu-detection-video"
+title = "Detect objects in an MX93 video"
+description = "Choose HD or Full HD; CPU video decode and Ethos-U65 inference"
+demo = "vision-imx93"
+startup_progress = true
+select_video = true
+command = ["python3", "demo.py", "--task", "detection"]
+
+[[launchers]]
+id = "neutron-classification-camera"
 title = "Classify the camera with Neutron"
-description = "MobileNet V1 on the MX95 NPU; tested CSI0 OV5640 camera"
-demo = "neutron-classification"
-command = ["python3", "demo.py", "--camera", "/dev/video0"]
+description = "MobileNet V1 on the MX95 NPU; CSI0 OV5640 camera"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "classification"]
 
 [[launchers]]
-id = "mx95-camera-preview"
-title = "Preview the MX95 camera"
-description = "CSI0 OV5640 live preview without inference"
-demo = "neutron-classification"
-command = ["python3", "demo.py", "--preview", "--camera", "/dev/video0"]
+id = "neutron-detection-camera"
+title = "Detect objects in the MX95 camera"
+description = "SSD-Lite V2; Neutron inference and CPU box decoding"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "detection"]
+
+[[launchers]]
+id = "neutron-classification-video"
+title = "Classify a video with Neutron"
+description = "Choose HD footage; hardware decoding and GPU color conversion"
+demo = "vision-imx95"
+startup_progress = true
+select_video = true
+command = ["python3", "demo.py", "--task", "classification"]
+
+[[launchers]]
+id = "neutron-detection-video"
+title = "Detect objects in an MX95 video"
+description = "Choose HD or Full HD; hardware decoder, GPU and Neutron"
+demo = "vision-imx95"
+startup_progress = true
+select_video = true
+command = ["python3", "demo.py", "--task", "detection"]
 
 [[demos]]
 id = "classification"
@@ -77,6 +142,7 @@ manifest = "assets.manifest"
 
 [[launchers]]
 id = "hand-gesture-camera"
+startup_progress = true
 title = "Recognize a hand and gestures (experimental)"
 category = "HAND AND GESTURES"
 menu_title = "Camera"
@@ -150,9 +216,33 @@ command = ["python3", "high-resolution-video-detection.py", "--combination", "2"
 
 [[videos]]
 demo = "high-resolution-video-detection"
+title = "High-rise buildings A - HD 1280x720, 34 seconds"
+path = "assets/videos/buildings_458687_1280x720.mp4"
+combination = 2
+
+[[videos]]
+demo = "high-resolution-video-detection"
+title = "High-rise buildings B - HD 1280x720, 32 seconds"
+path = "assets/videos/buildings_458688_1280x720.mp4"
+combination = 2
+
+[[videos]]
+demo = "high-resolution-video-detection"
 title = "Chicago traffic — HD 1280x720, 17 seconds"
 path = "assets/videos/chicago_1280x720.mp4"
 combination = 2
+
+[[videos]]
+demo = "high-resolution-video-detection"
+title = "High-rise buildings A - Full HD 1920x1080, 34 seconds"
+path = "assets/videos/buildings_458687_1920x1080.mp4"
+combination = 14
+
+[[videos]]
+demo = "high-resolution-video-detection"
+title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
+path = "assets/videos/buildings_458688_1920x1080.mp4"
+combination = 14
 
 [[videos]]
 demo = "high-resolution-video-detection"
@@ -171,3 +261,63 @@ demo = "high-resolution-video-detection"
 title = "Jijiga street — Full HD 1920x1080, 11 seconds"
 path = "assets/videos/video_1920x1080.mp4"
 combination = 14
+
+[[videos]]
+demo = "vision-imx93"
+title = "High-rise buildings A - HD 1280x720, 34 seconds"
+path = "assets/videos/buildings_458687_1280x720.avi"
+
+[[videos]]
+demo = "vision-imx93"
+title = "High-rise buildings B - HD 1280x720, 32 seconds"
+path = "assets/videos/buildings_458688_1280x720.avi"
+
+[[videos]]
+demo = "vision-imx93"
+title = "Chicago traffic - HD 1280x720, 17 seconds"
+path = "assets/videos/chicago_1280x720.avi"
+
+[[videos]]
+demo = "vision-imx93"
+title = "High-rise buildings A - Full HD 1920x1080, 34 seconds"
+path = "assets/videos/buildings_458687_1920x1080.avi"
+
+[[videos]]
+demo = "vision-imx93"
+title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
+path = "assets/videos/buildings_458688_1920x1080.avi"
+
+[[videos]]
+demo = "vision-imx93"
+title = "Jijiga street - Full HD 1920x1080, 11 seconds"
+path = "assets/videos/video_1920x1080.avi"
+
+[[videos]]
+demo = "vision-imx95"
+title = "High-rise buildings A - HD 1280x720, 34 seconds"
+path = "assets/videos/buildings_458687_1280x720.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "High-rise buildings B - HD 1280x720, 32 seconds"
+path = "assets/videos/buildings_458688_1280x720.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "Chicago traffic - HD 1280x720, 17 seconds"
+path = "assets/videos/chicago_1280x720.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "High-rise buildings A - Full HD 1920x1080, 34 seconds"
+path = "assets/videos/buildings_458687_1920x1080.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
+path = "assets/videos/buildings_458688_1920x1080.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "Jijiga street - Full HD 1920x1080, 11 seconds"
+path = "assets/videos/video_1920x1080.mp4"

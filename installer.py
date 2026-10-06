@@ -13,12 +13,22 @@ import tempfile
 import tomllib
 
 SAMPLE_URL = ('https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/'
-              'machine-learning/imx8mplus/v2/media/chicago_1280x720.mp4')
-SAMPLE_HASH = 'bb0a4ababcf63f98548ac2e7106ef1774e3d96fc756ef4d9c45c48c2315689ff'
+              'machine-learning/imx8mplus/v2/media/buildings_458687_1280x720.mp4')
+SAMPLE_HASH = 'f6058ff68644e12d86e385a5e30c2d6815e74128d90ead713f42c5816b27c8e2'
+MX93_SAMPLE_URL = ('https://nyc3.digitaloceanspaces.com/variscite-marketing/'
+                  'demos/machine-learning/imx93/v1/media/'
+                  'buildings_458687_1280x720.avi')
+MX93_SAMPLE_HASH = '7faca1c02fe09337ff473bc8fe3151a80a7d7e976ba47fbc282adfd0e83609f1'
 LOGO_URL = ('https://nyc3.digitaloceanspaces.com/variscite-marketing/'
             'demos/branding/v1/variscite-logo-white.png')
 LOGO_HASH = 'ba878adab3671263d6907d91ec87be6c1abd049cdef30ee896fd11857b4c9a5c'
 OWNED = '.var-demos-owned'
+
+
+def sample_asset(board):
+    if board == 'imx93':
+        return MX93_SAMPLE_URL, MX93_SAMPLE_HASH, 'buildings.avi'
+    return SAMPLE_URL, SAMPLE_HASH, 'buildings.mp4'
 
 
 def active_processes(root):
@@ -168,8 +178,13 @@ def main():
         if (link.exists() or link.is_symlink()) and (
                 not link.is_symlink() or link.readlink() != root / relative):
             raise RuntimeError(f'Refusing to overwrite unrelated {link}')
-    with tempfile.TemporaryDirectory(prefix='var-demos-') as temporary:
-        cache = Path(temporary) / 'chicago.mp4'
+    # Yocto often mounts /tmp AND /var/tmp on RAM-backed tmpfs. MJPEG media
+    # can exceed it; stage on the destination filesystem without publishing
+    # unverified assets. The context removes only its own generated directory.
+    root.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='.var-demos-stage-',
+                                     dir=root.parent) as temporary:
+        cache = Path(temporary) / 'sample-video'
         logo_cache = Path(temporary) / 'variscite-logo-white.png'
         if any(group['id'] == 'multimedia' for group in groups):
             previous_logo = (root / 'multimedia/video-player/media'
@@ -181,16 +196,20 @@ def main():
                                 '-o', str(logo_cache)], check=True)
             if not verified(logo_cache, LOGO_HASH):
                 raise RuntimeError('Player logo SHA-256 mismatch')
-            previous = [root / 'multimedia/video-player/media/chicago.mp4',
+            sample_url, sample_hash, sample_name = sample_asset(board)
+            previous = [root / 'multimedia/video-player/media' / sample_name,
                 root / 'ai-ml/high-resolution-video-detection/assets/videos/'
-                       'chicago_1280x720.mp4']
-            reusable = next((path for path in previous if verified(path)), None)
+                       'buildings_458687_1280x720.mp4',
+                root / 'ai-ml/camera-vision/assets/videos' /
+                       sample_url.rsplit('/', 1)[1]]
+            reusable = next((path for path in previous
+                             if verified(path, sample_hash)), None)
             if reusable:
                 shutil.copy2(reusable, cache)
             else:
-                subprocess.run(['curl', '-fSL', '--retry', '2', SAMPLE_URL,
+                subprocess.run(['curl', '-fSL', '--retry', '2', sample_url,
                                 '-o', str(cache)], check=True)
-            if not verified(cache):
+            if not verified(cache, sample_hash):
                 raise RuntimeError('Sample video SHA-256 mismatch')
         root.mkdir(parents=True, exist_ok=True)
         for group in groups:
@@ -199,7 +218,8 @@ def main():
                 subprocess.run(['sh', str(source / 'ai-ml-demos/install.sh'),
                     '--source', str(source / 'ai-ml-demos'), '--prefix',
                     str(target), '--bin-dir', str(args.bin_dir), '--board',
-                    board, '--no-launcher'], check=True)
+                    board, '--no-launcher'], check=True,
+                    env={**os.environ, 'TMPDIR': temporary})
             else:
                 shutil.copytree(source / group['source'], target,
                     dirs_exist_ok=True, ignore=shutil.ignore_patterns(
@@ -208,7 +228,7 @@ def main():
             if group['id'] == 'multimedia':
                 media = target / 'video-player/media'
                 media.mkdir(exist_ok=True)
-                shutil.copy2(cache, media / 'chicago.mp4')
+                shutil.copy2(cache, media / sample_name)
                 shutil.copy2(logo_cache, media / 'variscite-logo-white.png')
                 (target / 'video-player/player.py').chmod(0o755)
         lib = root / 'lib'

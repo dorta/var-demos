@@ -27,7 +27,7 @@ class VideoMenuTests(unittest.TestCase):
                 video = manager.select_video(
                     self.catalog, self.launcher['demo']
                 )
-        self.assertIn('Chicago', video['title'])
+        self.assertIn('High-rise buildings A', video['title'])
 
     def test_back_does_not_launch_a_video(self):
         with patch('builtins.input', return_value='b'):
@@ -36,8 +36,31 @@ class VideoMenuTests(unittest.TestCase):
                     self.catalog, self.launcher['demo']
                 ))
 
+    def test_both_buildings_clips_have_hd_and_full_hd_on_each_board(self):
+        manifests = {
+            'high-resolution-video-detection':
+                'high-resolution-video-detection/assets.manifest',
+            'vision-imx93': 'camera-vision/assets-imx93.manifest',
+            'vision-imx95': 'camera-vision/assets-imx95.manifest',
+        }
+        for demo, manifest in manifests.items():
+            assets = {line.split()[2] for line in
+                      (ROOT / manifest).read_text().splitlines()
+                      if line and not line.startswith('#')}
+            videos = [item for item in self.catalog['videos']
+                      if item['demo'] == demo]
+            self.assertIn('1280x720', videos[0]['path'])
+            for clip in ('458687', '458688'):
+                for resolution in ('1280x720', '1920x1080'):
+                    matches = [item for item in videos
+                               if clip in item['path']
+                               and resolution in item['path']]
+                    self.assertEqual(len(matches), 1)
+                    self.assertIn(matches[0]['path'], assets)
+
     def test_selected_video_controls_input_and_resolution(self):
-        video = self.catalog['videos'][-1]
+        video = [item for item in self.catalog['videos']
+                 if item['demo'] == self.launcher['demo']][-1]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             path = root / self.launcher['demo'] / video['path']

@@ -16,13 +16,17 @@ class PlatformCatalogTests(unittest.TestCase):
                          '/usr/lib/libvx_delegate.so')
         mx95 = {demo['id'] for demo in catalog['demos']
                 if 'imx95' in demo['platforms']}
-        self.assertEqual(mx95, {'neutron-classification'})
+        self.assertEqual(mx95, {'vision-imx95'})
         for demo in catalog['demos']:
-            if demo['id'] == 'neutron-classification':
+            if demo['id'] == 'vision-imx95':
                 self.assertEqual(demo['platforms'], ['imx95'])
+            elif demo['id'] == 'vision-imx93':
+                self.assertEqual(demo['platforms'], ['imx93'])
             else:
                 self.assertEqual(demo['platforms'], ['imx8mplus'])
-        self.assertEqual(platforms['imx93']['status'], 'pending')
+        self.assertEqual(platforms['imx93']['status'], 'validated')
+        self.assertEqual(platforms['imx93']['delegate_path'],
+                         '/usr/lib/libethosu_delegate.so')
 
     def test_neutron_assets_use_hashes_and_external_storage(self):
         directory = ROOT / 'ai-ml-demos/neutron-classification'

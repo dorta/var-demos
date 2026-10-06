@@ -8,7 +8,7 @@ status = "validated"
 [platforms.imx93]
 name = "i.MX 93"
 compatible = ["fsl,imx93"]
-status = "pending"
+status = "validated"
 
 [platforms.imx95]
 name = "i.MX 95"
@@ -20,14 +20,14 @@ id = "ai-ml"
 title = "AI / ML"
 description = "Image, camera and video inference on the NPU"
 source = "ai-ml-demos"
-platforms = ["imx8mplus", "imx95"]
+platforms = ["imx8mplus", "imx93", "imx95"]
 
 [[groups]]
 id = "multimedia"
 title = "Multimedia / GStreamer"
 description = "Play local movies with playback controls"
 source = "multimedia-demos"
-platforms = ["imx8mplus"]
+platforms = ["imx8mplus", "imx93", "imx95"]
 
 [[groups]]
 id = "opencl"
