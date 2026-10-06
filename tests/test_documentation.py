@@ -3,7 +3,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-GUIDES = ['README.md', 'ai-ml-demos/README.adoc',
+GUIDES = ['README.md', 'CONVERTING_MODELS.md', 'ai-ml-demos/README.adoc',
           'ai-ml-demos/classification/README.adoc',
           'ai-ml-demos/detection/README.adoc',
           'ai-ml-demos/high-resolution-video-detection/README.md',
