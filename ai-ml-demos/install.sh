@@ -23,6 +23,14 @@ UNINSTALL=0
 NO_LAUNCHER=0
 WORK_DIR=
 
+progress() {
+    [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || return 0
+    python3 -c 'import json,sys; print("VAR_INSTALL_EVENT " + json.dumps({
+        "message":sys.argv[1], "done":sys.argv[2]=="1",
+        "asset":sys.argv[3]=="1", "download":sys.argv[4] or None}), flush=True)' \
+        "$1" "${2:-0}" "${3:-0}" "${4:-}"
+}
+
 usage() {
     cat <<'EOF'
 Usage: install.sh [options] [demo ...]
@@ -158,6 +166,7 @@ download() {
 
     curl \
         --fail \
+        --silent --show-error \
         --location \
         --retry 5 \
         --retry-all-errors \
@@ -285,14 +294,19 @@ install_asset() {
 
     destination="${INSTALL_ROOT}/${demo}/${relative_path}"
     cache_file="${WORK_DIR}/assets/${expected}"
+    if [ "${PREFETCH_ONLY}" -eq 1 ]; then
+        progress "Verifying ${relative_path}" 0 0 "${cache_file}.part"
+    else
+        progress "Installing ${relative_path}"
+    fi
     if [ ! -f "${cache_file}" ]; then
         if [ -f "${destination}" ] && \
            printf '%s  %s\n' "${expected}" "${destination}" | \
                sha256sum -c - >/dev/null 2>&1; then
-            echo "Using verified ${relative_path}"
+            [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || echo "Using verified ${relative_path}"
             cp "${destination}" "${cache_file}"
         else
-            echo "Downloading ${remote_path}"
+            [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || echo "Downloading ${remote_path}"
             download \
                 "${ASSET_BASE_URL}/${remote_path}" \
                 "${cache_file}.part"
@@ -302,9 +316,13 @@ install_asset() {
         fi
     fi
 
-    [ "${PREFETCH_ONLY:-0}" -eq 0 ] || return 0
+    if [ "${PREFETCH_ONLY:-0}" -eq 1 ]; then
+        progress "Verified ${relative_path}" 1 1
+        return 0
+    fi
     install -d "$(dirname -- "${destination}")"
     install -m 0644 "${cache_file}" "${destination}"
+    progress "Installed ${relative_path}" 1
 }
 
 prepare_demo_assets() {
@@ -324,7 +342,8 @@ install_demo() {
     demo_is_compatible "${demo}" || \
         fail "${demo} is not compatible with ${BOARD}"
 
-    echo "Installing ${DEMO_TITLE}"
+    progress "Installing ${DEMO_TITLE}"
+    [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || echo "Installing ${DEMO_TITLE}"
     install -d "${INSTALL_ROOT}/${DEMO_PATH}"
     if [ "${IN_PLACE}" -eq 0 ]; then
         cp -R "${SOURCE_ROOT}/${DEMO_PATH}/." \
@@ -333,7 +352,7 @@ install_demo() {
 
     prepare_demo_assets
 
-    echo "  Run: cd ${INSTALL_ROOT}/${DEMO_PATH} && ${DEMO_ENTRYPOINT}"
+    progress "${DEMO_TITLE} installed" 1
 }
 
 while [ "$#" -gt 0 ]; do

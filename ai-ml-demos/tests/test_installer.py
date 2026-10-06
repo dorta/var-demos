@@ -49,7 +49,7 @@ class InstallerTests(unittest.TestCase):
                 rf'^{name}\(\) \{{\n.*?^\}}', source,
                 flags=re.MULTILINE | re.DOTALL,
             ).group()
-            for name in ('download', 'install_asset')
+            for name in ('progress', 'download', 'install_asset')
         )
         payload = b'new verified video content'
         digest = hashlib.sha256(payload).hexdigest()

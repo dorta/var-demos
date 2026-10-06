@@ -103,7 +103,7 @@ class SuiteCommandTests(unittest.TestCase):
             root.mkdir()
             (root / '.var-demos-installed').touch()
             (root / 'keep.txt').write_text('unrelated data')
-            for name in ('suite.py', 'installer.py', 'install.sh'):
+            for name in ('suite.py', 'installer.py', 'install.sh', 'install_ui.py'):
                 shutil.copy2(ROOT / name, root / name)
             shutil.copy2(ROOT / 'catalog.toml', root / 'catalog.toml')
             lib = root / 'lib'
@@ -122,6 +122,9 @@ class SuiteCommandTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((root / 'suite.py').exists())
             self.assertFalse(lib.exists())
+            self.assertFalse((root / 'install_ui.py').exists())
+            self.assertNotIn('Removed /', result.stdout)
+            self.assertIn('Complete', result.stdout)
             self.assertEqual((root / 'keep.txt').read_text(), 'unrelated data')
 
 

@@ -28,6 +28,11 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ]; then
+    printf 'Preparing var-demos installer...'
+else
+    printf 'var-demos: preparing installer\n'
+fi
 curl -fsSL --retry 2 \
     "https://api.github.com/repos/$repo/commits/$ref" -o "$work/revision.json"
 revision=$(python3 -c 'import json,sys; s=json.load(open(sys.argv[1]))["sha"]; assert len(s)==40 and all(c in "0123456789abcdef" for c in s); print(s)' "$work/revision.json")
