@@ -1,6 +1,7 @@
 # Variscite demos
 
-AI/ML, multimedia and GPU demos for i.MX 8M Plus.
+AI/ML and GPU demos for i.MX 8M Plus and DART-MX95.
+The multimedia player is currently enabled only on i.MX 8M Plus.
 
 ## Install
 
@@ -45,7 +46,11 @@ BSP demos and unrelated files are preserved.
 
 ## Support
 
-i.MX 93 and 95 are not enabled yet. Hand gestures are experimental;
+i.MX 93 is not enabled yet. DART-MX95 supports Neutron camera classification,
+camera preview, OpenCL and eight graphical BSP examples on Wrynose 6.18.20.
+See [MX95 notes](ai-ml-demos/neutron-classification/) for measured performance
+and the supported camera. MX95 player compatibility is still under test.
+Hand gestures are experimental and enabled only on i.MX 8M Plus;
 continuous operation needs cooling and further multi-hour validation.
 Models and media use DigitalOcean Spaces with SHA-256 checks, not Git LFS.
 See each demo's README for details and limitations.

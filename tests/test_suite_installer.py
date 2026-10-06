@@ -53,6 +53,13 @@ class InstallerTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('not been validated', result.stderr)
 
+    def test_mx95_selects_ai_and_opencl_but_not_unvalidated_player(self):
+        result = self.run_installer('--board', 'imx95', '--dry-run')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('AI / ML', result.stdout)
+        self.assertIn('OpenCL', result.stdout)
+        self.assertNotIn('Multimedia', result.stdout)
+
     def test_broad_paths_are_rejected(self):
         for value in ('/', '/opt', '/usr/bin', '/home', 'relative'):
             with self.assertRaises(RuntimeError):

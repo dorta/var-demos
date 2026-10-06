@@ -22,7 +22,9 @@ class ExternalDemoTests(unittest.TestCase):
         self.assertEqual(len({entry['executable'] for entry in entries}),
                          len(entries))
         for entry in entries:
-            self.assertEqual(entry['platforms'], ['imx8mplus'])
+            expected_platforms = ['imx8mplus'] if entry['id'] == 'render-texture' \
+                else ['imx8mplus', 'imx95']
+            self.assertEqual(entry['platforms'], expected_platforms)
             self.assertTrue(entry['executable'].startswith(
                 '/opt/imx-gpu-sdk/GLES3/'))
             self.assertTrue(entry['executable'].endswith('___Wayland'))
