@@ -30,11 +30,15 @@ class DocumentationTests(unittest.TestCase):
                 with self.subTest(filename=filename, target=target):
                     self.assertTrue((path.parent / target).exists())
 
-    def test_root_guide_uses_unified_management_commands(self):
+    def test_root_guide_keeps_install_and_run_concise(self):
         text = (ROOT / 'README.md').read_text()
-        for command in ('var-demos status', 'var-demos --list',
-                        'var-demos --uninstall'):
-            self.assertIn(command, text)
+        self.assertIn('curl -fsSL https://raw.githubusercontent.com/'
+                      'dorta/var-demos/demos/install.sh | sh', text)
+        self.assertIn('```sh\nvar-demos\n```', text)
+        self.assertNotIn('## Manage', text)
+        self.assertIn('alt="Variscite" width="320"', text)
+        for board in ('i.MX 8M Plus', 'VAR-SOM-MX93', 'DART-MX95'):
+            self.assertIn('### ' + board, text)
 
 
 if __name__ == '__main__':
