@@ -24,6 +24,13 @@ ROOT = Path(__file__).resolve().parent
 COLORS = [(52, 211, 153), (245, 189, 66), (223, 147, 70), (194, 133, 246)]
 
 
+def capture_tail(video):
+    # OpenCV discovers manual-pipeline sinks by name, unlike our GI reader.
+    name = 'frames' if video else 'opencvsink'
+    return ('videoconvert ! video/x-raw,format=BGR ! '
+            f'appsink name={name} max-buffers=1 drop=true')
+
+
 def board():
     compatible = Path('/proc/device-tree/compatible').read_bytes().split(b'\0')
     for name in ('imx93', 'imx95'):
@@ -166,9 +173,7 @@ def run(args):
     # files clocked, and drop only late sink samples. Live cameras may leak.
     if not args.video:
         pipeline += 'queue leaky=downstream max-size-buffers=1 ! '
-    pipeline += ('videoconvert ! '
-                 'video/x-raw,format=BGR ! '
-                 'appsink name=frames max-buffers=1 drop=true')
+    pipeline += capture_tail(bool(args.video))
     startup_step('Opening video; waiting for the first frame')
     if args.video:
         from capture import VideoCapture
