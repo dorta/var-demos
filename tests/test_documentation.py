@@ -44,7 +44,8 @@ class DocumentationTests(unittest.TestCase):
         text = (ROOT / 'README.md').read_text()
         performance = text.split('## Performance\n', 1)[1]
         expected = ['Camera classification', 'Camera detection',
-                    '720p video detection', '1080p video detection']
+                    '720p video detection', '1080p video detection',
+                    'Video player', 'OpenCL / GPU examples', 'Hand gestures']
         for section in performance.split('### ')[1:]:
             rows = [line for line in section.splitlines()
                     if line.startswith('|')]
@@ -54,8 +55,9 @@ class DocumentationTests(unittest.TestCase):
                              expected)
             for row in rows[2:]:
                 cells = [cell.strip() for cell in row.split('|')[1:-1]]
-                self.assertIn(cells[2], ('Measured', 'Functional'))
-                if cells[2] == 'Functional':
+                self.assertIn(cells[2], ('Measured', 'Functional',
+                                        'Experimental', 'Not enabled'))
+                if cells[2] != 'Measured':
                     self.assertEqual(cells[3:], ['—', '—', '—'])
         self.assertIn('not one standardized benchmark', performance)
 

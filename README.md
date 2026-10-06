@@ -49,10 +49,13 @@ Both buildings clips are available in 720p and 1080p; 720p is the default.
 
 ## Performance
 
-The same four scenarios are listed for every SoM:
+Every demo in the support matrix is listed for every SoM. Video detection
+has separate 720p and 1080p rows; the NPU is identified above each table.
 
 - **Measured:** a recorded run with FPS and inference timing.
 - **Functional:** opened and processed frames; timing is not reported here.
+- **Experimental:** available, but still needs representative validation.
+- **Not enabled:** not installed or offered on this SoM.
 - **—:** no recorded measurement, not a failed or unsupported demo.
 
 **FPS** is the processed frame rate. **Inference** is model execution time
@@ -69,6 +72,9 @@ VX NPU · MobileNet V1 classification · SSD MobileNet V1 detection.
 | Camera detection | 720×480 | Measured | 10 min | 15.76 | 9.00 ms |
 | 720p video detection | 720p H.264 | Functional | — | — | — |
 | 1080p video detection | 1080p H.264 | Functional | — | — | — |
+| Video player | 720p H.264 | Functional | — | — | — |
+| OpenCL / GPU examples | GPU | Functional | — | — | — |
+| Hand gestures | Camera | Experimental | — | — | — |
 
 ### VAR-SOM-MX93
 
@@ -80,6 +86,9 @@ Ethos-U65 NPU · MobileNet V1 classification · SSD MobileNet V1 detection.
 | Camera detection | 640×480 | Measured | 60 s | 29.97 | 8.64 ms |
 | 720p video detection | 720p MJPEG | Measured | 12 s | 18.51 | 9.16 ms |
 | 1080p video detection | 1080p MJPEG | Measured | 12 s | 11.28 | 9.03 ms |
+| Video player | 720p MJPEG | Functional | — | — | — |
+| OpenCL / GPU examples | — | Not enabled | — | — | — |
+| Hand gestures | — | Not enabled | — | — | — |
 
 MJPEG is decoded on the CPU; this BSP has no H.264 decoder.
 
@@ -93,6 +102,9 @@ Neutron NPU · MobileNet V1 classification · SSD-Lite V2 detection.
 | Camera detection | 1280×720 | Measured | 12 s | 5.83 | 3.72 ms |
 | 720p video detection | 720p H.264 | Functional | — | — | — |
 | 1080p video detection | 1080p H.264 | Measured | 30 s | 1.33 | 3.67 ms |
+| Video player | 720p H.264 | Functional | — | — | — |
+| OpenCL / GPU examples | GPU | Functional | — | — | — |
+| Hand gestures | — | Not enabled | — | — | — |
 
 The Full HD run reached 81.92 °C and paused to cool. Its FPS includes that
 pause; camera throughput is currently limited by capture.
