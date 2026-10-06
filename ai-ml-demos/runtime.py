@@ -14,7 +14,50 @@ from telemetry import SOC_TEMPERATURE, SoCTemperature
 RESOURCES = ContextVar('demo_resources')
 STATISTICS = ContextVar('demo_statistics', default=None)
 CPU_TEMPERATURE = SoCTemperature(sensor_name='cpu-thermal')
+A55_TEMPERATURE = SoCTemperature(sensor_name='a55-thermal')
 CLOCK_SCALE = Path('/sys/bus/platform/drivers/galcore/gpu3DClockScale')
+
+
+def startup_step(message, ready=False):
+    """Report completed/starting stages, never invented percentages."""
+    print('VAR_DEMO_STARTUP ' + json.dumps({
+        'message': message, 'ready': bool(ready)}), flush=True)
+
+
+class StartupProgress:
+    def __init__(self, expected=False):
+        self.message = 'Starting process'
+        self.ready = not expected
+        self.offset = 0
+        self.pending = b''
+
+    def read(self, path):
+        with Path(path).open('rb') as output:
+            output.seek(0, 2)
+            end = output.tell()
+            if end < self.offset:
+                self.offset, self.pending = 0, b''
+            if end - self.offset > 65536:
+                self.offset, self.pending = end - 65536, b''
+            output.seek(self.offset)
+            data = self.pending + output.read(65536)
+            self.offset = output.tell()
+        lines = data.split(b'\n')
+        self.pending = lines.pop()[-4096:]
+        for line in lines:
+            if not line.startswith(b'VAR_DEMO_STARTUP '):
+                continue
+            try:
+                event = json.loads(line.removeprefix(b'VAR_DEMO_STARTUP '))
+                if not isinstance(event.get('message'), str):
+                    continue
+                if not isinstance(event.get('ready'), bool):
+                    continue
+                self.message = ''.join(c for c in event['message'][:240]
+                                       if c.isprintable())
+                self.ready = event['ready']
+            except (ValueError, TypeError, AttributeError):
+                continue
 
 
 class RunStatistics:
@@ -63,7 +106,8 @@ def clock_is_limited():
 
 
 def temperature():
-    values = [SOC_TEMPERATURE.read(), CPU_TEMPERATURE.read()]
+    values = [SOC_TEMPERATURE.read(), CPU_TEMPERATURE.read(),
+              A55_TEMPERATURE.read()]
     return max((value for value in values if value is not None), default=None)
 
 

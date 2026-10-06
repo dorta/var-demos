@@ -32,10 +32,14 @@ class HandTracker():
     """
 
     def __init__(self, palm_model, joint_model, anchors_path, delegate_path,
-                box_enlarge=1.5, box_shift=0.2):
+                box_enlarge=1.5, box_shift=0.2, progress=None):
         self.box_shift = box_shift
         self.box_enlarge = box_enlarge
         self.inference_seconds = 0.0
+        self.progress = progress or (lambda _message: None)
+        self.palm_prepared = False
+        self.joint_prepared = False
+        self.progress('Loading palm and landmark models')
 
         if(delegate_path):
             self.interp_palm = tflite.Interpreter(
@@ -47,6 +51,7 @@ class HandTracker():
         else:
             self.interp_palm = tflite.Interpreter(palm_model)
             self.interp_joint = tflite.Interpreter(joint_model)
+        self.progress('Allocating model tensors and NPU delegates')
         self.interp_palm.allocate_tensors()
         self.interp_joint.allocate_tensors()
         for interpreter in (self.interp_palm, self.interp_joint):
@@ -132,7 +137,10 @@ class HandTracker():
         self.interp_joint.set_tensor(
             self.in_idx_joint, img_norm.reshape(1,256,256,3))
         started = monotonic()
+        if not self.joint_prepared:
+            self.progress('Preparing landmark model on the NPU (first inference)')
         self.interp_joint.invoke()
+        self.joint_prepared = True
         self.inference_seconds += monotonic() - started
         if self.presence_index is not None:
             confidence = float(self.interp_joint.get_tensor(
@@ -160,7 +168,10 @@ class HandTracker():
         # predict hand location and 7 initial landmarks
         self.interp_palm.set_tensor(self.in_idx, img_norm[None])
         started = monotonic()
+        if not self.palm_prepared:
+            self.progress('Preparing palm model on the NPU (first inference)')
         self.interp_palm.invoke()
+        self.palm_prepared = True
         self.inference_seconds += monotonic() - started
 
         out_reg = self.interp_palm.get_tensor(self.out_reg_idx)[0]

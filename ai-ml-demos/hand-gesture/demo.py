@@ -13,6 +13,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent))
 from runtime import demo_session, managed_capture, record_inference, ThermalPacer
+from runtime import startup_step
 from telemetry import draw_soc_temperature, SOC_TEMPERATURE
 from gestures import classify, SmoothLandmarks, StableGesture
 from hand_tracker import HandTracker
@@ -76,6 +77,7 @@ def draw(frame, points, gesture, fps, inference):
 
 @demo_session()
 def run(args):
+    startup_step('Checking camera and model assets')
     if not args.sample:
         if (not args.camera.startswith('/dev/video') or
                 not args.camera.removeprefix('/dev/video').isdigit()):
@@ -85,12 +87,13 @@ def run(args):
     print('Preparing palm and landmark models; first inference may take '
           'several seconds.', flush=True)
     pacer = ThermalPacer()
+    startup_step('Checking thermal readiness')
     if not pacer.wait():
         return
     tracker = HandTracker(
         str(ROOT / 'model/palm.tflite'), str(ROOT / 'model/landmark.tflite'),
         str(ROOT / 'model/anchors.csv'), '/usr/lib/libvx_delegate.so',
-        box_enlarge=1.3)
+        box_enlarge=1.3, progress=startup_step)
     reference = cv2.imread(str(ROOT / 'media/hand.bmp'))
     if reference is None:
         raise RuntimeError('Missing or unreadable hand sample')
@@ -104,11 +107,13 @@ def run(args):
     if args.sample:
         sample = reference
     else:
+        startup_step('Models ready; opening camera')
         pipeline = (f'v4l2src device={args.camera} ! '
                     'video/x-raw,width=640,height=480,framerate=30/1 ! '
                     'queue leaky=downstream max-size-buffers=1 ! '
                     'videoconvert ! appsink max-buffers=1 drop=true')
         capture = managed_capture(pipeline)
+    startup_step('Waiting for the first valid frame')
     stable = StableGesture()
     smooth = SmoothLandmarks()
     started = monotonic()
@@ -116,6 +121,7 @@ def run(args):
     fps = 0.0
     window = False
     next_log = started
+    ready = False
     while not args.duration or monotonic() - started < args.duration:
         if not pacer.wait(lambda: not args.headless and cv2.waitKey(1) == 27):
             break
@@ -135,6 +141,9 @@ def run(args):
         previous = now
         gesture = stable.update(classify(points))
         if args.headless:
+            if not ready:
+                startup_step('Inference and capture ready', ready=True)
+                ready = True
             if now >= next_log:
                 print(f'gesture={gesture}; fps={fps:.1f}; '
                       f'inference_ms={tracker.inference_seconds * 1000:.1f}',
@@ -150,6 +159,10 @@ def run(args):
                                       cv2.WINDOW_FULLSCREEN)
             window = True
         cv2.imshow(TITLE, frame)
+        if not ready:
+            cv2.waitKey(1)
+            startup_step('Video displayed; demo ready', ready=True)
+            ready = True
         if cv2.waitKey(1) == 27:
             break
 

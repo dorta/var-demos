@@ -41,7 +41,19 @@ class SoCTemperature:
         return self.value
 
 
-SOC_TEMPERATURE = SoCTemperature()
+def board_sensor_name():
+    try:
+        compatible = Path('/proc/device-tree/compatible').read_bytes().split(b'\0')
+    except OSError:
+        return 'soc-thermal'
+    if b'fsl,imx95' in compatible:
+        return 'a55-thermal'
+    if b'fsl,imx93' in compatible:
+        return 'cpu-thermal'
+    return 'soc-thermal'
+
+
+SOC_TEMPERATURE = SoCTemperature(sensor_name=board_sensor_name())
 
 
 def draw_soc_temperature(frame, panel_color, text_color, rgb=False):

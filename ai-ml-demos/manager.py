@@ -17,7 +17,7 @@ import time
 import tomllib
 
 from telemetry import SOC_TEMPERATURE
-from runtime import clock_is_limited, temperature
+from runtime import clock_is_limited, temperature, StartupProgress
 
 
 ROOT = Path(__file__).resolve().parent
@@ -152,6 +152,7 @@ def run_with_dashboard(launcher, command, directory):
         started = time.monotonic()
         last_elapsed = -1
         cooling = False
+        progress = StartupProgress(launcher.get('startup_progress', False))
         try:
             while process.poll() is None:
                 elapsed = int(time.monotonic() - started)
@@ -166,13 +167,17 @@ def run_with_dashboard(launcher, command, directory):
                         cooling = True
                     elif peak is not None and peak < 78:
                         cooling = False
-                    state = 'Cooling' if cooling else 'Running'
+                    progress.read(log.name)
+                    state = ('Cooling' if cooling else 'Running'
+                             if progress.ready else 'Preparing')
                     print(
                         f"\r  {state:<7}  {elapsed // 60:02d}:"
                         f"{elapsed % 60:02d}  |  SoC {soc_text} C    ",
                         end='', flush=True,
                     )
                     last_elapsed = elapsed
+                    if not progress.ready:
+                        print(f'\n  {progress.message}', flush=True)
                 time.sleep(0.1)
         except KeyboardInterrupt:
             stopped = True

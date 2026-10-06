@@ -12,7 +12,7 @@ import textwrap
 import time
 
 from telemetry import SOC_TEMPERATURE
-from runtime import clock_is_limited, temperature
+from runtime import clock_is_limited, temperature, StartupProgress
 
 
 def navigate(key, selected, count):
@@ -216,6 +216,7 @@ class TerminalUI:
         stopped = False
         show_logs = False
         cooling = False
+        progress = StartupProgress(launcher.get('startup_progress', False))
         with tempfile.NamedTemporaryFile(
             prefix='var-ai-', suffix='.log', delete=False
         ) as log:
@@ -228,7 +229,9 @@ class TerminalUI:
             try:
                 while process.poll() is None:
                     elapsed = int(time.monotonic() - started)
-                    state = (elapsed, show_logs, self.screen.getmaxyx())
+                    progress.read(log.name)
+                    state = (elapsed, show_logs, self.screen.getmaxyx(),
+                             progress.message, progress.ready)
                     if state != previous:
                         peak = temperature()
                         inference_demo = launcher.get('group', 'ai-ml') == 'ai-ml'
@@ -237,9 +240,12 @@ class TerminalUI:
                             cooling = True
                         elif peak is not None and peak < 78:
                             cooling = False
-                        if self.header('Demo running'):
+                        if self.header('Demo running' if progress.ready
+                                       else 'Preparing demo'):
                             self.text(5, 2, launcher['title'], curses.A_BOLD)
-                            status = 'Cooling - inference paused' if cooling else 'Running'
+                            status = ('Cooling - inference paused' if cooling
+                                      else 'Running' if progress.ready
+                                      else 'Preparing')
                             self.text(7, 2, status, self.accent)
                             self.text(8, 2,
                                       f'Elapsed  {elapsed // 60:02d}:{elapsed % 60:02d}')
@@ -247,11 +253,16 @@ class TerminalUI:
                                       if launcher.get('terminal_output')
                                       else 'Video output: board display')
                             self.text(10, 2, output, curses.A_DIM)
+                            if not progress.ready:
+                                self.text(11, 2, progress.message, self.accent)
+                                self.text(12, 2, 'First NPU preparation can take '
+                                          'tens of seconds; Esc cancels.',
+                                          curses.A_DIM)
                             if show_logs:
                                 height, _ = self.screen.getmaxyx()
                                 for index, line in enumerate(log_tail(log.name)):
-                                    if 12 + index < height - 3:
-                                        self.text(12 + index, 2, line, curses.A_DIM)
+                                    if 14 + index < height - 3:
+                                        self.text(14 + index, 2, line, curses.A_DIM)
                         self.footer('Esc/s: stop and return  l: toggle diagnostic log')
                         previous = state
                     key = self.screen.getch()

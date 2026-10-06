@@ -34,6 +34,43 @@ class RuntimeTests(unittest.TestCase):
         self.assertIsNone(summary['inference_ms'])
         self.assertIsNone(summary['processing_fps'])
 
+    def test_startup_waits_for_real_ready_event(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'startup.log'
+            path.write_text('VAR_DEMO_STARTUP {"message":"Warming up",'
+                            '"ready":false}\n')
+            progress = runtime.StartupProgress(expected=True)
+            progress.read(path)
+            self.assertEqual(progress.message, 'Warming up')
+            self.assertFalse(progress.ready)
+            with path.open('a') as log:
+                log.write('VAR_DEMO_STARTUP {"message":"First frame",'
+                          '"ready":true}\n')
+            progress.read(path)
+            self.assertTrue(progress.ready)
+            self.assertEqual(progress.message, 'First frame')
+
+    def test_partial_or_invalid_startup_event_cannot_mark_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'startup.log'
+            path.write_text('VAR_DEMO_STARTUP {broken}\n'
+                            'VAR_DEMO_STARTUP {"message":"bad",'
+                            '"ready":"yes"}\n'
+                            'VAR_DEMO_STARTUP {"message":"Ready",')
+            progress = runtime.StartupProgress(expected=True)
+            progress.read(path)
+            self.assertFalse(progress.ready)
+            with path.open('a') as log:
+                log.write('"ready":true}\n')
+            progress.read(path)
+            self.assertTrue(progress.ready)
+
+    def test_mx95_cpu_sensor_participates_in_thermal_protection(self):
+        with patch.object(runtime.SOC_TEMPERATURE, 'read', return_value=None), \
+                patch.object(runtime.CPU_TEMPERATURE, 'read', return_value=None), \
+                patch.object(runtime.A55_TEMPERATURE, 'read', return_value=83):
+            self.assertEqual(runtime.temperature(), 83)
+
     def test_cleanup_runs_when_a_demo_fails(self):
         cleanup = MagicMock()
         fake_cv2 = SimpleNamespace(destroyAllWindows=MagicMock())

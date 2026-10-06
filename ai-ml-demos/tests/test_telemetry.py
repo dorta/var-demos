@@ -12,6 +12,14 @@ SPEC.loader.exec_module(telemetry)
 
 
 class TemperatureTests(unittest.TestCase):
+    def test_board_selects_named_cpu_zone_instead_of_analog(self):
+        for compatible, expected in (
+                (b'fsl,imx95\0', 'a55-thermal'),
+                (b'fsl,imx93\0', 'cpu-thermal'),
+                (b'fsl,imx8mp\0', 'soc-thermal')):
+            with patch.object(telemetry.Path, 'read_bytes', return_value=compatible):
+                self.assertEqual(telemetry.board_sensor_name(), expected)
+
     def test_soc_sensor_and_refresh_interval(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
