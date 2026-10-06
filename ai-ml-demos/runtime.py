@@ -79,8 +79,9 @@ class RunStatistics:
         if value is not None:
             self.soc_peak = max(value, self.soc_peak or value)
 
-    def summary(self):
-        elapsed = (self.last_frame - self.first_frame
+    def summary(self, ended_at=None):
+        elapsed = ((self.last_frame if ended_at is None else ended_at)
+                   - self.first_frame
                    if self.frames else 0)
         return {
             'frames': self.frames,
@@ -142,7 +143,8 @@ def demo_session():
                 RESOURCES.reset(token)
     finally:
         STATISTICS.reset(stats_token)
-        print('VAR_AI_STATS ' + json.dumps(statistics.summary()), flush=True)
+        print('VAR_AI_STATS ' + json.dumps(statistics.summary(monotonic())),
+              flush=True)
         signal.signal(signal.SIGTERM, previous)
 
 

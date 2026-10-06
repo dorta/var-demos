@@ -15,6 +15,16 @@ SPEC.loader.exec_module(runtime)
 
 
 class RuntimeTests(unittest.TestCase):
+    def test_final_fps_includes_cooling_after_last_frame(self):
+        stats = runtime.RunStatistics()
+        with patch.object(runtime, 'monotonic', side_effect=[1.0, 1.1]), \
+                patch.object(runtime.SOC_TEMPERATURE, 'read', return_value=81):
+            stats.record(0.01)
+            stats.record(0.01)
+        summary = stats.summary(ended_at=30.99)
+        self.assertAlmostEqual(summary['processing_fps'], 2 / 30)
+        self.assertAlmostEqual(summary['inference_ms'], 10)
+
     def test_statistics_use_invoke_time_not_process_duration(self):
         stats = runtime.RunStatistics()
         with patch.object(runtime, 'monotonic', side_effect=[1.0, 1.1]), \
