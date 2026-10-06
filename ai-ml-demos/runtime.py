@@ -4,6 +4,7 @@
 from contextlib import contextmanager, ExitStack
 from contextvars import ContextVar
 import json
+import os
 from pathlib import Path
 import signal
 from time import monotonic, sleep
@@ -116,8 +117,20 @@ def register_cleanup(callback, *args):
     RESOURCES.get().callback(callback, *args)
 
 
+def prepare_opencv_display():
+    # The tested BSPs ship Qt's xcb plugin, not its Wayland plugin. Direct
+    # execution must use XWayland too, not depend on the launcher's exports.
+    if Path('/tmp/.X11-unix/X0').is_socket():
+        os.environ.setdefault('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+        os.environ.setdefault('DISPLAY', ':0')
+        platform = os.environ.get('QT_QPA_PLATFORM', '')
+        if not platform or platform.startswith('wayland'):
+            os.environ['QT_QPA_PLATFORM'] = 'xcb'
+
+
 @contextmanager
 def demo_session():
+    prepare_opencv_display()
     import cv2
 
     def terminate(_signal, _frame):

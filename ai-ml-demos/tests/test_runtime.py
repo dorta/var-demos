@@ -15,6 +15,32 @@ SPEC.loader.exec_module(runtime)
 
 
 class RuntimeTests(unittest.TestCase):
+    def test_direct_wayland_shell_uses_available_xwayland(self):
+        with patch.dict(runtime.os.environ,
+                        {'QT_QPA_PLATFORM': 'wayland',
+                         'WAYLAND_DISPLAY': 'wayland-1'}, clear=True), \
+                patch.object(runtime.Path, 'is_socket', return_value=True):
+            runtime.prepare_opencv_display()
+            self.assertEqual(runtime.os.environ['QT_QPA_PLATFORM'], 'xcb')
+            self.assertEqual(runtime.os.environ['DISPLAY'], ':0')
+            self.assertEqual(runtime.os.environ['WAYLAND_DISPLAY'], 'wayland-1')
+
+    def test_explicit_offscreen_and_display_are_preserved(self):
+        with patch.dict(runtime.os.environ,
+                        {'QT_QPA_PLATFORM': 'offscreen', 'DISPLAY': ':7'},
+                        clear=True), \
+                patch.object(runtime.Path, 'is_socket', return_value=True):
+            runtime.prepare_opencv_display()
+            self.assertEqual(runtime.os.environ['QT_QPA_PLATFORM'], 'offscreen')
+            self.assertEqual(runtime.os.environ['DISPLAY'], ':7')
+
+    def test_no_xwayland_does_not_invent_a_display(self):
+        with patch.dict(runtime.os.environ, {}, clear=True), \
+                patch.object(runtime.Path, 'is_socket', return_value=False):
+            runtime.prepare_opencv_display()
+            self.assertNotIn('DISPLAY', runtime.os.environ)
+            self.assertNotIn('QT_QPA_PLATFORM', runtime.os.environ)
+
     def test_final_fps_includes_cooling_after_last_frame(self):
         stats = runtime.RunStatistics()
         with patch.object(runtime, 'monotonic', side_effect=[1.0, 1.1]), \

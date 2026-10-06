@@ -216,13 +216,14 @@ def run(args):
                           decode_ssdlite(values[0], values[1], priors))
         frames += 1
         if frames == 1:
-            startup_step('Frames and NPU inference ready', ready=True)
             if not args.headless:
                 cv2.namedWindow(title, cv2.WINDOW_NORMAL)
                 if not args.windowed:
                     cv2.setWindowProperty(title, cv2.WND_PROP_FULLSCREEN,
                                           cv2.WINDOW_FULLSCREEN)
         if args.headless:
+            if frames == 1:
+                startup_step('Frames and NPU inference ready', ready=True)
             continue
         overlay(frame, detections, labels, title,
                 frames / max(monotonic() - started, .001), ms, thermal, 'CPU')
@@ -235,6 +236,8 @@ def run(args):
                 badge(frame, f'{labels[int(index)]}  {scores[index]:.0%}',
                       8, 8 + row * 34)
         cv2.imshow(title, frame)
+        if frames == 1:
+            startup_step('Frames and NPU inference ready', ready=True)
         if cv2.waitKey(1) & 0xff == 27:
             break
     if not frames:
