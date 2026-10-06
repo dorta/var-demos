@@ -49,35 +49,58 @@ Both buildings clips are available in 720p and 1080p; 720p is the default.
 
 ## Performance
 
+The same four scenarios are listed for every SoM:
+
+- **Measured:** a recorded run with FPS and inference timing.
+- **Functional:** opened and processed frames; timing is not reported here.
+- **—:** no recorded measurement, not a failed or unsupported demo.
+
+**FPS** is the processed frame rate. **Inference** is model execution time
+only; it excludes capture, decoding and drawing. Video resolution describes
+the source, not the resized image passed to the model.
+
 ### i.MX 8M Plus
 
-| Demo | Input | Test | FPS | Inference |
-| --- | --- | --- | ---: | ---: |
-| SSD camera detection | 720×480 | 10 min | 15.76 | 9.00 ms |
+VX NPU · MobileNet V1 classification · SSD MobileNet V1 detection.
+
+| Scenario | Source | Validation | Duration | FPS | Inference |
+| --- | --- | --- | --- | ---: | ---: |
+| Camera classification | Camera | Functional | — | — | — |
+| Camera detection | 720×480 | Measured | 10 min | 15.76 | 9.00 ms |
+| 720p video detection | 720p H.264 | Functional | — | — | — |
+| 1080p video detection | 1080p H.264 | Functional | — | — | — |
 
 ### VAR-SOM-MX93
 
-| Demo | Input | Test | FPS | Inference |
-| --- | --- | --- | ---: | ---: |
-| MobileNet camera classification | 640×480 | 60 s | 29.98 | 4.12 ms |
-| SSD camera detection | 640×480 | 60 s | 29.97 | 8.64 ms |
-| SSD video detection | 720p MJPEG | 12 s | 18.51 | 9.16 ms |
-| SSD video detection | 1080p MJPEG | 12 s | 11.28 | 9.03 ms |
+Ethos-U65 NPU · MobileNet V1 classification · SSD MobileNet V1 detection.
+
+| Scenario | Source | Validation | Duration | FPS | Inference |
+| --- | --- | --- | --- | ---: | ---: |
+| Camera classification | 640×480 | Measured | 60 s | 29.98 | 4.12 ms |
+| Camera detection | 640×480 | Measured | 60 s | 29.97 | 8.64 ms |
+| 720p video detection | 720p MJPEG | Measured | 12 s | 18.51 | 9.16 ms |
+| 1080p video detection | 1080p MJPEG | Measured | 12 s | 11.28 | 9.03 ms |
+
+MJPEG is decoded on the CPU; this BSP has no H.264 decoder.
 
 ### DART-MX95
 
-| Demo | Input | Test | FPS | Inference |
-| --- | --- | --- | ---: | ---: |
-| MobileNet camera classification | 1280×720 | 10 s | 5.9 | 1.4 ms |
-| SSD-Lite camera detection | 1280×720 | 12 s | 5.83 | 3.72 ms |
-| SSD-Lite video detection | 1080p H.264 | 30 s | 1.33 | 3.67 ms |
+Neutron NPU · MobileNet V1 classification · SSD-Lite V2 detection.
+
+| Scenario | Source | Validation | Duration | FPS | Inference |
+| --- | --- | --- | --- | ---: | ---: |
+| Camera classification | 1280×720 | Measured | 10 s | 5.90 | 1.40 ms |
+| Camera detection | 1280×720 | Measured | 12 s | 5.83 | 3.72 ms |
+| 720p video detection | 720p H.264 | Functional | — | — | — |
+| 1080p video detection | 1080p H.264 | Measured | 30 s | 1.33 | 3.67 ms |
 
 The Full HD run reached 81.92 °C and paused to cool. Its FPS includes that
 pause; camera throughput is currently limited by capture.
 
-Inference times exclude capture, decoding and drawing. Models, encodings
-and test durations differ; these results are not a board ranking or a
-multi-hour stability guarantee. Adequate cooling is required.
+These are existing validation results, not one standardized benchmark.
+Different camera resolutions, models, codecs, durations and temperatures
+prevent a fair speed ranking. Uniform-duration comparative measurements
+are still pending; multi-hour stability is not certified.
 
 [Camera and video details](ai-ml-demos/camera-vision/) ·
 [Model conversion](CONVERTING_MODELS.md)

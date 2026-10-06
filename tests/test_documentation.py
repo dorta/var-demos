@@ -40,6 +40,25 @@ class DocumentationTests(unittest.TestCase):
         for board in ('i.MX 8M Plus', 'VAR-SOM-MX93', 'DART-MX95'):
             self.assertIn('### ' + board, text)
 
+    def test_performance_tables_have_identical_scenarios_and_columns(self):
+        text = (ROOT / 'README.md').read_text()
+        performance = text.split('## Performance\n', 1)[1]
+        expected = ['Camera classification', 'Camera detection',
+                    '720p video detection', '1080p video detection']
+        for section in performance.split('### ')[1:]:
+            rows = [line for line in section.splitlines()
+                    if line.startswith('|')]
+            self.assertEqual(rows[0], '| Scenario | Source | Validation | '
+                             'Duration | FPS | Inference |')
+            self.assertEqual([row.split('|')[1].strip() for row in rows[2:]],
+                             expected)
+            for row in rows[2:]:
+                cells = [cell.strip() for cell in row.split('|')[1:-1]]
+                self.assertIn(cells[2], ('Measured', 'Functional'))
+                if cells[2] == 'Functional':
+                    self.assertEqual(cells[3:], ['—', '—', '—'])
+        self.assertIn('not one standardized benchmark', performance)
+
 
 if __name__ == '__main__':
     unittest.main()
