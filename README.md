@@ -182,13 +182,13 @@ produces category scores, not object boxes. For video and camera, this flow
 is repeated for each processed frame.
 
 ```mermaid
-flowchart LR
-    I["Image, decoded video frame or camera frame"]
-    I --> P["CPU: resize to 224 x 224, convert to RGB UINT8"]
-    P --> N["MobileNet V1: execute through the board's NPU delegate"]
-    N --> S["CPU: interpret output scores using their quantization parameters"]
-    S --> L["CPU: rank scores and map indices to matching labels"]
-    L --> O["Fullscreen image with categories and timing overlay"]
+flowchart TD
+    I["Image / Video Frame / Camera Frame"]
+    I --> P["CPU: Resize to 224 x 224<br/>RGB, UINT8"]
+    P --> N["NPU: MobileNet V1<br/>VIP8000 / Ethos-U65 / Neutron"]
+    N --> S["CPU: Interpret Category Scores<br/>Apply Output Quantization Parameters"]
+    S --> L["CPU: Rank Categories<br/>Match Scores to Labels"]
+    L --> O["Fullscreen Display<br/>Categories and Timing Overlay"]
 ```
 
 MPlus/MX93 classifiers return quantized UINT8 scores; MX95 returns FLOAT32
