@@ -5,6 +5,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 import selectors
 import shutil
@@ -15,6 +16,38 @@ import tempfile
 from time import monotonic
 
 PREFIX = 'VAR_INSTALL_EVENT '
+
+
+def asset_name(path):
+    """Display the same content name regardless of its board-specific container."""
+    name = Path(path).name
+    video = re.fullmatch(r'(buildings_458687|buildings_458688|chicago|video)_(1280x720|1280x800|1920x1080)\.(mp4|avi)', name)
+    if video:
+        clip, size, _ = video.groups()
+        title = {'buildings_458687': 'High-rise buildings A',
+                 'buildings_458688': 'High-rise buildings B',
+                 'chicago': 'Chicago traffic', 'video': 'Jijiga street'}[clip]
+        resolution = {'1280x720': '720p', '1280x800': '1280 x 800',
+                      '1920x1080': '1080p'}[size]
+        return f'{title} - {resolution}'
+    if name.endswith('.tflite'):
+        if name.startswith('mobilenet'):
+            return 'MobileNet V1 classification model'
+        if name.startswith('ssd'):
+            return ('SSD-Lite V2 detection model' if 'neutron' in name
+                    else 'SSD MobileNet V1 detection model')
+        return {'palm.tflite': 'Hand palm detection model',
+                'landmark.tflite': 'Hand landmark model'}.get(name, name)
+    if 'labels' in name:
+        return ('Classification labels' if 'mobilenet' in name or
+                name in ('classification-labels.txt', 'labels.txt')
+                else 'Object detection labels')
+    return {'classification-image.jpg': 'Classification sample image',
+            'detection-image.png': 'Object detection sample image',
+            'hand.bmp': 'Hand gesture sample image',
+            'LICENSE': 'Model license', 'anchors.csv': 'Hand model anchors',
+            'box-priors.txt': 'Object detection anchors'}.get(
+                name, Path(name).stem.replace('_', ' ').replace('-', ' '))
 
 
 def event(message, *, done=False, **fields):
@@ -40,6 +73,9 @@ class Dashboard:
 
     def accept(self, data):
         self.message = data.get('message', self.message)
+        match = re.fullmatch(r'(Verifying|Verified|Installing|Installed) (\S+/\S+)', self.message)
+        if match:
+            self.message = f'{match[1]} {asset_name(data.get("asset_path") or match[2])}'
         for key in ('board', 'total', 'asset_total', 'demos', 'download'):
             if key in data:
                 setattr(self, key, data[key])

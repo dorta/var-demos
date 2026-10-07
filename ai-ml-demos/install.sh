@@ -27,8 +27,9 @@ progress() {
     [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || return 0
     python3 -c 'import json,sys; print("VAR_INSTALL_EVENT " + json.dumps({
         "message":sys.argv[1], "done":sys.argv[2]=="1",
-        "asset":sys.argv[3]=="1", "download":sys.argv[4] or None}), flush=True)' \
-        "$1" "${2:-0}" "${3:-0}" "${4:-}"
+        "asset":sys.argv[3]=="1", "download":sys.argv[4] or None,
+        "asset_path":sys.argv[5] or None}), flush=True)' \
+        "$1" "${2:-0}" "${3:-0}" "${4:-}" "${5:-}"
 }
 
 usage() {
@@ -295,9 +296,9 @@ install_asset() {
     destination="${INSTALL_ROOT}/${demo}/${relative_path}"
     cache_file="${WORK_DIR}/assets/${expected}"
     if [ "${PREFETCH_ONLY}" -eq 1 ]; then
-        progress "Verifying ${relative_path}" 0 0 "${cache_file}.part"
+        progress "Verifying ${relative_path}" 0 0 "${cache_file}.part" "${remote_path}"
     else
-        progress "Installing ${relative_path}"
+        progress "Installing ${relative_path}" 0 0 "" "${remote_path}"
     fi
     if [ ! -f "${cache_file}" ]; then
         if [ -f "${destination}" ] && \
@@ -317,12 +318,12 @@ install_asset() {
     fi
 
     if [ "${PREFETCH_ONLY:-0}" -eq 1 ]; then
-        progress "Verified ${relative_path}" 1 1
+        progress "Verified ${relative_path}" 1 1 "" "${remote_path}"
         return 0
     fi
     install -d "$(dirname -- "${destination}")"
     install -m 0644 "${cache_file}" "${destination}"
-    progress "Installed ${relative_path}" 1
+    progress "Installed ${relative_path}" 1 0 "" "${remote_path}"
 }
 
 prepare_demo_assets() {

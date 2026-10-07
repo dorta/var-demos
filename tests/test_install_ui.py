@@ -22,6 +22,28 @@ class Terminal(io.StringIO):
 
 
 class InstallUITests(unittest.TestCase):
+    def test_video_names_match_across_containers_and_stages(self):
+        ui = Dashboard(io.StringIO())
+        for stage in ('Verifying', 'Verified', 'Installing', 'Installed'):
+            for extension in ('mp4', 'avi'):
+                ui.accept(dict(message=f'{stage} assets/videos/buildings_458687_1280x720.{extension}'))
+                self.assertEqual(ui.message, f'{stage} High-rise buildings A - 720p')
+        self.assertEqual(install_ui.asset_name('media/video_1280x800.mp4'),
+                         'Jijiga street - 1280 x 800')
+        self.assertEqual(install_ui.asset_name('media/buildings_458688_1920x1080.avi'),
+                         'High-rise buildings B - 1080p')
+
+    def test_remote_identity_is_used_for_generic_local_alias(self):
+        ui = Dashboard(io.StringIO())
+        ui.accept(dict(message='Installing media/video.mp4',
+                       asset_path='media/buildings_458687_1280x720.mp4'))
+        self.assertEqual(ui.message, 'Installing High-rise buildings A - 720p')
+        ui.accept(dict(message='Verifying model/ssd_neutron.tflite'))
+        self.assertEqual(ui.message, 'Verifying SSD-Lite V2 detection model')
+        ui.accept(dict(message='Installing media/image.jpg',
+                       asset_path='media/classification-image.jpg'))
+        self.assertEqual(ui.message, 'Installing Classification sample image')
+
     def test_progress_is_counted_not_invented_and_success_requires_exit(self):
         ui = Dashboard(io.StringIO())
         ui.accept(dict(message='Plan', total=4, asset_total=2, demos=3))
