@@ -244,17 +244,21 @@ def prepare_launch(catalog, launcher, video=None):
         raise RuntimeError(f"demo is not installed: {demo['id']}")
     command = command_for(launcher)
     if video is not None:
-        video_demo = find_demo(catalog, launcher.get('video_demo', launcher['demo']))
+        video_demo = find_demo(catalog, video.get('demo',
+            launcher.get('video_demo', launcher['demo'])))
         video_path = ROOT / video_demo['path'] / video['path']
         if not video_path.is_file():
             raise RuntimeError(f"video is not installed: {video['title']}")
-        command.extend(['--video', str(video_path)])
+        if launcher.get('video_argument') == 'positional':
+            command.append(str(video_path))
+        else:
+            command.extend(['--video', str(video_path)])
         if '--combination' in command:
             index = command.index('--combination') + 1
             command[index] = str(video['combination'])
 
     if video is not None:
-        launcher = dict(launcher, title=video['title'])
+        launcher = dict(launcher, title=video.get('run_title', video['title']))
     return launcher, command, directory
 
 
@@ -360,7 +364,7 @@ def interactive(catalog, platform, launchers):
                     continue
                 launcher = with_camera_resolution(launcher, choices[int(choice)-1])
             if launcher.get('select_video'):
-                video = select_video(catalog, launcher.get('video_demo', launcher['demo']))
+                video = select_video(catalog, launcher_video_demo(launcher, platform))
                 if video is None:
                     continue
             result = run_launcher(catalog, launcher, video=video)
@@ -374,20 +378,35 @@ def interactive(catalog, platform, launchers):
             print()
 
 
-def select_video(catalog, demo_id):
-    videos = [
-        video for video in catalog.get('videos', [])
-        if video['demo'] == demo_id
-    ]
-    if not videos:
-        raise RuntimeError('no videos are configured for this demo')
+def launcher_video_demo(launcher, platform):
+    return launcher.get('video_demo_by_platform', {}).get(platform,
+        launcher.get('video_demo', launcher['demo']))
+
+
+def video_resolutions(catalog, demo_id):
+    available = {item.get('resolution') for item in catalog.get('videos', [])
+                 if item['demo'] == demo_id}
+    return [dict(id=key, title=title) for key, title in (
+        ('720p', 'HD - 720p (1280 x 720)'),
+        ('1080p', 'Full HD - 1080p (1920 x 1080)')) if key in available]
+
+
+def video_choices(catalog, demo_id, resolution):
+    return [dict(item, title=item.get('clip_title', item['title']),
+                 menu_title=item.get('clip_title', item['title']),
+                 run_title=item['title'])
+            for item in catalog.get('videos', [])
+            if item['demo'] == demo_id and item.get('resolution') == resolution]
+
+
+def select_plain(title, items):
     while True:
-        print('\nChoose a video:')
-        for index, video in enumerate(videos, start=1):
-            print(f"  {index}. {video['title']}")
+        print('\n' + title + ':')
+        for index, item in enumerate(items, start=1):
+            print(f"  {index}. {item.get('menu_title', item['title'])}")
         print('  b. Back')
         try:
-            choice = input('Video: ').strip().lower()
+            choice = input('Choice: ').strip().lower()
         except (EOFError, KeyboardInterrupt):
             print()
             return None
@@ -395,10 +414,24 @@ def select_video(catalog, demo_id):
             return None
         try:
             index = int(choice) - 1
-            if 0 <= index < len(videos):
-                return videos[index]
+            if 0 <= index < len(items):
+                return items[index]
         except ValueError:
             pass
+
+
+def select_video(catalog, demo_id):
+    resolutions = video_resolutions(catalog, demo_id)
+    if not resolutions:
+        raise RuntimeError('no videos are configured for this demo')
+    while True:
+        resolution = select_plain('Choose Video Quality', resolutions)
+        if resolution is None:
+            return None
+        video = select_plain('Choose a Freepik Video',
+                             video_choices(catalog, demo_id, resolution['id']))
+        if video is not None:
+            return video
 
 
 def main():

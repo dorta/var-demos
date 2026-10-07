@@ -38,6 +38,9 @@ platforms = ["imx8mplus", "imx95"]
 
 [[launchers]]
 id = "video-player"
+select_video = true
+video_argument = "positional"
+video_demo_by_platform = {imx8mplus = "ai-ml/high-resolution-video-detection", imx93 = "ai-ml/vision-imx93", imx95 = "ai-ml/vision-imx95"}
 title = "Video player"
 description = "Open a movie; play, pause, stop, seek and adjust volume"
 group = "multimedia"

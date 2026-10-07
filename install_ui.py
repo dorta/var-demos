@@ -24,8 +24,8 @@ def asset_name(path):
     video = re.fullmatch(r'(buildings_458687|buildings_458688|chicago|video)_(1280x720|1280x800|1920x1080)\.(mp4|avi)', name)
     if video:
         clip, size, _ = video.groups()
-        title = {'buildings_458687': 'High-rise buildings A',
-                 'buildings_458688': 'High-rise buildings B',
+        title = {'buildings_458687': 'Buildings A',
+                 'buildings_458688': 'Buildings B',
                  'chicago': 'Chicago traffic', 'video': 'Jijiga street'}[clip]
         resolution = {'1280x720': '720p', '1280x800': '1280 x 800',
                       '1920x1080': '1080p'}[size]

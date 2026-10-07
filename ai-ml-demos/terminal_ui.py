@@ -319,9 +319,17 @@ class TerminalUI:
                         continue
                     launcher = self.api.with_camera_resolution(launcher, resolution)
                 if launcher.get('select_video'):
-                    videos = [item for item in self.catalog.get('videos', [])
-                              if item['demo'] == launcher.get('video_demo', launcher['demo'])]
-                    video = self.choose('Choose a video', videos)
+                    demo_id = self.api.launcher_video_demo(launcher, self.platform)
+                    while True:
+                        resolution = self.choose('Choose Video Quality',
+                            self.api.video_resolutions(self.catalog, demo_id))
+                        if resolution is None:
+                            break
+                        video = self.choose('Choose a Freepik Video',
+                            self.api.video_choices(self.catalog, demo_id,
+                                                   resolution['id']))
+                        if video is not None:
+                            break
                     if video is None:
                         continue
                 self.run(launcher, video)

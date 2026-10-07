@@ -80,6 +80,10 @@ def load_suite():
         for video in ai.get('videos', []):
             video['demo'] = 'ai-ml/' + video['demo']
         catalog['videos'] = ai.get('videos', [])
+    if not catalog.get('videos'):
+        for launcher in catalog['launchers']:
+            if launcher.get('video_demo_by_platform'):
+                launcher.pop('select_video', None)
     add_external_demos(catalog)
     return catalog
 

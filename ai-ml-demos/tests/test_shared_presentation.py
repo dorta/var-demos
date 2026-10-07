@@ -39,7 +39,7 @@ class SharedPresentationTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         for demo_id in ['high-resolution-video-detection', 'vision-imx93', 'vision-imx95']:
             videos = [x for x in catalog['videos'] if x['demo'] == demo_id]
-            self.assertEqual(len(videos), 8)
+            self.assertEqual(len(videos), 4)
             titles.append([x['title'] for x in videos])
             demo = manager.find_demo(catalog, demo_id)
             assets = (root / demo['path'] / demo['manifest']).read_text()

@@ -19,9 +19,13 @@ The shared menu starts with classification (image, video, camera), followed
 by detection (image, video, camera). Sample image predictions stay visible
 until Esc. All views use the shared MPlus-style panels and fullscreen.
 
-Both High-rise buildings clips are installed in 720p and 1080p at 25 FPS.
+Only the two user-provided Freepik Buildings clips are installed as video
+choices, in 720p and 1080p at 25 FPS.
 Clip A lasts 34.08 seconds; clip B lasts 31.80 seconds. Select a video
-before starting classification or detection; 720p is the first choice.
+before starting classification or detection: choose HD (720p) or Full HD
+(1080p), then Buildings A or Buildings B. The player uses the same choices.
+Chicago and Jijiga examples are no longer offered or downloaded. Updates
+remove only their known, unchanged suite files, preserving modified files.
 MX93 decodes MJPEG AVI on the CPU. MX95 decodes H.264 MP4 with the hardware
 decoder and uses EGL for color conversion. MJPEG copies preserve resolution,
 frame rate and duration, but change the encoding and are much larger.
@@ -75,3 +79,4 @@ requires cooling. Short validation does not guarantee multi-hour stability.
 
 See the [board comparison](../../README.md) and
 [model conversion guide](../../CONVERTING_MODELS.md) for measured results.
+Clip provenance and formats are listed in [Video Sources](../VIDEO_SOURCES.md).

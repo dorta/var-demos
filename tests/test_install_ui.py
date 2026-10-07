@@ -32,8 +32,8 @@ class InstallUITests(unittest.TestCase):
                 self.assertLessEqual(len(ui.recent_assets), 3)
                 self.assertEqual(len(ui.content()), 14)
         rows = ui.content()[-3:]
-        self.assertNotIn('High-rise buildings A', '\n'.join(rows))
-        self.assertIn('High-rise buildings B', rows[0])
+        self.assertNotIn('Buildings A', '\n'.join(rows))
+        self.assertIn('Buildings B', rows[0])
         self.assertIn('Chicago traffic', rows[1])
         self.assertIn('Jijiga street - 1080p', rows[2])
         self.assertTrue(all(row.startswith('OK ') for row in rows))
@@ -57,17 +57,17 @@ class InstallUITests(unittest.TestCase):
         for stage in ('Verifying', 'Verified', 'Installing', 'Installed'):
             for extension in ('mp4', 'avi'):
                 ui.accept(dict(message=f'{stage} assets/videos/buildings_458687_1280x720.{extension}'))
-                self.assertEqual(ui.message, f'{stage} High-rise buildings A - 720p')
+                self.assertEqual(ui.message, f'{stage} Buildings A - 720p')
         self.assertEqual(install_ui.asset_name('media/video_1280x800.mp4'),
                          'Jijiga street - 1280 x 800')
         self.assertEqual(install_ui.asset_name('media/buildings_458688_1920x1080.avi'),
-                         'High-rise buildings B - 1080p')
+                         'Buildings B - 1080p')
 
     def test_remote_identity_is_used_for_generic_local_alias(self):
         ui = Dashboard(io.StringIO())
         ui.accept(dict(message='Installing media/video.mp4',
                        asset_path='media/buildings_458687_1280x720.mp4'))
-        self.assertEqual(ui.message, 'Installing High-rise buildings A - 720p')
+        self.assertEqual(ui.message, 'Installing Buildings A - 720p')
         ui.accept(dict(message='Verifying model/ssd_neutron.tflite'))
         self.assertEqual(ui.message, 'Verifying SSD-Lite V2 detection model')
         ui.accept(dict(message='Installing media/image.jpg',
@@ -143,7 +143,7 @@ class InstallUITests(unittest.TestCase):
             self.assertEqual(plan['asset_total'], entries + 2)
             self.assertEqual(plan['total'], len(groups) + entries * 2 +
                              len(demos) + 2 + len(groups) - 1 + 1)
-            self.assertEqual(plan['demos'], 10 if board == 'imx8mplus' else
+            self.assertEqual(plan['demos'], 9 if board == 'imx8mplus' else
                              7 if board == 'imx93' else 8)
 
     def test_cancel_stops_owned_worker_and_restores_cursor(self):

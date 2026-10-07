@@ -1,7 +1,9 @@
 # Multimedia demos
 
 Use the [root installer](../README.md), then launch the video player from
-the **Multimedia** category in `var-demos`.
+the **Multimedia** category in `var-demos`. Choose HD (720p) or Full HD
+(1080p), then Buildings A or Buildings B, the same Freepik clips offered
+by the AI demos on all three SoMs.
 
 Open a local movie. Use Play/Pause, Stop, the seek bar and volume slider.
 Space toggles playback; S stops; F toggles fullscreen; Esc exits.
@@ -12,9 +14,9 @@ GTK preserves the
 display aspect ratio. This is not a zero-copy or native-resolution renderer.
 Fullscreen state follows the compositor; the button shows the next action.
 The header uses the Variscite logo, downloaded and SHA-256 verified by the
-installer. High-rise buildings A in 720p is installed as the default.
+installer. Buildings A in 720p is installed as the standalone default.
 Open selects a local movie. The AI/ML video selector also includes both
-High-rise clips in 720p and 1080p, downloaded by the same installer.
+Buildings clips in 720p and 1080p, downloaded by the same installer.
 MX93 uses MJPEG AVI copies because the tested image lacks an H.264 decoder.
 MX95's H.264 decoder explicitly uses MMAP buffers before EGL conversion;
 the automatic DMA_DRM import path returned stale/future image content on

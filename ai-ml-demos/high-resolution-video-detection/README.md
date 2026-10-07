@@ -8,16 +8,16 @@ model or a claim of improved model accuracy.
 ## Run
 
 Use the [root installer](../../README.md), then run `var-demos`.
-Choose **AI / ML → Detect objects in a high-resolution video**, then a sample:
+Choose **AI / ML → Detect objects in a video with VIP8000**, then the quality
+and clip. The separate HD entry has been merged into this common menu.
 
-- High-rise buildings A and B: 1280×720 or 1920×1080; 720p is the default.
-- Chicago traffic: 1280×720.
-- Jijiga street: 1280×720, 1280×800 or 1920×1080.
+- HD: 720p, 1280×720.
+- Full HD: 1080p, 1920×1080.
+- Buildings A: 34 seconds; Buildings B: 32 seconds.
 
 Samples are downloaded from DigitalOcean Spaces and checked with SHA-256.
-The original `combined_videos` LFS objects have not been recovered; these
-are replacement samples, not the original compilations.
-Jijiga variants come from [Brian Dell's CC0 footage](https://commons.wikimedia.org/wiki/File:Jijiga.ogv).
+Only the two user-provided Freepik Buildings clips are offered. Chicago and
+Jijiga are retired; their unmodified suite-installed files are removed on update.
 
 Press Esc to stop. The display preserves aspect ratio, with bars when needed.
 Text and detection labels use display pixels, not source-video pixels:

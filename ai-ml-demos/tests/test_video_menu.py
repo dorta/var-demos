@@ -18,23 +18,70 @@ class VideoMenuTests(unittest.TestCase):
         self.catalog = manager.load_catalog()
         self.launcher = next(
             item for item in self.catalog['launchers']
-            if item['id'] == 'detection-hd-video'
+            if item['id'] == 'detection-video'
         )
 
     def test_invalid_choices_do_not_select_a_video(self):
-        with patch('builtins.input', side_effect=['0', '-1', 'oops', '1']):
+        with patch('builtins.input', side_effect=['0', '-1', 'oops', '1', '1']):
             with patch('builtins.print'):
                 video = manager.select_video(
-                    self.catalog, self.launcher['demo']
+                    self.catalog, self.launcher['video_demo']
                 )
-        self.assertIn('High-rise buildings A', video['title'])
+        self.assertIn('Buildings A', video['title'])
 
     def test_back_does_not_launch_a_video(self):
         with patch('builtins.input', return_value='b'):
             with patch('builtins.print'):
                 self.assertIsNone(manager.select_video(
-                    self.catalog, self.launcher['demo']
+                    self.catalog, self.launcher['video_demo']
                 ))
+
+    def test_clip_back_returns_to_quality_and_full_hd_choice_is_correct(self):
+        with patch('builtins.input', side_effect=['1', 'b', '2', '2']), \
+                patch('builtins.print'):
+            video = manager.select_video(self.catalog, self.launcher['video_demo'])
+        self.assertEqual(video['resolution'], '1080p')
+        self.assertIn('458688_1920x1080', video['path'])
+        self.assertEqual(video['title'], 'Buildings B - 32 seconds (Freepik)')
+        self.assertIn('Full HD', video['run_title'])
+
+    def test_only_two_clips_per_quality_on_all_three_boards(self):
+        for demo in ('high-resolution-video-detection', 'vision-imx93', 'vision-imx95'):
+            qualities = manager.video_resolutions(self.catalog, demo)
+            self.assertEqual([item['id'] for item in qualities], ['720p', '1080p'])
+            for quality in qualities:
+                videos = manager.video_choices(self.catalog, demo, quality['id'])
+                self.assertEqual(len(videos), 2)
+                self.assertTrue(all('Freepik' in item['title'] for item in videos))
+                self.assertIn('458687', videos[0]['path'])
+                self.assertIn('458688', videos[1]['path'])
+
+    def test_player_uses_positional_movie_argument(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'multimedia').mkdir()
+            movie = root / 'camera/assets/buildings.mp4'
+            movie.parent.mkdir(parents=True)
+            movie.touch()
+            catalog = {'demos': [dict(id='multimedia', path='multimedia'),
+                                 dict(id='vision', path='camera')]}
+            launcher = dict(demo='multimedia', title='Player',
+                            command=['python3', 'player.py'], video_argument='positional')
+            video = dict(demo='vision', path='assets/buildings.mp4',
+                         title='Buildings A')
+            with patch.object(manager, 'ROOT', root):
+                _, command, _ = manager.prepare_launch(catalog, launcher, video)
+            self.assertEqual(command, ['python3', 'player.py', str(movie)])
+
+    def test_player_selects_the_right_video_catalog_for_each_som(self):
+        import tomllib
+        with (ROOT.parent / 'catalog.toml').open('rb') as file:
+            suite = tomllib.load(file)
+        player = next(item for item in suite['launchers'] if item['id'] == 'video-player')
+        self.assertTrue(player['select_video'])
+        for board, demo in [('imx8mplus', 'high-resolution-video-detection'),
+                            ('imx93', 'vision-imx93'), ('imx95', 'vision-imx95')]:
+            self.assertEqual(manager.launcher_video_demo(player, board), 'ai-ml/' + demo)
 
     def test_both_buildings_clips_have_hd_and_full_hd_on_each_board(self):
         manifests = {
@@ -60,10 +107,11 @@ class VideoMenuTests(unittest.TestCase):
 
     def test_selected_video_controls_input_and_resolution(self):
         video = [item for item in self.catalog['videos']
-                 if item['demo'] == self.launcher['demo']][-1]
+                 if item['demo'] == self.launcher['video_demo']][-1]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            path = root / self.launcher['demo'] / video['path']
+            (root / self.launcher['demo']).mkdir()
+            path = root / self.launcher['video_demo'] / video['path']
             path.parent.mkdir(parents=True)
             path.touch()
             with patch.object(manager, 'ROOT', root):
@@ -74,9 +122,7 @@ class VideoMenuTests(unittest.TestCase):
                     )
             command = run.call_args.args[0]
             self.assertEqual(command[-2:], ['--video', str(path)])
-            self.assertEqual(
-                command[command.index('--combination') + 1], '14'
-            )
+            self.assertEqual(video['resolution'], '1080p')
 
 
 if __name__ == '__main__':

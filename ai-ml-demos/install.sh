@@ -502,6 +502,10 @@ else
         "${INSTALL_ROOT}/vision_overlay.py"
     install -m 0644 "${SOURCE_ROOT}/terminal_ui.py" \
         "${INSTALL_ROOT}/terminal_ui.py"
+    install -m 0644 "${SOURCE_ROOT}/retired_assets.py" \
+        "${INSTALL_ROOT}/retired_assets.py"
+    install -m 0644 "${SOURCE_ROOT}/retired-assets.manifest" \
+        "${INSTALL_ROOT}/retired-assets.manifest"
 fi
 selected_demos | while read -r demo; do
     install_demo "${demo}"
@@ -515,6 +519,9 @@ if [ "${NO_LAUNCHER}" -eq 0 ]; then
     ln -sfn "${INSTALL_ROOT}/manager.py" "${BIN_DIR}/var-ai"
 fi
 touch "${INSTALL_ROOT}/.var-ai-installed"
+progress "Removing retired sample videos"
+python3 "${SOURCE_ROOT}/retired_assets.py" "${INSTALL_ROOT}" \
+    "${SOURCE_ROOT}/retired-assets.manifest"
 
 echo
 echo "Installation complete: ${INSTALL_ROOT}"

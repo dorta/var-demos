@@ -1,7 +1,7 @@
 version = 1
 
 [platforms.imx8mplus]
-camera_resolutions = [{title = "SD 720x480 (default)", value = "720x480"}, {title = "VGA 640x480", value = "640x480"}, {title = "HD 1280x720", value = "1280x720"}, {title = "Full HD 1920x1080", value = "1920x1080"}]
+camera_resolutions = [{title = "SD - 720 x 480 (default)", value = "720x480"}, {title = "VGA - 640 x 480", value = "640x480"}, {title = "HD - 720p (1280 x 720)", value = "1280x720"}, {title = "Full HD - 1080p (1920 x 1080)", value = "1920x1080"}]
 name = "i.MX 8M Plus"
 compatible = ["fsl,imx8mp"]
 status = "validated"
@@ -10,7 +10,7 @@ delegate_path = "/usr/lib/libvx_delegate.so"
 runtime_plugins = "appsink decodebin imxvideoconvert_g2d"
 
 [platforms.imx93]
-camera_resolutions = [{title = "VGA 640x480 (default)", value = "640x480"}, {title = "HD 1280x720", value = "1280x720"}, {title = "Full HD 1920x1080", value = "1920x1080"}]
+camera_resolutions = [{title = "VGA - 640 x 480 (default)", value = "640x480"}, {title = "HD - 720p (1280 x 720)", value = "1280x720"}, {title = "Full HD - 1080p (1920 x 1080)", value = "1920x1080"}]
 name = "i.MX 93"
 compatible = ["fsl,imx93"]
 status = "validated"
@@ -19,7 +19,7 @@ delegate_path = "/usr/lib/libethosu_delegate.so"
 runtime_plugins = "appsink v4l2src videoconvert avidemux jpegdec imxvideoconvert_pxp"
 
 [platforms.imx95]
-camera_resolutions = [{title = "HD 1280x720 (default)", value = "1280x720"}, {title = "VGA 640x480", value = "640x480"}, {title = "Full HD 1920x1080", value = "1920x1080"}]
+camera_resolutions = [{title = "HD - 720p (1280 x 720, default)", value = "1280x720"}, {title = "VGA - 640 x 480", value = "640x480"}, {title = "Full HD - 1080p (1920 x 1080)", value = "1920x1080"}]
 name = "i.MX 95"
 compatible = ["fsl,imx95"]
 status = "validated"
@@ -249,141 +249,102 @@ description = "locate and label objects from the live camera"
 demo = "detection"
 command = ["python3", "realtime_detection.py", "--camera", "{camera}"]
 
-[[launchers]]
-id = "detection-hd-video"
-startup_progress = true
-select_video = true
-title = "Detect objects in an HD video with VIP8000"
-category = "HIGH-RESOLUTION DETECTION"
-menu_title = "HD video"
-description = "choose footage and resolution before running detection"
-demo = "high-resolution-video-detection"
-command = ["python3", "high-resolution-video-detection.py", "--combination", "2"]
-
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "High-rise buildings A - HD 1280x720, 34 seconds"
+title = "Buildings A - HD 720p, 34 seconds"
+clip_title = "Buildings A - 34 seconds (Freepik)"
+resolution = "720p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458687_1280x720.mp4"
 combination = 2
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "High-rise buildings B - HD 1280x720, 32 seconds"
+title = "Buildings B - HD 720p, 32 seconds"
+clip_title = "Buildings B - 32 seconds (Freepik)"
+resolution = "720p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458688_1280x720.mp4"
 combination = 2
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "Chicago traffic - HD 1280x720, 17 seconds"
-path = "assets/videos/chicago_1280x720.mp4"
-combination = 2
-
-[[videos]]
-demo = "high-resolution-video-detection"
-title = "High-rise buildings A - Full HD 1920x1080, 34 seconds"
+title = "Buildings A - Full HD 1080p, 34 seconds"
+clip_title = "Buildings A - 34 seconds (Freepik)"
+resolution = "1080p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458687_1920x1080.mp4"
 combination = 14
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
+title = "Buildings B - Full HD 1080p, 32 seconds"
+clip_title = "Buildings B - 32 seconds (Freepik)"
+resolution = "1080p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458688_1920x1080.mp4"
 combination = 14
 
 [[videos]]
-demo = "high-resolution-video-detection"
-title = "Jijiga street - HD 1280x720, 11 seconds"
-path = "assets/videos/video_1280x720.mp4"
-combination = 2
-
-[[videos]]
-demo = "high-resolution-video-detection"
-title = "Jijiga street - 1280x800, 11 seconds"
-path = "assets/videos/video_1280x800.mp4"
-combination = 8
-
-[[videos]]
-demo = "high-resolution-video-detection"
-title = "Jijiga street - Full HD 1920x1080, 11 seconds"
-path = "assets/videos/video_1920x1080.mp4"
-combination = 14
-
-[[videos]]
 demo = "vision-imx93"
-title = "High-rise buildings A - HD 1280x720, 34 seconds"
+title = "Buildings A - HD 720p, 34 seconds"
+clip_title = "Buildings A - 34 seconds (Freepik)"
+resolution = "720p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458687_1280x720.avi"
 
 [[videos]]
 demo = "vision-imx93"
-title = "High-rise buildings B - HD 1280x720, 32 seconds"
+title = "Buildings B - HD 720p, 32 seconds"
+clip_title = "Buildings B - 32 seconds (Freepik)"
+resolution = "720p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458688_1280x720.avi"
 
 [[videos]]
 demo = "vision-imx93"
-title = "Chicago traffic - HD 1280x720, 17 seconds"
-path = "assets/videos/chicago_1280x720.avi"
-
-[[videos]]
-demo = "vision-imx93"
-title = "High-rise buildings A - Full HD 1920x1080, 34 seconds"
+title = "Buildings A - Full HD 1080p, 34 seconds"
+clip_title = "Buildings A - 34 seconds (Freepik)"
+resolution = "1080p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458687_1920x1080.avi"
 
 [[videos]]
 demo = "vision-imx93"
-title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
+title = "Buildings B - Full HD 1080p, 32 seconds"
+clip_title = "Buildings B - 32 seconds (Freepik)"
+resolution = "1080p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458688_1920x1080.avi"
 
 [[videos]]
-demo = "vision-imx93"
-title = "Jijiga street - HD 1280x720, 11 seconds"
-path = "assets/videos/video_1280x720.avi"
-
-[[videos]]
-demo = "vision-imx93"
-title = "Jijiga street - 1280x800, 11 seconds"
-path = "assets/videos/video_1280x800.avi"
-
-[[videos]]
-demo = "vision-imx93"
-title = "Jijiga street - Full HD 1920x1080, 11 seconds"
-path = "assets/videos/video_1920x1080.avi"
-
-[[videos]]
 demo = "vision-imx95"
-title = "High-rise buildings A - HD 1280x720, 34 seconds"
+title = "Buildings A - HD 720p, 34 seconds"
+clip_title = "Buildings A - 34 seconds (Freepik)"
+resolution = "720p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458687_1280x720.mp4"
 
 [[videos]]
 demo = "vision-imx95"
-title = "High-rise buildings B - HD 1280x720, 32 seconds"
+title = "Buildings B - HD 720p, 32 seconds"
+clip_title = "Buildings B - 32 seconds (Freepik)"
+resolution = "720p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458688_1280x720.mp4"
 
 [[videos]]
 demo = "vision-imx95"
-title = "Chicago traffic - HD 1280x720, 17 seconds"
-path = "assets/videos/chicago_1280x720.mp4"
-
-[[videos]]
-demo = "vision-imx95"
-title = "High-rise buildings A - Full HD 1920x1080, 34 seconds"
+title = "Buildings A - Full HD 1080p, 34 seconds"
+clip_title = "Buildings A - 34 seconds (Freepik)"
+resolution = "1080p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458687_1920x1080.mp4"
 
 [[videos]]
 demo = "vision-imx95"
-title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
+title = "Buildings B - Full HD 1080p, 32 seconds"
+clip_title = "Buildings B - 32 seconds (Freepik)"
+resolution = "1080p"
+source = "Freepik (user-provided)"
 path = "assets/videos/buildings_458688_1920x1080.mp4"
-
-[[videos]]
-demo = "vision-imx95"
-title = "Jijiga street - HD 1280x720, 11 seconds"
-path = "assets/videos/video_1280x720.mp4"
-
-[[videos]]
-demo = "vision-imx95"
-title = "Jijiga street - 1280x800, 11 seconds"
-path = "assets/videos/video_1280x800.mp4"
-
-[[videos]]
-demo = "vision-imx95"
-title = "Jijiga street - Full HD 1920x1080, 11 seconds"
-path = "assets/videos/video_1920x1080.mp4"

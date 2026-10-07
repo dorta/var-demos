@@ -26,6 +26,10 @@ Arrows to select, Enter to launch, Esc to return.
 
 Choose a demo, then select the video or camera resolution when prompted.
 
+For videos, choose **HD (720p)** or **Full HD (1080p)**, then **Buildings A**
+or **Buildings B**. AI demos and the player use the same [two Freepik clips](ai-ml-demos/VIDEO_SOURCES.md),
+with identical choices on all three SoMs.
+
 | Category | Demos |
 | --- | --- |
 | [AI / ML](ai-ml-demos/) | Classification, detection and hand gestures |
