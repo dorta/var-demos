@@ -42,6 +42,11 @@ class CapturePipelineTests(unittest.TestCase):
         self.assertIn('format=BGR', description)
         self.assertIn('max-buffers=1', description)
 
+    def test_gpu_scaling_happens_before_download(self):
+        description = namespace['gpu_video_conversion']((800, 450))
+        self.assertIn('format=RGBA,width=800,height=450', description)
+        self.assertLess(description.index('width=800'), description.index('gldownload'))
+
     def test_file_sink_matches_gi_reader(self):
         description = namespace['capture_tail'](True)
         self.assertIn('appsink name=frames ', description)

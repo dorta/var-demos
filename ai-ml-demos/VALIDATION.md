@@ -83,3 +83,55 @@ test installations were removed; the active board installations were kept.
 
 Local regression suites: 77 AI tests and 44 suite/installer/documentation
 tests passed. Functional board checks above are additional to those suites.
+
+## Video Processing Optimization, 2026-10-07
+
+The user-provided Buildings A source is 25 FPS, not 30 FPS. Native-frame
+profiling found CPU resize and display/event work outside the roughly 9 ms
+SSD inference. Changing OpenCV to one thread did not improve throughput.
+Nearest-neighbor preview was investigated but not selected; BSP accelerated
+conversion was used instead, preserving the preview's aspect ratio.
+
+The file is still decoded at 720p or 1080p. G2D (MPlus) and PXP (MX93)
+convert it to an 800x450 working image before CPU model resizing and overlay
+drawing. Model dimensions, weights and data types are unchanged, but this
+adds a resampling step: prediction equivalence has not been established.
+`VAR_AI_NATIVE_FRAMES=1` preserves the older native-frame preprocessing.
+
+All recorded runs below displayed 200 annotated frames in fullscreen at
+800x480, with a non-black first-frame check. One first-frame screenshot was
+saved per run. Rates use the demo's processing interval, excluding model
+warmup. Runs used temporary source trees and the installed verified assets.
+
+| SoM | Task | Source | Processing FPS | Mean Inference |
+| --- | --- | --- | ---: | ---: |
+| MPlus | Classification | 720p H.264 | 24.11 | 3.42 ms |
+| MPlus | Classification | 1080p H.264 | 23.99 | 3.70 ms |
+| MPlus | Detection | 720p H.264 | 23.74 | 9.00 ms |
+| MPlus | Detection | 1080p H.264 | 23.75 | 9.21 ms |
+| MX93 | Classification | 720p MJPEG | 24.11 | 4.15 ms |
+| MX93 | Classification | 1080p MJPEG | 24.12 | 4.14 ms |
+| MX93 | Detection | 720p MJPEG | 24.19 | 9.33 ms |
+| MX93 | Detection | 1080p MJPEG | 23.97 | 9.14 ms |
+
+Repeated warmed MPlus detection runs gave 15.06 and 16.82 FPS, while cooler
+retests reached 23.74/23.75 FPS. Its thermal pacing uses the hottest SoC/CPU
+zone, which can be hotter than the footer sensor. This is not a guarantee of
+24 FPS under prolonged load. The HD-specific extra runner separately gave
+20.23 FPS at 720p and is not the common-menu detection measurement above.
+
+Clocked files no longer have an additional cold-board rate limiter. Hot-board
+15 FPS limiting, 82 C pause and below-78 C resume remain. MX93/MX95 GI capture
+pauses the decoder during cooling; the MPlus HD-specific runner does too.
+The common MPlus OpenCV backend still has inference-only cooling.
+Padded buffer stride, offset and bottom rows are now handled explicitly.
+
+MX95 remained around 81-86 C even without an inference demo, so the new
+scaled EGL path could not be safely performance-validated. It remains
+experimental (`VAR_AI_ACCELERATED_VIDEO=1`); the default retains the earlier
+validated native-frame/MMAP EGL path. A five-second hot-board startup check
+confirmed cooling occurs before model/decoder initialization, with zero
+inferences and no decoder started. Retesting performance and frame order
+with adequate cooling is still required; no new MX95 FPS is claimed.
+
+Local regression: 84 AI tests and 48 suite tests passed before publication.

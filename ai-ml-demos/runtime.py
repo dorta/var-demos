@@ -63,6 +63,32 @@ def viewport_geometry(shape, target):
             resized_width, resized_height)
 
 
+def video_work_size(source):
+    """Decode native video, then scale in the BSP converter for processing.
+
+    Native-frame mode retains the older one-step model resize for comparison.
+    """
+    if os.environ.get('VAR_AI_NATIVE_FRAMES') == '1':
+        return None
+    import gi
+    gi.require_version('Gst', '1.0')
+    gi.require_version('GstPbutils', '1.0')
+    from gi.repository import Gst, GstPbutils
+    Gst.init(None)
+    info = GstPbutils.Discoverer.new(3 * Gst.SECOND).discover_uri(
+        Path(source).resolve().as_uri())
+    streams = info.get_video_streams()
+    if not streams:
+        raise RuntimeError('The selected file has no video stream')
+    width, height = streams[0].get_width(), streams[0].get_height()
+    _, _, out_width, out_height = viewport_geometry((height, width), display_size())
+    if out_width >= width and out_height >= height:
+        return None
+    print(f'Video preprocessing: {width}x{height} decoded, '
+          f'{out_width}x{out_height} accelerated working frame.', flush=True)
+    return out_width, out_height
+
+
 def display_view(frame, target=None):
     """Fit a copy for annotation after inference; keep the source untouched."""
     import cv2
@@ -71,7 +97,9 @@ def display_view(frame, target=None):
     target = target or display_size()
     x, y, width, height = viewport_geometry(frame.shape, target)
     canvas = np.zeros((target[1], target[0], frame.shape[2]), dtype=frame.dtype)
-    canvas[y:y + height, x:x + width] = cv2.resize(frame, (width, height))
+    canvas[y:y + height, x:x + width] = (
+        frame if frame.shape[:2] == (height, width)
+        else cv2.resize(frame, (width, height)))
     return canvas, (x, y, width, height)
 
 
@@ -142,7 +170,7 @@ class RunStatistics:
         self.last_frame = now
         self.frames += 1
         self.total_inference += seconds
-        value = SOC_TEMPERATURE.read()
+        value = temperature()
         if value is not None:
             self.soc_peak = max(value, self.soc_peak or value)
 
@@ -247,14 +275,15 @@ def managed_capture(source):
 class ThermalPacer:
     """Bound continuous load and cool before the kernel's 85 C trip point."""
 
-    def __init__(self):
+    def __init__(self, clock_paced=False):
         self.last_frame = monotonic()
         self.cooling = False
         self.warm = False
         self.next_check = 0
         self.limited = False
+        self.clock_paced = clock_paced
 
-    def wait(self, poll_stop=lambda: False):
+    def wait(self, poll_stop=lambda: False, on_cooling=None):
         while True:
             now = monotonic()
             if now >= self.next_check:
@@ -263,25 +292,35 @@ class ThermalPacer:
             value = temperature()
             if value is not None:
                 if value >= 80:
+                    if not self.warm:
+                        print(f'Thermal rate limit: hottest SoC zone {value:.1f} C; '
+                              'processing capped at 15 FPS.', flush=True)
                     self.warm = True
                 elif value < 78:
+                    if self.warm:
+                        print('Thermal rate limit cleared: normal processing resumed.',
+                              flush=True)
                     self.warm = False
             if self.limited or (value is not None and value >= 82):
                 if not self.cooling:
+                    if on_cooling:
+                        on_cooling(True)
                     print('Cooling: inference paused until below 78 C.',
                           flush=True)
                 self.cooling = True
             if self.cooling:
                 if not self.limited and value is not None and value < 78:
                     self.cooling = False
+                    if on_cooling:
+                        on_cooling(False)
                     print('Cooling complete: inference resumed.', flush=True)
                 else:
                     if poll_stop():
                         return False
                     sleep(0.1)
                     continue
-            rate = 15 if self.warm else 30
-            remaining = 1 / rate - (now - self.last_frame)
+            rate = 15 if self.warm else None if self.clock_paced else 30
+            remaining = (1 / rate - (now - self.last_frame)) if rate else 0
             if remaining > 0:
                 sleep(remaining)
             self.last_frame = monotonic()

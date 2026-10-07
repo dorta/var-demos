@@ -16,7 +16,7 @@ compatible = ["fsl,imx93"]
 status = "validated"
 asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx93/v1"
 delegate_path = "/usr/lib/libethosu_delegate.so"
-runtime_plugins = "appsink v4l2src videoconvert avidemux jpegdec"
+runtime_plugins = "appsink v4l2src videoconvert avidemux jpegdec imxvideoconvert_pxp"
 
 [platforms.imx95]
 camera_resolutions = [{title = "HD 1280x720 (default)", value = "1280x720"}, {title = "VGA 640x480", value = "640x480"}, {title = "Full HD 1920x1080", value = "1920x1080"}]

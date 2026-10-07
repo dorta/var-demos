@@ -108,6 +108,11 @@ Not enabled = unavailable in this suite. **N/A** means no recorded value.
 and drawing. **Inference** measures only model execution, in milliseconds.
 Lower inference time does not necessarily mean higher video FPS.
 
+MPlus and MX93 video results below use 200 visible frames of Buildings A
+(25 FPS), with accelerated 800×450 working images on an 800×480 display.
+These are short runs, not sustained-load guarantees. Thermal limiting can
+reduce processing to 15 FPS; details are in the [validation record](ai-ml-demos/VALIDATION.md).
+
 ### i.MX 8M Plus
 
 VIP8000 NPU. MobileNet V1 classification and SSD MobileNet V1 detection.
@@ -116,12 +121,12 @@ VIP8000 NPU. MobileNet V1 classification and SSD MobileNet V1 detection.
 | --- | --- | --- | --- | ---: | ---: |
 | Image classification | Sample image | Functional | N/A | N/A | N/A |
 | Image detection | Sample image | Functional | N/A | N/A | N/A |
-| 720p video classification | 720p H.264 | Functional | N/A | N/A | N/A |
-| 1080p video classification | 1080p H.264 | Functional | N/A | N/A | N/A |
+| 720p video classification | 720p H.264 | Measured | 8.29 s | 24.11 | 3.42 ms |
+| 1080p video classification | 1080p H.264 | Measured | 8.34 s | 23.99 | 3.70 ms |
 | Camera classification | Camera | Functional | N/A | N/A | N/A |
 | Camera detection | 720×480 | Measured | 10 min | 15.76 | 9.00 ms |
-| 720p video detection | 720p H.264 | Functional | N/A | N/A | N/A |
-| 1080p video detection | 1080p H.264 | Functional | N/A | N/A | N/A |
+| 720p video detection | 720p H.264 | Measured | 8.42 s | 23.74 | 9.00 ms |
+| 1080p video detection | 1080p H.264 | Measured | 8.42 s | 23.75 | 9.21 ms |
 | Video player | 720p H.264 | Functional | N/A | N/A | N/A |
 | OpenCL / GPU examples | GPU | Functional | N/A | N/A | N/A |
 | Hand gestures | Camera | Experimental | N/A | N/A | N/A |
@@ -134,12 +139,12 @@ Ethos-U65 NPU. MobileNet V1 classification and SSD MobileNet V1 detection.
 | --- | --- | --- | --- | ---: | ---: |
 | Image classification | Sample image | Functional | N/A | N/A | N/A |
 | Image detection | Sample image | Functional | N/A | N/A | N/A |
-| 720p video classification | 720p MJPEG | Functional | N/A | N/A | N/A |
-| 1080p video classification | 1080p MJPEG | Functional | N/A | N/A | N/A |
+| 720p video classification | 720p MJPEG | Measured | 8.29 s | 24.11 | 4.15 ms |
+| 1080p video classification | 1080p MJPEG | Measured | 8.29 s | 24.12 | 4.14 ms |
 | Camera classification | 640×480 | Measured | 60 s | 29.98 | 4.12 ms |
 | Camera detection | 640×480 | Measured | 60 s | 29.97 | 8.64 ms |
-| 720p video detection | 720p MJPEG | Measured | 12 s | 18.51 | 9.16 ms |
-| 1080p video detection | 1080p MJPEG | Measured | 12 s | 11.28 | 9.03 ms |
+| 720p video detection | 720p MJPEG | Measured | 8.27 s | 24.19 | 9.33 ms |
+| 1080p video detection | 1080p MJPEG | Measured | 8.35 s | 23.97 | 9.14 ms |
 | Video player | 720p MJPEG | Functional | N/A | N/A | N/A |
 | OpenCL / GPU examples | N/A | Not enabled | N/A | N/A | N/A |
 | Hand gestures | N/A | Not enabled | N/A | N/A | N/A |

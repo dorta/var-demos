@@ -170,6 +170,31 @@ class RuntimeTests(unittest.TestCase):
                 with patch('builtins.print'):
                     self.assertFalse(runtime.ThermalPacer().wait(lambda: True))
 
+    def test_clocked_file_has_no_second_cold_frame_limit(self):
+        with patch.object(runtime, 'monotonic', return_value=10), \
+                patch.object(runtime, 'temperature', return_value=60), \
+                patch.object(runtime, 'clock_is_limited', return_value=False), \
+                patch.object(runtime, 'sleep') as sleep:
+            self.assertTrue(runtime.ThermalPacer(clock_paced=True).wait())
+            sleep.assert_not_called()
+
+    def test_clocked_file_keeps_hot_rate_limit(self):
+        with patch.object(runtime, 'monotonic', return_value=10), \
+                patch.object(runtime, 'temperature', return_value=81), \
+                patch.object(runtime, 'clock_is_limited', return_value=False), \
+                patch.object(runtime, 'sleep') as sleep:
+            self.assertTrue(runtime.ThermalPacer(clock_paced=True).wait())
+            sleep.assert_called_once_with(1 / 15)
+
+    def test_cooling_pauses_and_resumes_the_decoder_once(self):
+        changes = MagicMock()
+        with patch.object(runtime, 'temperature', side_effect=[83, 81, 77]), \
+                patch.object(runtime, 'clock_is_limited', return_value=False), \
+                patch.object(runtime, 'sleep'), patch('builtins.print'):
+            self.assertTrue(runtime.ThermalPacer(clock_paced=True).wait(
+                on_cooling=changes))
+        self.assertEqual([call.args[0] for call in changes.call_args_list], [True, False])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -17,7 +17,7 @@ from helper.config import TITLE
 from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
 from helper.utils import load_labels, Timer, Framerate
 
-from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step
+from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step, video_work_size
 
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
@@ -26,8 +26,11 @@ def open_video_capture(args):
     if (args['videofmw'] == "opencv"):
         pipeline = "{}".format(args['video'])
     elif (args['videofmw'] == "gstreamer"):
+        size = video_work_size(args['video'])
+        dimensions = f',width={size[0]},height={size[1]}' if size else ''
         pipeline = "filesrc location={} ! qtdemux name=d d.video_0 ! " \
                    "decodebin ! imxvideoconvert_g2d ! " \
+                   f"video/x-raw,format=RGBx{dimensions} ! " \
                    "videoconvert ! video/x-raw,format=BGR ! " \
                    "appsink name=opencvsink max-buffers=1 drop=true sync=true".format(args['video'])
     else:
@@ -53,10 +56,10 @@ def video_classification(args):
     window_created = False
     ready = False
     framerate = Framerate()
-    pacer = ThermalPacer()
+    pacer = ThermalPacer(clock_paced=True)
     while video_capture.isOpened():
         with framerate.fpsit():
-            if not pacer.wait(lambda: cv2.waitKey(1) == 27):
+            if not pacer.wait(lambda: pacer.cooling and cv2.waitKey(1) == 27):
                 break
             check, frame = video_capture.read()
             if check is not True:

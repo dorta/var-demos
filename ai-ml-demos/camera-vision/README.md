@@ -26,6 +26,25 @@ MX93 decodes MJPEG AVI on the CPU. MX95 decodes H.264 MP4 with the hardware
 decoder and uses EGL for color conversion. MJPEG copies preserve resolution,
 frame rate and duration, but change the encoding and are much larger.
 
+File video is decoded at its selected resolution, then resized to fit the
+display by the BSP converter: PXP on MX93 and G2D on MPlus.
+On an 800x480 display, a 16:9 source becomes an 800x450 working image,
+then is resized to the model's 224x224 or 300x300 input. This reduces CPU
+copies and scaling, but introduces an additional resampling step; prediction
+equivalence to native-frame preprocessing has not been established.
+Set `VAR_AI_NATIVE_FRAMES=1` before a direct invocation to compare the
+original native-frame path. MX95 retains native-frame EGL conversion by
+default; scaled EGL is experimental, enabled only with
+`VAR_AI_ACCELERATED_VIDEO=1`, pending a cooled-board retest.
+Video playback follows the file clock; there is
+no extra cold-board frame limiter. Thermal limits still apply: 15 FPS
+above 80 C, pause at 82 C, resume below 78 C. The decoder is paused too
+during cooling on MX93/MX95 and in the MPlus HD-specific runner, and is not
+started on a hot MX93/MX95 before cooling. The shared MPlus OpenCV capture
+backend cannot pause its decoder, so that path retains inference-only cooling.
+The summary's peak temperature is the hottest sampled SoC/CPU zone; the
+on-screen footer still shows its named board sensor.
+
 MX95 samples use the `media/ordered-v2/` asset release: H.264 re-encoded
 without B-frames as compatibility copies. Crucially, the decoder uses
 explicit MMAP NV12 buffers before GPU upload: removing B-frames alone did

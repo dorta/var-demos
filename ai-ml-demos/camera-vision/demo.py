@@ -17,7 +17,7 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runtime import (demo_session, managed_capture, record_inference,
                      register_cleanup, startup_step, ThermalPacer,
-                     display_view, display_box)
+                     display_view, display_box, video_work_size)
 from telemetry import SoCTemperature
 import vision_overlay as ui
 from postprocess import decode_postprocessed, decode_ssdlite
@@ -33,12 +33,13 @@ def capture_tail(video):
             f'appsink name={name} max-buffers=1 drop=true')
 
 
-def gpu_video_conversion():
+def gpu_video_conversion(size=None):
     # Force a GL render before download. The BSP's direct conversion path
-    # negotiates RGBA but can return entirely zeroed CPU pixels. No size caps:
-    # preserve native video dimensions for inference.
+    # negotiates RGBA but can return entirely zeroed CPU pixels. Native size
+    # is the default; scaled output is opt-in on MX95 pending a cooled retest.
+    dimensions = f',width={size[0]},height={size[1]}' if size else ''
     return ('glupload ! glcolorconvert ! glcolorscale ! '
-            'video/x-raw(memory:GLMemory),format=RGBA ! gldownload ! '
+            f'video/x-raw(memory:GLMemory),format=RGBA{dimensions} ! gldownload ! '
             'video/x-raw,format=RGBA ! ')
 
 
@@ -147,6 +148,10 @@ def overlay(frame, detections, labels, title, fps, ms, thermal, sensor,
 @demo_session()
 def run(args):
     platform = board()
+    pacer = ThermalPacer(clock_paced=bool(args.video))
+    # Do not start a decoder that keeps the GPU busy while waiting to cool.
+    if not pacer.wait():
+        return
     interpreter, source, outputs, labels, priors = load_model(platform, args.task)
     size = (int(source['shape'][2]), int(source['shape'][1]))
     if args.image:
@@ -159,6 +164,11 @@ def run(args):
             raise RuntimeError('Selected video does not exist')
         location = str(path).replace('\\', '\\\\').replace('"', '\\"')
         decoder = video_decoder(platform)
+        # Keep the previously validated MX95 native-frame path as the default
+        # until scaled EGL output is retested with adequate cooling.
+        working_size = (None if platform == 'imx95' and
+                        os.environ.get('VAR_AI_ACCELERATED_VIDEO') != '1'
+                        else video_work_size(path))
         pipeline = f'filesrc location="{location}" ! {decoder} ! '
         if platform == 'imx95':
             runtime = Path(os.environ.setdefault('XDG_RUNTIME_DIR', '/run/user/0'))
@@ -170,7 +180,10 @@ def run(args):
             os.environ.setdefault('GST_GL_PLATFORM', 'egl')
             os.environ.setdefault('GST_GL_WINDOW', 'wayland')
             os.environ.setdefault('QT_QPA_PLATFORM', 'xcb')
-            pipeline += gpu_video_conversion()
+            pipeline += gpu_video_conversion(working_size)
+        elif working_size:
+            pipeline += ('imxvideoconvert_pxp ! video/x-raw,format=BGR,'
+                         f'width={working_size[0]},height={working_size[1]} ! ')
     else:
         resolution = args.resolution or ('1280x720' if platform == 'imx95' else '640x480')
         configure_camera(platform, args.camera, resolution)
@@ -196,7 +209,6 @@ def run(args):
         register_cleanup(cap.release)
     else:
         cap = managed_capture(pipeline)
-    pacer = ThermalPacer()
     thermal = SoCTemperature(sensor_name=(
         'cpu-thermal' if platform == 'imx93' else 'a55-thermal'))
     started, frames = monotonic(), 0
@@ -206,10 +218,10 @@ def run(args):
     while not args.seconds or monotonic() - started < args.seconds:
         def stop_requested():
             return (bool(args.seconds and monotonic() - started >= args.seconds)
-                    or (not args.headless and frames > 0
+                    or (pacer.cooling and not args.headless and frames > 0
                         and cv2.waitKey(1) & 0xff == 27))
 
-        if not pacer.wait(stop_requested):
+        if not pacer.wait(stop_requested, cap.set_paused if args.video else None):
             break
         ok, frame = ((True, still_image.copy()) if args.image else cap.read())
         if not ok:

@@ -3,6 +3,7 @@
 """One MPlus-style overlay for all board-specific inference backends."""
 
 import hashlib
+from functools import lru_cache
 import cv2
 import numpy as np
 
@@ -23,13 +24,20 @@ def color_for(name, rgb=False):
     return color[::-1] if rgb else color
 
 
+@lru_cache(maxsize=32)
+def panel_background(shape, rgb):
+    background = np.empty(shape, dtype=np.uint8)
+    background[:] = PANEL[::-1] if rgb else PANEL
+    background.setflags(write=False)
+    return background
+
+
 def panel(frame, x, y, width, height, rgb=False, opacity=.78):
     x, y = max(0, x), max(0, y)
     region = frame[y:min(frame.shape[0], y + height),
                    x:min(frame.shape[1], x + width)]
     if region.size:
-        color = PANEL[::-1] if rgb else PANEL
-        cv2.addWeighted(np.full_like(region, color), opacity,
+        cv2.addWeighted(panel_background(region.shape, rgb), opacity,
                         region, 1 - opacity, 0, region)
 
 

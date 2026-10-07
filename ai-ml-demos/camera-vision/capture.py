@@ -41,9 +41,22 @@ class VideoCapture:
         buffer = sample.get_buffer()
         self.last_pts = buffer.pts
         pixels = buffer.extract_dup(0, buffer.get_size())
-        rows = np.frombuffer(pixels, np.uint8).reshape(info.height, info.stride[0])
-        return True, rows[:, :info.width * 3].reshape(
-            info.height, info.width, 3).copy()
+        meta = GstVideo.buffer_get_video_meta(buffer)
+        stride = meta.stride[0] if meta else info.stride[0]
+        offset = meta.offset[0] if meta else info.offset[0]
+        required = offset + (info.height - 1) * stride + info.width * 3
+        if stride < info.width * 3 or required > len(pixels):
+            raise RuntimeError('Video buffer is smaller than its image layout')
+        # Accelerated converters can pad both rows and the bottom of a frame.
+        # Interpret its actual layout instead of reshaping the whole allocation.
+        frame = np.ndarray((info.height, info.width, 3), dtype=np.uint8,
+                           buffer=pixels, offset=offset, strides=(stride, 3, 1))
+        return True, frame.copy()
+
+    def set_paused(self, paused):
+        state = Gst.State.PAUSED if paused else Gst.State.PLAYING
+        if self.pipeline.set_state(state) == Gst.StateChangeReturn.FAILURE:
+            raise RuntimeError('Could not change video pipeline state')
 
     def release(self):
         if not self.closed:

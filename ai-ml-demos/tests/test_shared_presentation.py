@@ -10,6 +10,16 @@ import vision_overlay as ui
 
 
 class SharedPresentationTests(unittest.TestCase):
+    def test_panel_background_is_cached_without_mutating_the_color(self):
+        bg = ui.panel_background((10, 20, 3), False)
+        self.assertIs(bg, ui.panel_background((10, 20, 3), False))
+        self.assertFalse(bg.flags.writeable)
+        frame = np.full((30, 40, 3), 180, np.uint8)
+        ui.panel(frame, 0, 0, 20, 10)
+        np.testing.assert_array_equal(bg[0, 0], ui.PANEL)
+        np.testing.assert_array_equal(ui.panel_background((10, 20, 3), True)[0, 0],
+                                      ui.PANEL[::-1])
+
     def test_shared_demos_first_in_identical_order(self):
         catalog = manager.load_catalog()
         expected = ['classification-image', 'classification-video',

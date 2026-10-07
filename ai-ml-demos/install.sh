@@ -273,6 +273,10 @@ check_runtime() {
 import cv2
 import numpy
 import tflite_runtime.interpreter
+import gi
+gi.require_version('GstPbutils', '1.0')
+gi.require_version('GstVideo', '1.0')
+from gi.repository import GstPbutils, GstVideo
 PY
 
     require_command gst-inspect-1.0

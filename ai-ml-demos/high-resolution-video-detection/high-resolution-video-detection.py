@@ -9,7 +9,8 @@ import numpy as np
 import gi
 
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst
+gi.require_version('GstVideo', '1.0')
+from gi.repository import Gst, GstVideo
 
 from tflite_runtime.interpreter import Interpreter, load_delegate
 
@@ -18,7 +19,7 @@ from utils import (
     COMBINATIONS,
     profile, show_available_combinations
 )
-from runtime import demo_session, register_cleanup, ThermalPacer, warm_up_model, startup_step
+from runtime import demo_session, register_cleanup, ThermalPacer, warm_up_model, startup_step, video_work_size
 
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,10 +29,12 @@ def open_gst_pipeline(source, debug=False):
     with debug_profile("Gst.init and parse pipeline", debug):
         Gst.init(None)
         escaped_source = source.replace('\\', '\\\\').replace('"', '\\"')
+        size = video_work_size(source)
+        dimensions = f',width={size[0]},height={size[1]}' if size else ''
         pipeline = Gst.parse_launch(
             f'filesrc location="{escaped_source}" ! decodebin ! '
             "imxvideoconvert_g2d ! "
-            "video/x-raw,format=RGBx ! appsink name=sink emit-signals=true "
+            f"video/x-raw,format=RGBx{dimensions} ! appsink name=sink emit-signals=true "
             "max-buffers=1 drop=true sync=true wait-on-eos=false"
         )
     with debug_profile("Gst get sink element", debug):
@@ -60,21 +63,18 @@ def gst_read_frame(sink, debug=False):
         buf = sample.get_buffer()
     with debug_profile("sample.get_caps", debug):
         caps = sample.get_caps()
-    h = caps.get_structure(0).get_value('height')
-    w = caps.get_structure(0).get_value('width')
+    info = GstVideo.VideoInfo.new_from_caps(caps)
+    h, w = info.height, info.width
 
     with debug_profile("buf.extract_dup", debug):
         data = buf.extract_dup(0, buf.get_size())
-    expected_size = h * w * 4
-
-    if buf.get_size() == expected_size:
-        with debug_profile("np.frombuffer reshape (full)", debug):
-            frame = np.frombuffer(data, np.uint8).reshape((h, w, 4))
-    else:
-        with debug_profile("data[:expected_size] slice", debug):
-            cropped_data = data[:expected_size]
-        with debug_profile("np.frombuffer reshape (cropped)", debug):
-            frame = np.frombuffer(cropped_data, np.uint8).reshape((h, w, 4))
+    meta = GstVideo.buffer_get_video_meta(buf)
+    stride = meta.stride[0] if meta else info.stride[0]
+    offset = meta.offset[0] if meta else info.offset[0]
+    if stride < w * 4 or offset + (h - 1) * stride + w * 4 > len(data):
+        raise RuntimeError('Invalid RGBx video buffer layout')
+    frame = np.ndarray((h, w, 4), np.uint8, buffer=data,
+                       offset=offset, strides=(stride, 4, 1))
 
     with debug_profile("cv2.cvtColor RGBA2RGB", debug):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
@@ -167,13 +167,14 @@ def main(args):
     detection_count = 0
 
     window_created = False
-    pacer = ThermalPacer()
+    pacer = ThermalPacer(clock_paced=True)
 
     while True:
         poll_stop = (lambda: False) if args.headless else (
-            lambda: cv2.waitKey(1) == 27
+            lambda: pacer.cooling and cv2.waitKey(1) == 27
         )
-        if not pacer.wait(poll_stop):
+        if not pacer.wait(poll_stop, lambda paused: pipeline.set_state(
+                Gst.State.PAUSED if paused else Gst.State.PLAYING)):
             break
         frame = gst_read_frame(sink, args.debug)
         if frame is None:
