@@ -33,7 +33,7 @@ Choose a demo, then select the video or camera resolution when prompted.
 | [OpenCL](opencl/python/) | GPU computation |
 | BSP | Graphical examples already installed in `/opt` |
 
-## Board support
+## Board Support
 
 | Demo | i.MX 8M Plus | i.MX 93 | i.MX 95 |
 | --- | :---: | :---: | :---: |
@@ -62,7 +62,7 @@ These choices were checked with the connected OV5640 cameras for both
 classification and detection. They are capture modes, not a promise of
 30 FPS at every resolution or compatibility with other sensors.
 
-## Models and conversion
+## Models and Conversion
 
 These are **8-bit quantized models, not universally signed INT8 models**.
 The installed models all accept RGB **UINT8** tensors; their output types
