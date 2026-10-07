@@ -141,8 +141,6 @@ with adequate cooling is still required; no new MX95 FPS is claimed.
 
 Local regression: 84 AI tests and 48 suite tests passed before publication.
 
-## Related Guides
-
 ## Documentation and Detection Overlay Update, 2026-10-07
 
 The guides were reorganized under `docs/`, retaining historical measurement
