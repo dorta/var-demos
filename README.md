@@ -16,13 +16,6 @@ curl -fsSL https://raw.githubusercontent.com/dorta/var-demos/demos/install.sh | 
 The board is detected automatically. To update, close the demos and repeat
 the command.
 
-Installation and removal show the board, demo and asset counts, current
-task, completed-step progress and elapsed time in one terminal dashboard.
-The latest three assets appear with readable names and download/verification
-status; assets are SHA-256 verified. Failures point
-to a diagnostic log. ANSI terminals redraw in place; redirected output and
-`TERM=dumb` use plain status lines. `NO_COLOR=1` disables colors.
-
 # Run
 
 ```sh
@@ -31,11 +24,7 @@ var-demos
 
 Arrows to select, Enter to launch, Esc to return.
 
-The AI menu uses the same order on every SoM: classification (image,
-video, camera), then detection (image, video, camera), followed by optional
-extras. Demos open fullscreen. Video selection includes 720p and 1080p;
-camera selection offers the connected OV5640's configured resolutions.
-Display resolution and model input dimensions do not change with that choice.
+Choose a demo, then select the video or camera resolution when prompted.
 
 | Category | Demos |
 | --- | --- |
