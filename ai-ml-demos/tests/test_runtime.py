@@ -15,6 +15,38 @@ SPEC.loader.exec_module(runtime)
 
 
 class RuntimeTests(unittest.TestCase):
+    def test_work_size_does_not_replace_source_resolution(self):
+        with patch.dict(runtime.os.environ, {}, clear=True), \
+                patch.object(runtime, 'video_source_size', return_value=(1920, 1080)) as source, \
+                patch.object(runtime, 'display_size', return_value=(800, 480)):
+            self.assertEqual(runtime.video_work_size('full-hd.mp4'), (800, 450))
+            self.assertEqual(source.return_value, (1920, 1080))
+            source.assert_called_once_with('full-hd.mp4')
+
+    def test_native_frame_mode_skips_working_size_discovery(self):
+        with patch.dict(runtime.os.environ, {'VAR_AI_NATIVE_FRAMES': '1'}), \
+                patch.object(runtime, 'video_source_size') as source:
+            self.assertIsNone(runtime.video_work_size('clip.mp4'))
+            source.assert_not_called()
+
+    def test_source_dimensions_are_read_from_stream_metadata_and_cached(self):
+        runtime.video_source_size.cache_clear()
+        stream = SimpleNamespace(get_width=lambda: 1920, get_height=lambda: 1080)
+        info = SimpleNamespace(get_video_streams=lambda: [stream])
+        discover = MagicMock(return_value=info)
+        pbutils = SimpleNamespace(Discoverer=SimpleNamespace(new=lambda timeout:
+            SimpleNamespace(discover_uri=discover)))
+        gst = SimpleNamespace(SECOND=1000000000, init=MagicMock())
+        gi = SimpleNamespace(require_version=MagicMock())
+        try:
+            with patch.dict(sys.modules, {'gi': gi,
+                    'gi.repository': SimpleNamespace(Gst=gst, GstPbutils=pbutils)}):
+                self.assertEqual(runtime.video_source_size('arbitrary-name.mp4'), (1920, 1080))
+                self.assertEqual(runtime.video_source_size('arbitrary-name.mp4'), (1920, 1080))
+                discover.assert_called_once()
+        finally:
+            runtime.video_source_size.cache_clear()
+
     def test_direct_wayland_shell_uses_available_xwayland(self):
         with patch.dict(runtime.os.environ,
                         {'QT_QPA_PLATFORM': 'wayland',

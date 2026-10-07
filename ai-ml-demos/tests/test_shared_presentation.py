@@ -67,6 +67,29 @@ class SharedPresentationTests(unittest.TestCase):
             ui.statistics(frame, 123.4, 100.0)
             self.assertEqual(first, panel.call_args_list)
 
+    def test_fps_and_inference_values_share_a_fixed_right_edge(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        for ms, rate in ((9.1, 24.1), (123.4, 100.0)):
+            with patch.object(ui.cv2, 'putText') as draw:
+                ui.statistics(frame, ms, rate)
+            values = {call.args[1]: call.args[2] for call in draw.call_args_list}
+            for value in (ms, rate):
+                text = f'{value:.1f}'
+                width = ui.cv2.getTextSize(text, ui.FONT, .6, 1)[0][0]
+                self.assertEqual(values[text][0] + width, 748)
+            self.assertEqual(values[f'{rate:.1f}'][1] - values[f'{ms:.1f}'][1], 38)
+
+    def test_video_resolution_panel_is_below_fps_and_has_fixed_geometry(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        origins = []
+        for size in ((1280, 720), (1920, 1080)):
+            with patch.object(ui, 'panel') as panel, \
+                    patch.object(ui.cv2, 'putText') as draw:
+                ui.video_resolution(frame, size)
+            origins.append(panel.call_args.args[1:5])
+            self.assertIn(f'{size[0]} x {size[1]}', draw.call_args.args[1])
+        self.assertEqual(origins, [(540, 86, 250, 34)] * 2)
+
     def test_semantic_colors_independent_of_class_index(self):
         self.assertEqual(ui.color_for(' person '), ui.PALETTE[0])
         self.assertEqual(ui.color_for('CAR'), ui.PALETTE[2])
@@ -77,6 +100,7 @@ class SharedPresentationTests(unittest.TestCase):
         rgb = bgr.copy()
         for frame, is_rgb in [(bgr, False), (rgb, True)]:
             ui.statistics(frame, 12.3, 25, is_rgb)
+            ui.video_resolution(frame, (1920, 1080), is_rgb)
             ui.model(frame, 'SSD | NPU', is_rgb)
             ui.temperature(frame, 81.2, is_rgb)
             ui.results(frame, [('person', .95)], is_rgb)

@@ -149,7 +149,7 @@ def _model_title(model_name):
 
 
 def put_info_on_frame(frame, results, inf_time, labels, model_name,
-                      _source_file, fps=None, display_res=None):
+                      _source_file, fps=None, display_res=None, video_size=None):
     frame, box_area = display_view(frame, display_res)
     for obj in results:
         class_id = int(obj['class'])
@@ -160,6 +160,8 @@ def put_info_on_frame(frame, results, inf_time, labels, model_name,
         ui.box(frame, (left, top, right, bottom), name, obj['score'], rgb=True)
 
     ui.statistics(frame, _inference_ms(inf_time), fps, rgb=True)
+    if video_size is not None:
+        ui.video_resolution(frame, video_size, rgb=True)
     ui.model(frame, _model_title(model_name).replace(' | NPU', ' | VIP8000'),
              rgb=True)
     draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR, rgb=True)

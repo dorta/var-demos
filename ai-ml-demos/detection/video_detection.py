@@ -20,7 +20,7 @@ from helper.config import TITLE
 from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
 from helper.utils import get_tensor, load_labels, Timer, Framerate
 
-from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step, video_work_size
+from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step, video_work_size, video_source_size
 
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
@@ -56,6 +56,7 @@ def image_detection(args):
     model_height, model_width = input_details[0]['shape'][1:3]
     
     video_capture = open_video_capture(args)
+    video_size = video_source_size(args['video'])
     window_created = False
     ready = False
     framerate = Framerate()
@@ -91,7 +92,7 @@ def image_detection(args):
                     })
 
             frame = put_info_on_frame(frame, result, timer.time, labels,
-                                      args['model'], args['video'])
+                                      args['model'], args['video'], video_size=video_size)
             frame = put_fps_on_frame(frame, framerate.fps)
             if not window_created:
                 create_window(TITLE, args['windowed'])

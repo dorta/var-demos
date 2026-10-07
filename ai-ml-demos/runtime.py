@@ -63,13 +63,9 @@ def viewport_geometry(shape, target):
             resized_width, resized_height)
 
 
-def video_work_size(source):
-    """Decode native video, then scale in the BSP converter for processing.
-
-    Native-frame mode retains the older one-step model resize for comparison.
-    """
-    if os.environ.get('VAR_AI_NATIVE_FRAMES') == '1':
-        return None
+@lru_cache(maxsize=16)
+def video_source_size(source):
+    """Read original stream dimensions, independently of working/display size."""
     import gi
     gi.require_version('Gst', '1.0')
     gi.require_version('GstPbutils', '1.0')
@@ -81,6 +77,19 @@ def video_work_size(source):
     if not streams:
         raise RuntimeError('The selected file has no video stream')
     width, height = streams[0].get_width(), streams[0].get_height()
+    if width <= 0 or height <= 0:
+        raise RuntimeError('The selected video has invalid stream dimensions')
+    return width, height
+
+
+def video_work_size(source):
+    """Decode native video, then scale in the BSP converter for processing.
+
+    Native-frame mode retains the older one-step model resize for comparison.
+    """
+    if os.environ.get('VAR_AI_NATIVE_FRAMES') == '1':
+        return None
+    width, height = video_source_size(source)
     _, _, out_width, out_height = viewport_geometry((height, width), display_size())
     if out_width >= width and out_height >= height:
         return None

@@ -60,10 +60,36 @@ def badge(frame, text, row=0, rgb=False):
                 FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
+def metric(frame, label, value, unit='', row=0, rgb=False):
+    """Use pixel-aligned numeric columns, not proportional-font spaces."""
+    width = min(250, frame.shape[1] - 20)
+    x, y = frame.shape[1] - width - 10, 10 + row * 38
+    panel(frame, x, y, width, 34, rgb)
+    color = TEXT[::-1] if rgb else TEXT
+    label = fitted_text(label, max(1, width - 132), .6)
+    cv2.putText(frame, label, (x + 9, y + 23), FONT, .6, color, 1, cv2.LINE_AA)
+    text = f'{value:.1f}'
+    value_width = cv2.getTextSize(text, FONT, .6, 1)[0][0]
+    cv2.putText(frame, text, (x + width - 42 - value_width, y + 23),
+                FONT, .6, color, 1, cv2.LINE_AA)
+    if unit:
+        cv2.putText(frame, unit, (x + width - 32, y + 23),
+                    FONT, .6, color, 1, cv2.LINE_AA)
+
+
+def fps(frame, value, rgb=False):
+    metric(frame, 'FPS', value, row=1, rgb=rgb)
+
+
+def video_resolution(frame, size, rgb=False):
+    width, height = size
+    badge(frame, f'VIDEO  {width} x {height}', row=2, rgb=rgb)
+
+
 def statistics(frame, ms, fps=None, rgb=False):
-    badge(frame, f'INFERENCE  {ms:6.1f} ms', rgb=rgb)
+    metric(frame, 'INFERENCE', ms, 'ms', rgb=rgb)
     if fps is not None:
-        badge(frame, f'FPS        {fps:6.1f}', row=1, rgb=rgb)
+        metric(frame, 'FPS', fps, row=1, rgb=rgb)
 
 
 def model(frame, title, rgb=False):

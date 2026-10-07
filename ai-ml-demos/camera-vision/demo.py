@@ -17,7 +17,7 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runtime import (demo_session, managed_capture, record_inference,
                      register_cleanup, startup_step, ThermalPacer,
-                     display_view, display_box, video_work_size)
+                     display_view, display_box, video_work_size, video_source_size)
 from telemetry import SoCTemperature
 import vision_overlay as ui
 from postprocess import decode_postprocessed, decode_ssdlite
@@ -212,6 +212,7 @@ def run(args):
     thermal = SoCTemperature(sensor_name=(
         'cpu-thermal' if platform == 'imx93' else 'a55-thermal'))
     started, frames = monotonic(), 0
+    video_size = video_source_size(path) if args.video and args.task == 'detection' else None
     title = ('MobileNet V1' if args.task == 'classification' else
              'SSD MobileNet V1' if platform == 'imx93' else 'SSD-Lite V2')
     title += ' | ' + ('Ethos-U65' if platform == 'imx93' else 'Neutron')
@@ -258,6 +259,8 @@ def run(args):
         overlay(frame, detections, labels, title,
                 None if args.image else frames / max(monotonic() - started, .001), ms, thermal, 'CPU',
                 box_area)
+        if video_size is not None:
+            ui.video_resolution(frame, video_size)
         if args.task == 'classification':
             scores = values[0][0].astype(np.float32)
             scale, zero = outputs[0]['quantization']

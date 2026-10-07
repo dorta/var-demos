@@ -19,7 +19,7 @@ from utils import (
     COMBINATIONS,
     profile, show_available_combinations
 )
-from runtime import demo_session, register_cleanup, ThermalPacer, warm_up_model, startup_step, video_work_size
+from runtime import demo_session, register_cleanup, ThermalPacer, warm_up_model, startup_step, video_work_size, video_source_size
 
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -160,6 +160,7 @@ def main(args):
     model_height, model_width = input_details[0]['shape'][1:3]
 
     pipeline, sink = open_gst_pipeline(video, args.debug)
+    video_size = video_source_size(video)
     timer = Timer()
     framerate = Framerate()
     frame_count = 0
@@ -194,7 +195,7 @@ def main(args):
         fps = framerate.update()
         frame = put_info_on_frame(
             frame, results, timer.time, labels, args.model, video, fps,
-            display_res
+            display_res, video_size=video_size
         )
 
         if not args.headless:

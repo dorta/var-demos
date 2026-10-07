@@ -107,5 +107,5 @@ def put_info_on_frame(frame, top_result, labels,
 
 
 def put_fps_on_frame(frame, fps):
-    ui.badge(frame, f'FPS        {fps:6.1f}', row=1)
+    ui.fps(frame, fps)
     return frame
