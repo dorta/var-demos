@@ -1,4 +1,6 @@
-# Preparing NPU models
+# Model Sources and Conversion
+
+[Documentation](README.md) · [Project Overview](../README.md)
 
 Use separate artifacts for each backend. A `.tflite` suffix alone does not
 establish compatibility. Preserve the source model, license, labels,
@@ -6,9 +8,9 @@ preprocessing, quantization parameters and compiler version with each asset.
 
 | Board | Model preparation | Runtime delegate |
 | --- | --- | --- |
-| i.MX 8M Plus | Quantized TFLite; VX prepares its graph | `libvx_delegate.so` |
-| i.MX 93 | Quantized TFLite compiled with Vela | `libethosu_delegate.so` |
-| i.MX 95 | BSP-compatible Neutron compiled model | `libneutron_delegate.so` |
+| i.MX 8M Plus | Quantized TFLite; VX prepares its graph | [VIP8000 / `libvx_delegate.so`](npus/vip8000.md) |
+| i.MX 93 | Quantized TFLite compiled with Vela | [Ethos-U65 / `libethosu_delegate.so`](npus/ethos-u65.md) |
+| i.MX 95 | BSP-compatible Neutron compiled model | [Neutron / `libneutron_delegate.so`](npus/neutron.md) |
 
 The backend paths are documented in the
 [NXP machine-learning guide](https://www.nxp.com/docs/en/user-guide/UG10166.pdf).
@@ -146,3 +148,9 @@ image has a working camera but no GStreamer H.264 decoder. Its video demos
 use MJPEG AVI copies decoded on the CPU, preserving source resolution,
 frame rate and duration. This does not preserve the original encoding or
 make video throughput a like-for-like comparison with the other boards.
+
+## Related Guides
+
+- [Models and Processing Flows](models.md): visual overview of model preparation and inference.
+- [Validation Record](validation.md#model-reproduction): recorded conversion reproduction checks.
+- [Video Sources](video-sources.md): video conversion, which is separate from model compilation.

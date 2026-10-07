@@ -1,5 +1,10 @@
 # Cross-board presentation and playback validation
 
+[Documentation](README.md) · [Project Overview](../README.md)
+
+This record includes historical checks of the earlier eight-video catalog.
+The current catalog offers only Buildings A and B in HD and Full HD.
+
 Requested checks for i.MX 8M Plus, VAR-SOM-MX93 and DART-MX95:
 
 - Use the same wording for shared demos, followed by the actual NPU name.
@@ -65,7 +70,7 @@ installed artifacts byte-for-byte. MobileNet input/output are UINT8;
 SSD input is UINT8 with FLOAT32 detection outputs. MX95 uses separate
 NXP UINT8-input/FLOAT32-output compiled artifacts; no current-SDK custom
 Neutron conversion or equal-weight claim is made. Details and SHA-256 values
-are in [the conversion guide](../CONVERTING_MODELS.md).
+are in [the conversion guide](model-conversion.md).
 
 ## Installer and removal
 
@@ -135,3 +140,29 @@ inferences and no decoder started. Retesting performance and frame order
 with adequate cooling is still required; no new MX95 FPS is claimed.
 
 Local regression: 84 AI tests and 48 suite tests passed before publication.
+
+## Related Guides
+
+## Documentation and Detection Overlay Update, 2026-10-07
+
+The guides were reorganized under `docs/`, retaining historical measurement
+records. Relative links and heading anchors were checked. Per-NPU guides now
+separate model requirements, libraries, startup, classification, detection
+and software/hardware responsibilities.
+
+Detection's FPS and inference values use a shared pixel-aligned numeric column.
+A fixed panel below FPS displays original stream dimensions, not the scaled
+working image, display size or model tensor size. Stream metadata was checked
+for Buildings A at 1280x720 and 1920x1080 on all three connected SoMs using
+temporary review modules. The panel rendered in memory on each target, and a
+clean decoded MX93 frame was inspected for readability. Preview timing values
+were illustrative layout values, not new performance measurements.
+
+Regression: 98 AI tests and 51 suite tests passed. This update does not establish
+new sustained FPS, prediction equivalence or cooled MX95 inference performance.
+
+## Related Guides
+
+- [Performance](performance.md): the current per-SoM measurement tables.
+- [Models and Processing Flows](models.md): model identities and CPU/NPU responsibilities.
+- [Video Sources](video-sources.md): the current curated clip catalog and format preparation.

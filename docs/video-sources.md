@@ -1,5 +1,7 @@
 # Video Sources
 
+[Documentation](README.md) · [Project Overview](../README.md)
+
 The suite offers only the two Buildings clips supplied by the user and
 identified as Freepik downloads. Each was supplied in 720p and 1080p.
 
@@ -19,7 +21,7 @@ Classification, detection and the player use the same content on each SoM.
 
 Conversion preserves source resolution, frame rate and duration, not the
 original encoding. The original files are retained; manifests specify the
-SHA-256 checksum of each installed copy. See [camera/video details](camera-vision/)
+SHA-256 checksum of each installed copy. See [camera/video details](../ai-ml-demos/camera-vision/)
 for decoding and preprocessing differences.
 
 The original Freepik page URLs and license documents were not supplied.
@@ -29,3 +31,9 @@ Model license files do not serve as licenses for these videos.
 Chicago and Jijiga examples are retired. Updates remove their known,
 unchanged suite-installed files by checksum. Changed files, custom videos
 and symlink targets are preserved. No external storage objects are deleted.
+
+## Related Guides
+
+- [Input Processing Flow](models.md#image-video-and-camera-input-flow): where the decoder, CPU, G2D/PXP and GPU fit.
+- [Video Player](../multimedia-demos/README.md): selection and playback controls.
+- [Performance](performance.md): how different decoding paths affect the comparison.

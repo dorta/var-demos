@@ -1,0 +1,36 @@
+# Supported System on Modules
+
+[Documentation](README.md) · [Project Overview](../README.md)
+
+| Demo | i.MX 8M Plus | i.MX 93 | i.MX 95 |
+| --- | :---: | :---: | :---: |
+| NPU | VIP8000 / VX | Ethos-U65 | Neutron |
+| Camera classification | ✓ | ✓ | ✓ |
+| Camera detection | ✓ | ✓ | ✓ |
+| Image classification / detection | ✓ | ✓ | ✓ |
+| 720p / 1080p classification | ✓ | ✓ | ✓ |
+| 720p / 1080p detection | ✓ | ✓ | ✓ |
+| Video player | ✓ | ✓ | ✓ |
+| OpenCL / GPU examples | ✓ | N/A | ✓ |
+| Hand gestures | Experimental | N/A | N/A |
+
+✓ means tested on the connected boards. N/A means not enabled. This does not certify
+continuous operation. MX93 uses CPU-decoded MJPEG, not H.264.
+Both buildings clips are available in 720p and 1080p; 720p is the default.
+
+| Camera capture choice | i.MX 8M Plus | i.MX 93 | i.MX 95 |
+| --- | :---: | :---: | :---: |
+| VGA 640×480 | ✓ | ✓ (default) | ✓ |
+| SD 720×480 | ✓ (default) | N/A | N/A |
+| HD 1280×720 | ✓ | ✓ | ✓ (default) |
+| Full HD 1920×1080 | ✓ | ✓ | ✓ |
+
+These choices were checked with the connected OV5640 cameras for both
+classification and detection. They are capture modes, not a promise of
+30 FPS at every resolution or compatibility with other sensors.
+
+## Related Guides
+
+- [Models and Processing Flows](models.md): what each NPU runs and how frames are processed.
+- [Video Sources](video-sources.md): HD and Full HD clips and decoding differences.
+- [Performance](performance.md): measured results and limitations for each SoM.

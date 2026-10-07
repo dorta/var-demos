@@ -1,7 +1,10 @@
 # AI and ML demo experiments
 
+[Documentation](README.md) · [Project Overview](../README.md)
+
 Experiments for i.MX 8M Plus. Hand landmarks now have an experimental
-implementation and initial CPU/NPU checks; see its README for limitations.
+implementation and initial CPU/NPU checks; see the
+[hand gesture guide](../ai-ml-demos/hand-gesture/README.md) for limitations.
 The other entries remain proposals, not installed or benchmarked demos.
 
 ## Priority experiments
@@ -56,3 +59,9 @@ Check the license in each model directory: conversion-script licensing
 does not replace the original model's licensing terms.
 
 These are research candidates, not additional installed or validated demos.
+
+## Related Guides
+
+- [SoM Support](som-support.md): what is currently enabled, rather than proposed.
+- [Model Sources and Conversion](model-conversion.md): artifact compatibility and preparation checks.
+- [Validation Record](validation.md): checks already performed on the existing demos.

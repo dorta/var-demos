@@ -77,6 +77,7 @@ The footer reports the named CPU thermal zone (`cpu-thermal` on MX93 and
 `a55-thermal` on MX95), not a separate NPU sensor. Continuous operation
 requires cooling. Short validation does not guarantee multi-hour stability.
 
-See the [board comparison](../../README.md) and
-[model conversion guide](../../CONVERTING_MODELS.md) for measured results.
-Clip provenance and formats are listed in [Video Sources](../VIDEO_SOURCES.md).
+See the [SoM support](../../docs/som-support.md),
+[performance results](../../docs/performance.md) and
+[model conversion guide](../../docs/model-conversion.md).
+Clip provenance and formats are listed in [Video Sources](../../docs/video-sources.md).
