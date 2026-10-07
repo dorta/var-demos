@@ -22,6 +22,36 @@ class Terminal(io.StringIO):
 
 
 class InstallUITests(unittest.TestCase):
+    def test_recent_assets_roll_without_duplicates_and_keep_fixed_height(self):
+        ui = Dashboard(Terminal())
+        self.assertEqual(len(ui.content()), 14)
+        for clip in ('buildings_458687_1280x720', 'buildings_458688_1280x720',
+                     'chicago_1280x720', 'video_1920x1080'):
+            for stage in ('Verifying', 'Downloading', 'Verified'):
+                ui.accept(dict(message=f'{stage} assets/videos/{clip}.mp4'))
+                self.assertLessEqual(len(ui.recent_assets), 3)
+                self.assertEqual(len(ui.content()), 14)
+        rows = ui.content()[-3:]
+        self.assertNotIn('High-rise buildings A', '\n'.join(rows))
+        self.assertIn('High-rise buildings B', rows[0])
+        self.assertIn('Chicago traffic', rows[1])
+        self.assertIn('Jijiga street - 1080p', rows[2])
+        self.assertTrue(all(row.startswith('OK ') for row in rows))
+        ui.accept(dict(message='Installing assets/videos/video_1920x1080.mp4'))
+        self.assertEqual(ui.content()[-3:], rows)
+
+    def test_recent_assets_distinguish_downloads_from_cached_verification(self):
+        ui = Dashboard(io.StringIO())
+        ui.accept(dict(message='Verifying model/mobilenet_vela.tflite'))
+        self.assertIn('Verifying', ui.content()[-3])
+        ui.accept(dict(message='Downloading model/mobilenet_vela.tflite'))
+        self.assertIn('Downloading', ui.content()[-3])
+        ui.accept(dict(message='Verified model/mobilenet_vela.tflite',
+                       done=True, asset=True))
+        self.assertEqual(len(ui.recent_assets), 1)
+        self.assertIn('OK MobileNet V1 classification model', ui.content()[-3])
+        self.assertEqual(len(Dashboard(io.StringIO(), remove=True).content()), 9)
+
     def test_video_names_match_across_containers_and_stages(self):
         ui = Dashboard(io.StringIO())
         for stage in ('Verifying', 'Verified', 'Installing', 'Installed'):
@@ -76,7 +106,7 @@ class InstallUITests(unittest.TestCase):
                     ui.render()
                     raise RuntimeError('test failure')
         text = stream.getvalue()
-        self.assertIn('\033[9A', text)
+        self.assertIn('\033[14A', text)
         self.assertIn('\033[?25l', text)
         self.assertTrue(text.endswith('\033[0m\033[?25h'))
         self.assertNotIn('Bad\033[2J', text)

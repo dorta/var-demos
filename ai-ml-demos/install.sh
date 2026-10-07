@@ -307,6 +307,7 @@ install_asset() {
             [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || echo "Using verified ${relative_path}"
             cp "${destination}" "${cache_file}"
         else
+            progress "Downloading ${relative_path}" 0 0 "${cache_file}.part" "${remote_path}"
             [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || echo "Downloading ${remote_path}"
             download \
                 "${ASSET_BASE_URL}/${remote_path}" \

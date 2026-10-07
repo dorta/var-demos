@@ -67,15 +67,26 @@ class Dashboard:
         self.completed = self.total = self.assets = self.asset_total = 0
         self.demos = 0
         self.download = None
+        self.recent_assets = []
         self.started = monotonic()
         self.lines = 0
         self.last_plain = None
 
     def accept(self, data):
         self.message = data.get('message', self.message)
-        match = re.fullmatch(r'(Verifying|Verified|Installing|Installed) (\S+/\S+)', self.message)
+        match = re.fullmatch(r'(Downloading|Verifying|Verified|Installing|Installed) (\S+/\S+)', self.message)
         if match:
-            self.message = f'{match[1]} {asset_name(data.get("asset_path") or match[2])}'
+            identity = data.get('asset_path') or match[2]
+            name = asset_name(identity)
+            self.message = f'{match[1]} {name}'
+            if match[1] in ('Downloading', 'Verifying', 'Verified'):
+                entry = next((item for item in self.recent_assets
+                              if item['path'] == identity), None)
+                if entry is None:
+                    entry = dict(path=identity, name=name)
+                    self.recent_assets.append(entry)
+                    self.recent_assets = self.recent_assets[-3:]
+                entry['status'] = match[1]
         for key in ('board', 'total', 'asset_total', 'demos', 'download'):
             if key in data:
                 setattr(self, key, data[key])
@@ -102,7 +113,7 @@ class Dashboard:
             except OSError:
                 detail = 'Connecting to asset storage'
         action = 'UNINSTALL' if self.remove else 'INSTALL'
-        return [
+        lines = [
             f'VARISCITE  /  DEMOS   {action}', '', self.board,
             f'{self.demos} demos  |  {self.asset_total} assets', '', bar,
             f'Steps {self.completed}/{self.total}  |  {minutes:02}:{seconds:02}',
@@ -110,6 +121,13 @@ class Dashboard:
             (detail or (f'SHA-256 verified: {self.assets}/{self.asset_total}'
                         if not self.remove else 'Unrelated files are preserved')),
         ]
+        if not self.remove:
+            recent = [f'{"OK" if item["status"] == "Verified" else ">"} '
+                      f'{item["name"]} | {item["status"]}'
+                      for item in self.recent_assets]
+            lines.extend(['', 'Recent assets (latest three)',
+                          *recent, *([''] * (3 - len(recent)))])
+        return lines
 
     def render(self, outcome=None):
         lines = self.content(outcome)
