@@ -312,9 +312,15 @@ class TerminalUI:
                 return 0
             try:
                 video = None
+                if launcher.get('select_camera'):
+                    resolution = self.choose('Choose a camera resolution',
+                        self.api.camera_choices(self.catalog, self.platform))
+                    if resolution is None:
+                        continue
+                    launcher = self.api.with_camera_resolution(launcher, resolution)
                 if launcher.get('select_video'):
                     videos = [item for item in self.catalog.get('videos', [])
-                              if item['demo'] == launcher['demo']]
+                              if item['demo'] == launcher.get('video_demo', launcher['demo'])]
                     video = self.choose('Choose a video', videos)
                     if video is None:
                         continue

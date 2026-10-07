@@ -20,6 +20,16 @@ A55_TEMPERATURE = SoCTemperature(sensor_name='a55-thermal')
 CLOCK_SCALE = Path('/sys/bus/platform/drivers/galcore/gpu3DClockScale')
 
 
+def warm_up_model(interpreter):
+    """Exclude first-invocation graph compilation from measured inference."""
+    import numpy as np
+    startup_step('Warming up the NPU with a model-sized frame')
+    source = interpreter.get_input_details()[0]
+    interpreter.set_tensor(source['index'], np.zeros(source['shape'], source['dtype']))
+    interpreter.invoke()
+    startup_step('Opening video; waiting for the first frame')
+
+
 @lru_cache(maxsize=1)
 def display_size():
     """Use display pixels, not source-video pixels, for presentation."""

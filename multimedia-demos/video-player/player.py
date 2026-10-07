@@ -239,6 +239,11 @@ class Player(Gtk.Window):
         if factory and 'Decoder' in factory.get_metadata('klass') and \
                 'Video' in factory.get_metadata('klass'):
             self.decoder = factory.get_name()
+            compatible = Path('/proc/device-tree/compatible')
+            if (self.decoder == 'v4l2h264dec' and compatible.is_file()
+                    and b'fsl,imx95' in compatible.read_bytes().split(b'\0')):
+                # Avoid stale/future DMA_DRM textures observed on this BSP.
+                element.set_property('capture-io-mode', 2)
             print(f'Video decoder: {self.decoder}', flush=True)
 
     def choose_file(self, _):

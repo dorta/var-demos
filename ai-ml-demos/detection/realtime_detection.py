@@ -22,7 +22,7 @@ from helper.opencv import (
 )
 from helper.utils import get_tensor, load_labels, Timer, Framerate
 
-from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup
+from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step
 
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
@@ -30,8 +30,8 @@ EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 def open_video_capture(width=720, height=480, framerate="30/1"):
     pipeline = "v4l2src device={} ! video/x-raw,width={},height={}," \
                "framerate={} ! queue leaky=downstream " \
-               "max-size-buffers=1 ! videoconvert ! " \
-               "appsink max-buffers=1 drop=true".format(
+               "max-size-buffers=1 ! videoconvert ! video/x-raw,format=BGR ! " \
+               "appsink name=opencvsink max-buffers=1 drop=true".format(
                    args['camera'], width, height, framerate
                )
     return managed_capture(pipeline)
@@ -47,11 +47,14 @@ def image_detection(args):
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
+    warm_up_model(interpreter)
 
     model_height, model_width = input_details[0]['shape'][1:3]
 
-    video_capture = open_video_capture()
+    camera_width, camera_height = map(int, args['resolution'].split('x'))
+    video_capture = open_video_capture(camera_width, camera_height)
     window_created = False
+    ready = False
     framerate = Framerate()
     pacer = ThermalPacer()
     while video_capture.isOpened():
@@ -92,12 +95,18 @@ def image_detection(args):
                 create_window(TITLE, args['windowed'])
                 window_created = True
             cv2.imshow(TITLE, frame)
+            if not ready:
+                cv2.waitKey(1)
+                startup_step('Frames and NPU inference ready', ready=True)
+                ready = True
             if cv2.waitKey(1) == 27:
                 break
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--resolution', default='720x480',
+                        choices=['640x480', '720x480', '1280x720', '1920x1080'])
     parser.add_argument(
           '--model',
           default='model/ssd_mobilenet_v1_1_default_1.tflite',

@@ -18,7 +18,7 @@ from utils import (
     COMBINATIONS,
     profile, show_available_combinations
 )
-from runtime import demo_session, register_cleanup, ThermalPacer
+from runtime import demo_session, register_cleanup, ThermalPacer, warm_up_model, startup_step
 
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -155,6 +155,7 @@ def main(args):
 
     labels = load_labels(args.label)
     interpreter = load_interpreter(args.model, args.debug)
+    warm_up_model(interpreter)
     input_details = interpreter.get_input_details()
     model_height, model_width = input_details[0]['shape'][1:3]
 
@@ -205,6 +206,9 @@ def main(args):
                     )
                 window_created = True
             cv2.imshow("Detection", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            if frame_count == 1:
+                cv2.waitKey(1)
+                startup_step('Frames and NPU inference ready', ready=True)
             if cv2.waitKey(1) == 27:
                 break
 

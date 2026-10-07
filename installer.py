@@ -4,6 +4,7 @@
 
 import argparse
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
@@ -28,6 +29,21 @@ LOGO_URL = ('https://nyc3.digitaloceanspaces.com/variscite-marketing/'
             'demos/branding/v1/variscite-logo-white.png')
 LOGO_HASH = 'ba878adab3671263d6907d91ec87be6c1abd049cdef30ee896fd11857b4c9a5c'
 OWNED = '.var-demos-owned'
+
+
+def installed_bin_dir(root):
+    marker = root / '.var-demos-installed'
+    text = marker.read_text().strip() if marker.is_file() else ''
+    if not text:
+        return Path('/usr/bin')  # Older installations used an empty marker.
+    try:
+        metadata = json.loads(text)
+        directory = Path(metadata['bin_dir'])
+    except (ValueError, TypeError, KeyError) as error:
+        raise RuntimeError('Invalid installed command directory') from error
+    if not directory.is_absolute():
+        raise RuntimeError('Invalid installed command directory')
+    return directory
 
 
 def install_plan(source, board, groups):
@@ -140,7 +156,7 @@ def main():
     parser.add_argument('--source', type=Path,
                         default=Path(__file__).resolve().parent)
     parser.add_argument('--prefix', default='/opt/var-demos')
-    parser.add_argument('--bin-dir', type=Path, default=Path('/usr/bin'))
+    parser.add_argument('--bin-dir', type=Path)
     parser.add_argument('--only', action='append', choices=['ai-ml',
                          'multimedia', 'opencl'])
     parser.add_argument('--board')
@@ -150,6 +166,8 @@ def main():
     args = parser.parse_args()
     source = args.source.resolve()
     root = valid_root(args.prefix)
+    if args.bin_dir is None:
+        args.bin_dir = installed_bin_dir(root) if args.uninstall else Path('/usr/bin')
     if args.uninstall:
         source = root
     with (source / 'catalog.toml').open('rb') as file:
@@ -315,14 +333,16 @@ def main():
         event('Setting up the demo menu')
         lib = root / 'lib'
         lib.mkdir(exist_ok=True)
-        for name in ('manager.py', 'terminal_ui.py', 'runtime.py', 'telemetry.py'):
+        for name in ('manager.py', 'terminal_ui.py', 'runtime.py', 'telemetry.py',
+                     'vision_overlay.py'):
             shutil.copy2(source / 'ai-ml-demos' / name, lib / name)
         for name in ('suite.py', 'catalog.toml', 'installer.py', 'install.sh',
                      'install_ui.py'):
             shutil.copy2(source / name, root / name)
         (root / 'suite.py').chmod(0o755)
         (root / 'install.sh').chmod(0o755)
-        (root / '.var-demos-installed').touch()
+        (root / '.var-demos-installed').write_text(json.dumps(
+            {'bin_dir': str(args.bin_dir.resolve())}) + '\n')
         args.bin_dir.mkdir(parents=True, exist_ok=True)
         link_command(args.bin_dir, 'var-demos', root / 'suite.py')
         remove_legacy_commands(args.bin_dir, root)

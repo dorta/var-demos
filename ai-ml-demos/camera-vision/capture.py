@@ -19,6 +19,7 @@ class VideoCapture:
         self.sink = self.pipeline.get_by_name('frames')
         self.bus = self.pipeline.get_bus()
         self.closed = False
+        self.last_pts = None
         if self.pipeline.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
             self.release()
             raise RuntimeError('Could not start the video pipeline')
@@ -38,6 +39,7 @@ class VideoCapture:
         if info.finfo.name != 'BGR':
             raise RuntimeError(f'Expected BGR, received {info.finfo.name}')
         buffer = sample.get_buffer()
+        self.last_pts = buffer.pts
         pixels = buffer.extract_dup(0, buffer.get_size())
         rows = np.frombuffer(pixels, np.uint8).reshape(info.height, info.stride[0])
         return True, rows[:, :info.width * 3].reshape(

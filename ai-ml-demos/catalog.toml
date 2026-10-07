@@ -1,6 +1,7 @@
 version = 1
 
 [platforms.imx8mplus]
+camera_resolutions = [{title = "SD 720x480 (default)", value = "720x480"}, {title = "VGA 640x480", value = "640x480"}, {title = "HD 1280x720", value = "1280x720"}, {title = "Full HD 1920x1080", value = "1920x1080"}]
 name = "i.MX 8M Plus"
 compatible = ["fsl,imx8mp"]
 status = "validated"
@@ -9,6 +10,7 @@ delegate_path = "/usr/lib/libvx_delegate.so"
 runtime_plugins = "appsink decodebin imxvideoconvert_g2d"
 
 [platforms.imx93]
+camera_resolutions = [{title = "VGA 640x480 (default)", value = "640x480"}, {title = "HD 1280x720", value = "1280x720"}, {title = "Full HD 1920x1080", value = "1920x1080"}]
 name = "i.MX 93"
 compatible = ["fsl,imx93"]
 status = "validated"
@@ -17,12 +19,13 @@ delegate_path = "/usr/lib/libethosu_delegate.so"
 runtime_plugins = "appsink v4l2src videoconvert avidemux jpegdec"
 
 [platforms.imx95]
+camera_resolutions = [{title = "HD 1280x720 (default)", value = "1280x720"}, {title = "VGA 640x480", value = "640x480"}, {title = "Full HD 1920x1080", value = "1920x1080"}]
 name = "i.MX 95"
 compatible = ["fsl,imx95"]
 status = "validated"
 asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx95/v1"
 delegate_path = "/usr/lib/libneutron_delegate.so"
-runtime_plugins = "appsink v4l2src videoconvert glupload glcolorconvert gldownload"
+runtime_plugins = "appsink v4l2src videoconvert qtdemux h264parse v4l2h264dec glupload glcolorconvert glcolorscale gldownload"
 
 [[demos]]
 id = "vision-imx93"
@@ -42,6 +45,7 @@ manifest = "assets-imx95.manifest"
 
 [[launchers]]
 id = "ethosu-classification-camera"
+select_camera = true
 title = "Classify the camera with Ethos-U65"
 description = "MobileNet V1 on the MX93 NPU; OV5640 camera"
 demo = "vision-imx93"
@@ -49,8 +53,37 @@ startup_progress = true
 command = ["python3", "demo.py", "--task", "classification"]
 
 [[launchers]]
+id = "ethosu-classification-image"
+title = "Classify an image with Ethos-U65"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "classification", "--image", "media/classification-image.jpg"]
+
+[[launchers]]
+id = "ethosu-detection-image"
+title = "Detect objects in an image with Ethos-U65"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "detection", "--image", "media/detection-image.png"]
+
+[[launchers]]
+id = "neutron-classification-image"
+title = "Classify an image with Neutron"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "classification", "--image", "media/classification-image.jpg"]
+
+[[launchers]]
+id = "neutron-detection-image"
+title = "Detect objects in an image with Neutron"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "detection", "--image", "media/detection-image.png"]
+
+[[launchers]]
 id = "ethosu-detection-camera"
-title = "Detect objects in the MX93 camera"
+select_camera = true
+title = "Detect objects in the camera with Ethos-U65"
 description = "SSD MobileNet V1; NPU inference and CPU box postprocessing"
 demo = "vision-imx93"
 startup_progress = true
@@ -67,7 +100,7 @@ command = ["python3", "demo.py", "--task", "classification"]
 
 [[launchers]]
 id = "ethosu-detection-video"
-title = "Detect objects in an MX93 video"
+title = "Detect objects in a video with Ethos-U65"
 description = "Choose HD or Full HD; CPU video decode and Ethos-U65 inference"
 demo = "vision-imx93"
 startup_progress = true
@@ -76,6 +109,7 @@ command = ["python3", "demo.py", "--task", "detection"]
 
 [[launchers]]
 id = "neutron-classification-camera"
+select_camera = true
 title = "Classify the camera with Neutron"
 description = "MobileNet V1 on the MX95 NPU; CSI0 OV5640 camera"
 demo = "vision-imx95"
@@ -84,7 +118,8 @@ command = ["python3", "demo.py", "--task", "classification"]
 
 [[launchers]]
 id = "neutron-detection-camera"
-title = "Detect objects in the MX95 camera"
+select_camera = true
+title = "Detect objects in the camera with Neutron"
 description = "SSD-Lite V2; Neutron inference and CPU box decoding"
 demo = "vision-imx95"
 startup_progress = true
@@ -101,7 +136,7 @@ command = ["python3", "demo.py", "--task", "classification"]
 
 [[launchers]]
 id = "neutron-detection-video"
-title = "Detect objects in an MX95 video"
+title = "Detect objects in a video with Neutron"
 description = "Choose HD or Full HD; hardware decoder, GPU and Neutron"
 demo = "vision-imx95"
 startup_progress = true
@@ -143,7 +178,7 @@ manifest = "assets.manifest"
 [[launchers]]
 id = "hand-gesture-camera"
 startup_progress = true
-title = "Recognize a hand and gestures (experimental)"
+title = "Recognize hand gestures with VIP8000 (experimental)"
 category = "HAND AND GESTURES"
 menu_title = "Camera"
 description = "single hand; open, fist, pointing or victory; experimental"
@@ -152,7 +187,7 @@ command = ["python3", "demo.py", "--camera", "{camera}"]
 
 [[launchers]]
 id = "classification-image"
-title = "Classify an image"
+title = "Classify an image with VIP8000"
 category = "CLASSIFICATION"
 menu_title = "Image"
 description = "identify the main subject in a sample image"
@@ -161,7 +196,10 @@ command = ["python3", "image_classification.py"]
 
 [[launchers]]
 id = "classification-video"
-title = "Classify a video"
+startup_progress = true
+select_video = true
+video_demo = "high-resolution-video-detection"
+title = "Classify a video with VIP8000"
 category = "CLASSIFICATION"
 menu_title = "Video"
 description = "identify the main subject in each video frame"
@@ -170,7 +208,9 @@ command = ["python3", "video_classification.py", "--videofmw", "gstreamer"]
 
 [[launchers]]
 id = "classification-camera"
-title = "Classify the camera feed"
+startup_progress = true
+select_camera = true
+title = "Classify the camera with VIP8000"
 category = "CLASSIFICATION"
 menu_title = "Camera"
 description = "classify the live camera feed"
@@ -179,7 +219,7 @@ command = ["python3", "realtime_classification.py", "--camera", "{camera}"]
 
 [[launchers]]
 id = "detection-image"
-title = "Detect objects in an image"
+title = "Detect objects in an image with VIP8000"
 category = "OBJECT DETECTION"
 menu_title = "Image"
 description = "locate and label objects in a sample image"
@@ -188,7 +228,10 @@ command = ["python3", "image_detection.py"]
 
 [[launchers]]
 id = "detection-video"
-title = "Detect objects in a video"
+startup_progress = true
+select_video = true
+video_demo = "high-resolution-video-detection"
+title = "Detect objects in a video with VIP8000"
 category = "OBJECT DETECTION"
 menu_title = "Video"
 description = "locate and label objects in a sample video"
@@ -197,7 +240,9 @@ command = ["python3", "video_detection.py", "--videofmw", "gstreamer"]
 
 [[launchers]]
 id = "detection-camera"
-title = "Detect objects in the camera feed"
+startup_progress = true
+select_camera = true
+title = "Detect objects in the camera with VIP8000"
 category = "OBJECT DETECTION"
 menu_title = "Camera"
 description = "locate and label objects from the live camera"
@@ -206,8 +251,9 @@ command = ["python3", "realtime_detection.py", "--camera", "{camera}"]
 
 [[launchers]]
 id = "detection-hd-video"
+startup_progress = true
 select_video = true
-title = "Detect objects in a high-resolution video"
+title = "Detect objects in an HD video with VIP8000"
 category = "HIGH-RESOLUTION DETECTION"
 menu_title = "HD video"
 description = "choose footage and resolution before running detection"
@@ -228,7 +274,7 @@ combination = 2
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "Chicago traffic — HD 1280x720, 17 seconds"
+title = "Chicago traffic - HD 1280x720, 17 seconds"
 path = "assets/videos/chicago_1280x720.mp4"
 combination = 2
 
@@ -246,19 +292,19 @@ combination = 14
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "Jijiga street — HD 1280x720, 11 seconds"
+title = "Jijiga street - HD 1280x720, 11 seconds"
 path = "assets/videos/video_1280x720.mp4"
 combination = 2
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "Jijiga street — 1280x800, 11 seconds"
+title = "Jijiga street - 1280x800, 11 seconds"
 path = "assets/videos/video_1280x800.mp4"
 combination = 8
 
 [[videos]]
 demo = "high-resolution-video-detection"
-title = "Jijiga street — Full HD 1920x1080, 11 seconds"
+title = "Jijiga street - Full HD 1920x1080, 11 seconds"
 path = "assets/videos/video_1920x1080.mp4"
 combination = 14
 
@@ -289,6 +335,16 @@ path = "assets/videos/buildings_458688_1920x1080.avi"
 
 [[videos]]
 demo = "vision-imx93"
+title = "Jijiga street - HD 1280x720, 11 seconds"
+path = "assets/videos/video_1280x720.avi"
+
+[[videos]]
+demo = "vision-imx93"
+title = "Jijiga street - 1280x800, 11 seconds"
+path = "assets/videos/video_1280x800.avi"
+
+[[videos]]
+demo = "vision-imx93"
 title = "Jijiga street - Full HD 1920x1080, 11 seconds"
 path = "assets/videos/video_1920x1080.avi"
 
@@ -316,6 +372,16 @@ path = "assets/videos/buildings_458687_1920x1080.mp4"
 demo = "vision-imx95"
 title = "High-rise buildings B - Full HD 1920x1080, 32 seconds"
 path = "assets/videos/buildings_458688_1920x1080.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "Jijiga street - HD 1280x720, 11 seconds"
+path = "assets/videos/video_1280x720.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+title = "Jijiga street - 1280x800, 11 seconds"
+path = "assets/videos/video_1280x800.mp4"
 
 [[videos]]
 demo = "vision-imx95"

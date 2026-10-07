@@ -57,31 +57,5 @@ SOC_TEMPERATURE = SoCTemperature(sensor_name=board_sensor_name())
 
 
 def draw_soc_temperature(frame, panel_color, text_color, rgb=False):
-    import cv2
-    import numpy as np
-
-    value = SOC_TEMPERATURE.read()
-    # Hershey fonts do not provide a degree glyph; use an explicit C unit.
-    text = 'SoC --.- C' if value is None else f'SoC {value:.1f} C'
-    scale = 0.42
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    size = cv2.getTextSize(text, font, scale, 1)[0]
-    right = frame.shape[1] - 10
-    bottom = frame.shape[0] - 10
-    left = max(0, right - size[0] - 20)
-    top = max(0, bottom - size[1] - 18)
-    if top >= bottom or left >= right:
-        return
-    region = frame[top:bottom, left:right]
-    cv2.addWeighted(
-        np.full_like(region, panel_color), 0.72, region, 0.28, 0, region
-    )
-    color = text_color
-    if value is not None and value >= 80:
-        color = (56, 189, 248) if value < 85 else (64, 96, 248)
-        if rgb:
-            color = color[::-1]
-    cv2.putText(
-        frame, text, (left + 10, bottom - 9), font, scale,
-        color, 1, cv2.LINE_AA,
-    )
+    from vision_overlay import temperature
+    temperature(frame, SOC_TEMPERATURE.read(), rgb)

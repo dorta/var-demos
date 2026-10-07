@@ -14,6 +14,17 @@ spec.loader.exec_module(installer)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_installed_bin_dir_keeps_legacy_default_and_custom_ownership(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            marker = root / '.var-demos-installed'
+            marker.touch()
+            self.assertEqual(installer.installed_bin_dir(root), Path('/usr/bin'))
+            marker.write_text('{"bin_dir":"/opt/fixture/bin"}')
+            self.assertEqual(installer.installed_bin_dir(root), Path('/opt/fixture/bin'))
+            marker.write_text('{"bin_dir":"relative"}')
+            with self.assertRaises(RuntimeError):
+                installer.installed_bin_dir(root)
     def test_brand_asset_requires_its_expected_checksum(self):
         with tempfile.TemporaryDirectory() as temporary:
             asset = Path(temporary) / 'logo.png'

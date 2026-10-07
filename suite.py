@@ -64,12 +64,17 @@ def load_suite():
             continue
         with (ROOT / 'ai-ml/catalog.toml').open('rb') as source:
             ai = tomllib.load(source)
+        for name, platform in ai.get('platforms', {}).items():
+            if name in catalog['platforms']:
+                catalog['platforms'][name]['camera_resolutions'] = platform.get('camera_resolutions', [])
         for demo in ai['demos']:
             demo['id'] = 'ai-ml/' + demo['id']
             demo['path'] = 'ai-ml/' + demo['path']
             catalog['demos'].append(demo)
         for launcher in ai['launchers']:
             launcher['demo'] = 'ai-ml/' + launcher['demo']
+            if launcher.get('video_demo'):
+                launcher['video_demo'] = 'ai-ml/' + launcher['video_demo']
             launcher['group'] = 'ai-ml'
             catalog['launchers'].append(launcher)
         for video in ai.get('videos', []):

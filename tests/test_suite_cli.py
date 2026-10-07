@@ -14,6 +14,32 @@ spec.loader.exec_module(suite)
 
 
 class SuiteCommandTests(unittest.TestCase):
+    def test_suite_preserves_cross_demo_videos_and_camera_choices(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copy2(ROOT / 'catalog.toml', root / 'catalog.toml')
+            ai = root / 'ai-ml'
+            ai.mkdir()
+            shutil.copy2(ROOT / 'ai-ml-demos/catalog.toml', ai / 'catalog.toml')
+            (ai / 'classification').mkdir()
+            with patch.object(suite, 'ROOT', root), \
+                    patch.object(suite.manager, 'ROOT', root), \
+                    patch.object(suite, 'add_external_demos'):
+                catalog = suite.load_suite()
+                launcher = next(x for x in catalog['launchers']
+                                if x['id'] == 'classification-video')
+                self.assertEqual(launcher['video_demo'],
+                                 'ai-ml/high-resolution-video-detection')
+                video = next(x for x in catalog['videos']
+                             if x['demo'] == launcher['video_demo'])
+                path = ai / 'high-resolution-video-detection' / video['path']
+                path.parent.mkdir(parents=True)
+                path.touch()
+                _, command, _ = suite.manager.prepare_launch(catalog, launcher, video)
+                self.assertEqual(command[-2:], ['--video', str(path)])
+                for platform in ('imx8mplus', 'imx93', 'imx95'):
+                    self.assertTrue(suite.manager.camera_choices(catalog, platform))
+
     def catalog(self, groups=None):
         return {'platforms': {'imx8mplus': {'name': 'i.MX 8M Plus'}},
                 'groups': groups or [], 'demos': [], 'launchers': []}

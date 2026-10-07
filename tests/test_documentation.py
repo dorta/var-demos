@@ -43,7 +43,9 @@ class DocumentationTests(unittest.TestCase):
     def test_performance_tables_have_identical_scenarios_and_columns(self):
         text = (ROOT / 'README.md').read_text()
         performance = text.split('## Performance\n', 1)[1]
-        expected = ['Camera classification', 'Camera detection',
+        expected = ['Image classification', 'Image detection',
+                    '720p video classification', '1080p video classification',
+                    'Camera classification', 'Camera detection',
                     '720p video detection', '1080p video detection',
                     'Video player', 'OpenCL / GPU examples', 'Hand gestures']
         for section in performance.split('### ')[1:]:

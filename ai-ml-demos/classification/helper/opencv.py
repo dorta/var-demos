@@ -14,6 +14,7 @@ from helper.config import FONT
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from telemetry import draw_soc_temperature
 from runtime import display_view
+import vision_overlay as ui
 
 
 PANEL_COLOR = (24, 28, 32)
@@ -74,10 +75,6 @@ def fit_to_display(frame, windowed=False):
     return cv2.resize(frame, (target_width, target_height))
 
 
-def _blend_panel(frame, left, top, right, bottom, opacity=0.78):
-    region = frame[top:bottom, left:right]
-    panel = np.full_like(region, PANEL_COLOR)
-    cv2.addWeighted(panel, opacity, region, 1 - opacity, 0, region)
 
 
 def _inference_ms(value):
@@ -93,70 +90,22 @@ def _model_title(model_name):
     return f"{os.path.splitext(name)[0].replace('_', ' ')} | NPU"
 
 
-def _draw_badge(frame, text, row=0):
-    scale = 0.6
-    size, baseline = cv2.getTextSize(text, FONT['hershey'], scale, 1)
-    right = frame.shape[1] - 10
-    top = 10 + row * (size[1] + baseline + 22)
-    left = right - size[0] - 18
-    bottom = top + size[1] + baseline + 14
-    _blend_panel(frame, left, top, right, bottom)
-    cv2.putText(
-        frame, text, (left + 9, bottom - 7 - baseline),
-        FONT['hershey'], scale, TEXT_COLOR, 1, cv2.LINE_AA
-    )
 
 
-def _draw_results(frame, top_result, labels):
-    scale = 0.6
-    lines = [f'{labels[index]}  {score:.0%}' for index, score in top_result]
-    sizes = [
-        cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
-        for text in lines
-    ]
-    if not sizes:
-        return
-    line_height = max(size[1] for size in sizes) + 12
-    width = min(frame.shape[1] - 20, max(size[0] for size in sizes) + 32)
-    left = 10
-    top = 10
-    bottom = top + line_height * len(lines) + 12
-    _blend_panel(frame, left, top, left + width, bottom)
-    cv2.rectangle(frame, (left, top), (left + 4, bottom), ACCENT_COLOR, -1)
-    for row, (text, size) in enumerate(zip(lines, sizes)):
-        color = TEXT_COLOR if row == 0 else MUTED_COLOR
-        y = top + 10 + row * line_height + size[1]
-        cv2.putText(
-            frame, text, (left + 16, y), FONT['hershey'], scale,
-            color, 1, cv2.LINE_AA
-        )
 
 
-def _draw_model(frame, model_name):
-    scale = 0.5
-    text = _model_title(model_name)
-    size = cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
-    width = min(frame.shape[1] - 20, size[0] + 20)
-    left = 10
-    bottom = frame.shape[0] - 10
-    top = bottom - size[1] - 18
-    _blend_panel(frame, left, top, left + width, bottom, 0.72)
-    cv2.putText(
-        frame, text, (left + 10, bottom - 9), FONT['hershey'], scale,
-        TEXT_COLOR, 1, cv2.LINE_AA
-    )
 
 
 def put_info_on_frame(frame, top_result, labels,
                       inference_time, model_name, _source_file):
     frame, _ = display_view(frame)
-    _draw_results(frame, top_result, labels)
-    _draw_badge(frame, f'INFERENCE  {_inference_ms(inference_time):.1f} ms')
-    _draw_model(frame, model_name)
+    ui.results(frame, [(labels[index], score) for index, score in top_result])
+    ui.statistics(frame, _inference_ms(inference_time))
+    ui.model(frame, _model_title(model_name).replace(' | NPU', ' | VIP8000'))
     draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR)
     return frame
 
 
 def put_fps_on_frame(frame, fps):
-    _draw_badge(frame, f'FPS  {fps:.1f}', row=1)
+    ui.badge(frame, f'FPS        {fps:6.1f}', row=1)
     return frame

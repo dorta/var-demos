@@ -16,3 +16,8 @@ installer. High-rise buildings A in 720p is installed as the default.
 Open selects a local movie. The AI/ML video selector also includes both
 High-rise clips in 720p and 1080p, downloaded by the same installer.
 MX93 uses MJPEG AVI copies because the tested image lacks an H.264 decoder.
+MX95's H.264 decoder explicitly uses MMAP buffers before EGL conversion;
+the automatic DMA_DRM import path returned stale/future image content on
+the tested BSP. Play/pause, seek, stop, restart, fullscreen and shutdown
+were retested with this correction. These are short functional checks,
+not a continuous playback certification.

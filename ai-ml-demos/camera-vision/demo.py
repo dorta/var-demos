@@ -19,6 +19,7 @@ from runtime import (demo_session, managed_capture, record_inference,
                      register_cleanup, startup_step, ThermalPacer,
                      display_view, display_box)
 from telemetry import SoCTemperature
+import vision_overlay as ui
 from postprocess import decode_postprocessed, decode_ssdlite
 
 ROOT = Path(__file__).resolve().parent
@@ -41,6 +42,15 @@ def gpu_video_conversion():
             'video/x-raw,format=RGBA ! ')
 
 
+def video_decoder(platform):
+    if platform == 'imx93':
+        return 'avidemux ! jpegdec'
+    # Automatic DMA_DRM import returned future/stale images despite increasing
+    # PTS. MMAP NV12 plus GL upload was checked against a CPU-decoded reference.
+    return ('qtdemux ! h264parse ! v4l2h264dec capture-io-mode=2 ! '
+            'video/x-raw,format=NV12')
+
+
 def board():
     compatible = Path('/proc/device-tree/compatible').read_bytes().split(b'\0')
     for name in ('imx93', 'imx95'):
@@ -49,13 +59,16 @@ def board():
     raise RuntimeError('This demo requires a tested i.MX 93 or i.MX 95')
 
 
-def configure_camera(platform, device):
+def configure_camera(platform, device, resolution):
     if device != '/dev/video0':
         raise RuntimeError('Only the tested OV5640 /dev/video0 is supported')
     if platform == 'imx93':
         topology = subprocess.check_output(['media-ctl', '-p'], text=True)
         if 'ov5640 4-003c' not in topology:
             raise RuntimeError('The tested MX93 OV5640 camera was not found')
+        subprocess.run(['media-ctl', '-V',
+            f'"ov5640 4-003c":0 [fmt:UYVY8_1X16/{resolution} field:none]'],
+            check=True)
         return
     topology = subprocess.check_output(['media-ctl', '-p'], text=True)
     sensor = 'ov5640 2-003c'
@@ -69,7 +82,7 @@ def configure_camera(platform, device):
     pads.append(('mxc_isi.0', 1))
     for entity, pad in pads:
         subprocess.run(['media-ctl', '-V',
-            f'"{entity}":{pad} [fmt:UYVY8_1X16/1280x720 field:none]'],
+            f'"{entity}":{pad} [fmt:UYVY8_1X16/{resolution} field:none]'],
             check=True)
 
 
@@ -116,19 +129,6 @@ def load_model(platform, task):
     return interpreter, source, outputs, labels, priors
 
 
-def badge(frame, text, x, y, right=False):
-    font, scale = cv2.FONT_HERSHEY_SIMPLEX, .6
-    (width, height), baseline = cv2.getTextSize(text, font, scale, 1)
-    if right:
-        x -= width + 16
-    x = max(0, min(x, frame.shape[1] - width - 16))
-    bottom = min(frame.shape[0], y + height + baseline + 14)
-    region = frame[y:bottom, x:x + width + 16]
-    if region.size:
-        cv2.addWeighted(region, .25, np.full_like(region, (23, 29, 34)),
-                        .75, 0, region)
-        cv2.putText(frame, text, (x + 8, y + height + 5), font, scale,
-                    (240, 246, 248), 1, cv2.LINE_AA)
 
 
 def overlay(frame, detections, labels, title, fps, ms, thermal, sensor,
@@ -137,15 +137,11 @@ def overlay(frame, detections, labels, title, fps, ms, thermal, sensor,
     box_area = box_area or (0, 0, width, height)
     for box, class_id, score in detections:
         left, top, right, bottom = display_box(box, box_area)
-        color = COLORS[class_id % len(COLORS)]
-        cv2.rectangle(frame, (left, top), (right, bottom), color, 2, cv2.LINE_AA)
-        text = f'{labels.get(class_id, "object")}  {score:.0%}'
-        badge(frame, text, left, max(0, top - 36))
-    badge(frame, f'{fps:.1f} FPS  |  {ms:.1f} ms', width - 8, 8, right=True)
-    badge(frame, title, 8, height - 36)
-    value = thermal.read()
-    badge(frame, f'{sensor} {value:.1f} C' if value is not None else
-          f'{sensor} unavailable', width - 8, height - 36, right=True)
+        ui.box(frame, (left, top, right, bottom),
+               labels.get(class_id, 'object'), score)
+    ui.statistics(frame, ms, fps)
+    ui.model(frame, title)
+    ui.temperature(frame, thermal.read())
 
 
 @demo_session()
@@ -153,12 +149,16 @@ def run(args):
     platform = board()
     interpreter, source, outputs, labels, priors = load_model(platform, args.task)
     size = (int(source['shape'][2]), int(source['shape'][1]))
-    if args.video:
+    if args.image:
+        still_image = cv2.imread(args.image)
+        if still_image is None:
+            raise RuntimeError('Cannot read the selected image')
+    elif args.video:
         path = Path(args.video).resolve()
         if not path.is_file():
             raise RuntimeError('Selected video does not exist')
         location = str(path).replace('\\', '\\\\').replace('"', '\\"')
-        decoder = ('avidemux ! jpegdec' if platform == 'imx93' else 'decodebin')
+        decoder = video_decoder(platform)
         pipeline = f'filesrc location="{location}" ! {decoder} ! '
         if platform == 'imx95':
             runtime = Path(os.environ.setdefault('XDG_RUNTIME_DIR', '/run/user/0'))
@@ -172,19 +172,25 @@ def run(args):
             os.environ.setdefault('QT_QPA_PLATFORM', 'xcb')
             pipeline += gpu_video_conversion()
     else:
-        configure_camera(platform, args.camera)
-        dimensions = ('format=YUY2,width=1280,height=720' if platform == 'imx95'
-                      else 'width=640,height=480')
+        resolution = args.resolution or ('1280x720' if platform == 'imx95' else '640x480')
+        configure_camera(platform, args.camera, resolution)
+        width, height = map(int, resolution.split('x'))
+        dimensions = f'width={width},height={height}'
+        if platform == 'imx95':
+            dimensions = 'format=YUY2,' + dimensions
         pipeline = (f'v4l2src device={args.camera} ! '
                     f'video/x-raw,{dimensions} ! ')
     # A leaky queue BEFORE a clocked video sink discards the clip while it is
     # being decoded and leaves a future-timestamped final frame waiting. Keep
     # files clocked, and drop only late sink samples. Live cameras may leak.
-    if not args.video:
+    if not args.video and not args.image:
         pipeline += 'queue leaky=downstream max-size-buffers=1 ! '
-    pipeline += capture_tail(bool(args.video))
-    startup_step('Opening video; waiting for the first frame')
-    if args.video:
+    if not args.image:
+        pipeline += capture_tail(bool(args.video))
+        startup_step('Opening video; waiting for the first frame')
+    if args.image:
+        cap = None
+    elif args.video:
         from capture import VideoCapture
         cap = VideoCapture(pipeline)
         register_cleanup(cap.release)
@@ -205,7 +211,7 @@ def run(args):
 
         if not pacer.wait(stop_requested):
             break
-        ok, frame = cap.read()
+        ok, frame = ((True, still_image.copy()) if args.image else cap.read())
         if not ok:
             if args.video and frames:
                 break
@@ -233,22 +239,30 @@ def run(args):
         if args.headless:
             if frames == 1:
                 startup_step('Frames and NPU inference ready', ready=True)
+            if args.image:
+                break
             continue
         frame, box_area = display_view(frame)
         overlay(frame, detections, labels, title,
-                frames / max(monotonic() - started, .001), ms, thermal, 'CPU',
+                None if args.image else frames / max(monotonic() - started, .001), ms, thermal, 'CPU',
                 box_area)
         if args.task == 'classification':
             scores = values[0][0].astype(np.float32)
             scale, zero = outputs[0]['quantization']
             if scale:
                 scores = (scores - zero) * scale
-            for row, index in enumerate(np.argsort(scores)[-3:][::-1]):
-                badge(frame, f'{labels[int(index)]}  {scores[index]:.0%}',
-                      8, 8 + row * 38)
+            ui.results(frame, [(labels[int(index)], float(scores[index]))
+                               for index in np.argsort(scores)[-3:][::-1]])
         cv2.imshow(title, frame)
         if frames == 1:
             startup_step('Frames and NPU inference ready', ready=True)
+        if args.image:
+            while not args.seconds or monotonic() - started < args.seconds:
+                if cv2.waitKey(50) & 0xff == 27:
+                    break
+                if cv2.getWindowProperty(title, cv2.WND_PROP_VISIBLE) < 1:
+                    break
+            break
         if cv2.waitKey(1) & 0xff == 27:
             break
     if not frames:
@@ -263,6 +277,8 @@ if __name__ == '__main__':
                         default='detection')
     parser.add_argument('--camera', default='/dev/video0')
     parser.add_argument('--video')
+    parser.add_argument('--image')
+    parser.add_argument('--resolution', choices=['640x480', '1280x720', '1920x1080'])
     parser.add_argument('--headless', action='store_true')
     parser.add_argument('--windowed', action='store_true')
     parser.add_argument('--seconds', type=float, default=0)

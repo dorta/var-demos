@@ -4,8 +4,10 @@ MobileNet classification and SSD detection for the tested MX93 and MX95
 BSPs. Select the demo through `var-demos`; the installer selects compiled
 models and labels for the detected board, not another board's artifacts.
 
-The tested camera is OV5640 on `/dev/video0`. MX93 captures 640x480; MX95
-captures 1280x720 through CSI0 on the Sonata carrier. Other sensors and
+The tested camera is OV5640 on `/dev/video0`. MX93 defaults to 640x480;
+MX95 defaults to 1280x720 through CSI0 on the Sonata carrier. The menu
+also offers VGA, 720p and 1080p capture; this configures the sensor and
+capture pipeline, not just an upscaled display. Other sensors and
 carriers need their own media-controller setup and are not auto-configured.
 
 MX93 uses Vela-compiled models and Ethos-U65. Its SSD post-processing runs
@@ -13,12 +15,29 @@ on the CPU. MX95 uses matching Neutron models; SSD-Lite box decoding and
 non-maximum suppression run on the CPU. Label indices and SSD anchors are
 model-specific. The video resolution is not the model input resolution.
 
+The shared menu starts with classification (image, video, camera), followed
+by detection (image, video, camera). Sample image predictions stay visible
+until Esc. All views use the shared MPlus-style panels and fullscreen.
+
 Both High-rise buildings clips are installed in 720p and 1080p at 25 FPS.
 Clip A lasts 34.08 seconds; clip B lasts 31.80 seconds. Select a video
 before starting classification or detection; 720p is the first choice.
 MX93 decodes MJPEG AVI on the CPU. MX95 decodes H.264 MP4 with the hardware
 decoder and uses EGL for color conversion. MJPEG copies preserve resolution,
 frame rate and duration, but change the encoding and are much larger.
+
+MX95 samples use the `media/ordered-v2/` asset release: H.264 re-encoded
+without B-frames as compatibility copies. Crucially, the decoder uses
+explicit MMAP NV12 buffers before GPU upload: removing B-frames alone did
+not eliminate stale/future images in the automatic DMA_DRM/EGL path.
+The final pipeline was compared with an independent CPU decode of the same
+file: 245 consecutive frames matched reference order with no regressions.
+Source resolution, frame rate and duration are retained; encoding
+is not bit-identical. The original files are not overwritten. Preparation:
+
+```sh
+ffmpeg -i input.mp4 -an -c:v libx264 -preset fast -crf 18 -bf 0 -g 50 -pix_fmt yuv420p -movflags +faststart output.mp4
+```
 
 Annotations are drawn after fitting the image to the display, so 720p and
 1080p use the same readable text size on an 800x480 panel. Letterboxing

@@ -56,11 +56,29 @@ def launchers_for(catalog, platform):
         for demo in catalog["demos"]
         if platform in demo.get("platforms", [])
     }
-    return [
+    launchers = [
         launcher
         for launcher in catalog.get("launchers", [])
         if launcher["demo"] in supported
     ]
+    order = {'classification-image': 0, 'classification-video': 1,
+             'classification-camera': 2, 'detection-image': 3,
+             'detection-video': 4, 'detection-camera': 5}
+    def rank(item):
+        name = item['id']
+        for prefix in ('ethosu-', 'neutron-'):
+            name = name.removeprefix(prefix)
+        return order.get(name, 6)
+    return sorted(launchers, key=rank)
+
+
+def camera_choices(catalog, platform):
+    return catalog['platforms'][platform].get('camera_resolutions', [])
+
+
+def with_camera_resolution(launcher, resolution):
+    return dict(launcher, command=list(launcher['command']) +
+                ['--resolution', resolution['value']])
 
 
 def detect_camera():
@@ -226,7 +244,8 @@ def prepare_launch(catalog, launcher, video=None):
         raise RuntimeError(f"demo is not installed: {demo['id']}")
     command = command_for(launcher)
     if video is not None:
-        video_path = directory / video['path']
+        video_demo = find_demo(catalog, launcher.get('video_demo', launcher['demo']))
+        video_path = ROOT / video_demo['path'] / video['path']
         if not video_path.is_file():
             raise RuntimeError(f"video is not installed: {video['title']}")
         command.extend(['--video', str(video_path)])
@@ -331,8 +350,17 @@ def interactive(catalog, platform, launchers):
 
         try:
             video = None
+            if launcher.get('select_camera'):
+                choices = camera_choices(catalog, platform)
+                print('\nChoose a camera resolution:')
+                for index, item in enumerate(choices, 1):
+                    print(f"  {index}. {item['title']}")
+                choice = input('Resolution (b: back): ').strip()
+                if not choice.isdigit() or not 1 <= int(choice) <= len(choices):
+                    continue
+                launcher = with_camera_resolution(launcher, choices[int(choice)-1])
             if launcher.get('select_video'):
-                video = select_video(catalog, launcher['demo'])
+                video = select_video(catalog, launcher.get('video_demo', launcher['demo']))
                 if video is None:
                     continue
             result = run_launcher(catalog, launcher, video=video)

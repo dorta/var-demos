@@ -15,6 +15,60 @@ The backend paths are documented in the
 Use the guide and tools matching the installed BSP, not automatically the
 newest release.
 
+## Exact installed artifacts and provenance
+
+The original MPlus artifacts are distributed with the
+[Variscite demos](https://github.com/varigit/var-demos/tree/demos/ai-ml-demos).
+Our installer downloads SHA-256-verified copies from the
+[MPlus asset distribution](https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v2/models/mobilenet_v1_1.0_224_quant.tflite).
+Their earlier training/export recipe and exact upstream Google archive have
+not been recovered; no new training or calibration is claimed here.
+
+| SoM / task | Installed file | Artifact SHA-256 |
+| --- | --- | --- |
+| MPlus classification | `mobilenet_v1_1.0_224_quant.tflite` | `ecc3a67c47c5a609ec35f6a58a7d97532834e43df4cb7d3f1204a8164b7d20dd` |
+| MPlus detection | `ssd_mobilenet_v1_1_default_1.tflite` | `e4b118e5e4531945de2e659742c7c590f7536f8d0ed26d135abcfe83b4779d13` |
+| MX93 classification | `mobilenet_vela.tflite` | `f57cf65901827a9fb1c5917cdf859c158044a3e23385a790b64787470e6ab6c3` |
+| MX93 detection | `ssd_vela.tflite` | `4133c77dcd38cb3c5738bc9d0a6c4c2a5e042e18329d01eab25639b6e42ae98b` |
+| MX95 classification | `mobilenet_neutron.tflite` | `a4d15d923469bbaf3c173625135ef7cfa83212af821085df35969b576031bb55` |
+| MX95 detection | `ssd_neutron.tflite` | `13f2da71c9f9978d6780d83b682118d23258b0cea4c0b62d6a00c48a53637527` |
+
+SHA-256 identifies the complete artifact, not just its learned weights.
+Different compiled hashes are expected, but do not prove model equivalence.
+The retained MX93 SSD source `/tmp/var-demos-ssd/ssd.tflite` has exactly the
+MPlus detector's SHA-256 above. Its Vela summary records `Ethos_U65_256`,
+`internal-default` system configuration and memory mode. The MobileNet
+Vela conversion was reproduced from the MPlus source with SHA-256 `ecc3a67c47c5a609ec35f6a58a7d97532834e43df4cb7d3f1204a8164b7d20dd`;
+the resulting artifact matched the installed MX93 model byte-for-byte
+(`f57cf65901827a9fb1c5917cdf859c158044a3e23385a790b64787470e6ab6c3`).
+Thus both MX93 source models are the MPlus models; the compiled execution
+artifacts differ. This verification does not establish weight equivalence
+with the separate NXP MX95 models.
+
+### Tensor interface, verified on the installed boards
+
+All inputs are `[1,H,W,3]` RGB. Quantization means
+`real_value = scale × (stored_value − zero_point)`; signed INT8 and unsigned
+UINT8 are not interchangeable.
+
+| SoM / task | Input size / dtype | Input scale / zero point | Outputs |
+| --- | --- | --- | --- |
+| MPlus classification | 224×224 / UINT8 | 0.0078125 / 128 | UINT8, 1001 scores; scale 0.00390625, zero point 0 |
+| MPlus detection | 300×300 / UINT8 | 0.0078125 / 128 | FLOAT32 boxes, classes, scores and count after detection postprocessing |
+| MX93 classification | 224×224 / UINT8 | 0.0078125 / 128 | UINT8, 1001 scores; scale 0.00390625, zero point 0 |
+| MX93 detection | 300×300 / UINT8 | 0.0078125 / 128 | FLOAT32 detection postprocessing outputs; NPU graph plus CPU postprocessing |
+| MX95 classification | 224×224 / UINT8 | approximately 1/255 / 0 | FLOAT32, 1001 scores |
+| MX95 detection | 300×300 / UINT8 | approximately 1/255 / 0 | FLOAT32 `[1,1917,1,4]` boxes and `[1,1917,91]` scores; decode/NMS on CPU |
+
+These are the external tensor interfaces, not a claim that every internal
+operator or tensor uses the same dtype. MX95 uses
+`mobilenet_v1_1.0_224_quant_uint8_float32_neutron.tflite` and
+`ssdlite_mobilenet_v2_coco_quant_uint8_float32_no_postprocess_neutron.tflite`
+from the matching [NXP release](https://github.com/nxp-imx-support/nxp-demo-experience-assets/tree/lf-6.18.20_2.0.0/models),
+renamed locally as listed above. The paired `box_priors.txt` and
+`coco_labels.txt` come from that release too. They must not be replaced
+with the MPlus SSD labels/postprocessor.
+
 ## Quantization and preprocessing
 
 Quantize with a representative dataset from the intended application.
@@ -37,12 +91,25 @@ Use the Vela version supplied with the BSP. On the tested Scarthgap image,
 Vela 3.12.0 successfully compiled MobileNet V1 for Ethos-U65-256:
 
 ```sh
-vela model_quant.tflite \
-  --accelerator-config ethos-u65-256 --output-dir output
+vela model_quant.tflite --accelerator-config ethos-u65-256 --output-dir output
 ```
 
 Load the generated `*_vela.tflite` with the Ethos-U delegate. This command
-was tested with MobileNet; it is not a guarantee for arbitrary operators.
+was tested with MobileNet. SSD was also compiled for the same accelerator,
+as recorded in its retained compiler summary; it is not a guarantee for
+arbitrary operators. To reproduce SSD from the verified MPlus source:
+
+```sh
+vela ssd_mobilenet_v1_1_default_1.tflite --accelerator-config ethos-u65-256 --output-dir output
+```
+
+Use Vela 3.12.0 and its `internal-default` settings for this recorded
+configuration. SSD compilation was reproduced from the retained source
+with these options; its SHA-256 matched the installed compiled artifact
+(`4133c77dcd38cb3c5738bc9d0a6c4c2a5e042e18329d01eab25639b6e42ae98b`).
+Vela reports 60 NPU operators and one CPU detection postprocessing operator
+for SSD, versus 60 NPU operators and no CPU operators for MobileNet. These
+are compiler operator counts, not measured application throughput.
 The old repository MobileNet artifact failed with this image's TFLite
 runtime, while recompiling its uncompiled model with the image's Vela passed.
 The NXP examples also

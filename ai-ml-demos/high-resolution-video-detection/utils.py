@@ -16,6 +16,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from telemetry import draw_soc_temperature
 from runtime import record_inference, display_view, display_box
+import vision_overlay as ui
 
 
 FONT = {
@@ -126,16 +127,6 @@ def load_labels(path):
         lines = (p.match(line).groups() for line in f.readlines())
         return {int(num): text.strip() for num, text in lines}
 
-def _blend_panel(frame, left, top, right, bottom, opacity=0.78):
-    left = max(0, left)
-    top = max(0, top)
-    right = min(frame.shape[1], right)
-    bottom = min(frame.shape[0], bottom)
-    if left >= right or top >= bottom:
-        return
-    region = frame[top:bottom, left:right]
-    panel = np.full_like(region, PANEL_COLOR)
-    cv2.addWeighted(panel, opacity, region, 1 - opacity, 0, region)
 
 
 def _inference_ms(value):
@@ -144,18 +135,6 @@ def _inference_ms(value):
     return total * 1000
 
 
-def _draw_badge(frame, text, row=0):
-    scale = 0.6
-    size, baseline = cv2.getTextSize(text, FONT['hershey'], scale, 1)
-    right = frame.shape[1] - 10
-    top = 10 + row * (size[1] + baseline + 22)
-    left = right - size[0] - 18
-    bottom = top + size[1] + baseline + 14
-    _blend_panel(frame, left, top, right, bottom)
-    cv2.putText(
-        frame, text, (left + 9, bottom - 7 - baseline),
-        FONT['hershey'], scale, TEXT_COLOR, 1, cv2.LINE_AA
-    )
 
 
 def _model_title(model_name):
@@ -165,52 +144,8 @@ def _model_title(model_name):
     return f"{os.path.splitext(name)[0].replace('_', ' ')} | NPU"
 
 
-def _draw_model(frame, model_name):
-    scale = 0.5
-    text = _model_title(model_name)
-    size = cv2.getTextSize(text, FONT['hershey'], scale, 1)[0]
-    width = min(frame.shape[1] - 20, size[0] + 20)
-    left = 10
-    bottom = frame.shape[0] - 10
-    top = bottom - size[1] - 18
-    _blend_panel(frame, left, top, left + width, bottom, 0.72)
-    cv2.putText(
-        frame, text, (left + 10, bottom - 9), FONT['hershey'], scale,
-        TEXT_COLOR, 1, cv2.LINE_AA
-    )
 
 
-def _draw_box(frame, bounds, label, color):
-    left, top, right, bottom = bounds
-    width = max(1, right - left)
-    height = max(1, bottom - top)
-    corner = max(10, min(24, width // 5, height // 5))
-    cv2.rectangle(frame, (left, top), (right, bottom), color, 1)
-    for start, end in (
-        ((left, top), (left + corner, top)),
-        ((left, top), (left, top + corner)),
-        ((right, top), (right - corner, top)),
-        ((right, top), (right, top + corner)),
-        ((left, bottom), (left + corner, bottom)),
-        ((left, bottom), (left, bottom - corner)),
-        ((right, bottom), (right - corner, bottom)),
-        ((right, bottom), (right, bottom - corner)),
-    ):
-        cv2.line(frame, start, end, color, 3, cv2.LINE_AA)
-
-    scale = 0.55
-    text_size, baseline = cv2.getTextSize(label, FONT['hershey'], scale, 1)
-    label_height = text_size[1] + baseline + 10
-    label_top = top - label_height if top >= label_height + 4 else top
-    label_right = min(frame.shape[1] - 1, left + text_size[0] + 14)
-    cv2.rectangle(
-        frame, (left, label_top), (label_right, label_top + label_height),
-        color, -1
-    )
-    cv2.putText(
-        frame, label, (left + 7, label_top + text_size[1] + 5),
-        FONT['hershey'], scale, PANEL_COLOR, 1, cv2.LINE_AA
-    )
 
 
 def put_info_on_frame(frame, results, inf_time, labels, model_name,
@@ -222,16 +157,11 @@ def put_info_on_frame(frame, results, inf_time, labels, model_name,
         if right <= left or bottom <= top:
             continue
         name = labels.get(class_id, f'class {class_id}')
-        label = f"{name}  {obj['score']:.0%}"
-        _draw_box(
-            frame, (left, top, right, bottom), label,
-            PALETTE[class_id % len(PALETTE)]
-        )
+        ui.box(frame, (left, top, right, bottom), name, obj['score'], rgb=True)
 
-    _draw_badge(frame, f'INFERENCE  {_inference_ms(inf_time):.1f} ms')
-    if fps is not None:
-        _draw_badge(frame, f'FPS  {fps:.1f}', row=1)
-    _draw_model(frame, model_name)
+    ui.statistics(frame, _inference_ms(inf_time), fps, rgb=True)
+    ui.model(frame, _model_title(model_name).replace(' | NPU', ' | VIP8000'),
+             rgb=True)
     draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR, rgb=True)
     return frame
 

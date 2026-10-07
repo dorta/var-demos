@@ -14,12 +14,14 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent))
 from runtime import demo_session, managed_capture, record_inference, ThermalPacer
 from runtime import startup_step
+from runtime import display_view
 from telemetry import draw_soc_temperature, SOC_TEMPERATURE
 from gestures import classify, SmoothLandmarks, StableGesture
 from hand_tracker import HandTracker
+import vision_overlay as ui
 
 TITLE = 'Variscite | Hand and gestures'
-COLOR = (180, 215, 54)
+COLOR = ui.color_for('person')
 TEXT = (242, 244, 246)
 PANEL = (24, 28, 32)
 CONNECTIONS = [(0, 5), (5, 9), (9, 13), (13, 17), (17, 0)]
@@ -52,7 +54,11 @@ def display_frame(frame, windowed):
 
 
 def draw(frame, points, gesture, fps, inference):
+    source_height, source_width = frame.shape[:2]
+    frame, (x, y, width, height) = display_view(frame)
     if points is not None:
+        points = np.asarray(points) * np.array(
+            [width / source_width, height / source_height]) + np.array([x, y])
         # Clip drawing coordinates, never wrap overflowing integer values.
         bounds = np.array([frame.shape[1] - 1, frame.shape[0] - 1])
         xy = np.clip(points, 0, bounds).astype(int)
@@ -60,17 +66,9 @@ def draw(frame, points, gesture, fps, inference):
             cv2.line(frame, tuple(xy[a]), tuple(xy[b]), COLOR, 2, cv2.LINE_AA)
         for point in xy:
             cv2.circle(frame, tuple(point), 3, TEXT, -1, cv2.LINE_AA)
-    cv2.rectangle(frame, (0, 0), (frame.shape[1], 58), PANEL, -1)
-    cv2.putText(frame, gesture, (14, 24), cv2.FONT_HERSHEY_SIMPLEX,
-                .6, TEXT, 1, cv2.LINE_AA)
-    text = f'{fps:.1f} FPS  |  NPU inference {inference * 1000:.1f} ms'
-    cv2.putText(frame, text, (14, 46), cv2.FONT_HERSHEY_SIMPLEX,
-                .42, TEXT, 1, cv2.LINE_AA)
-    cv2.rectangle(frame, (0, frame.shape[0] - 34),
-                  (frame.shape[1], frame.shape[0]), PANEL, -1)
-    cv2.putText(frame, 'Palm + 21 landmarks | NPU',
-                (12, frame.shape[0] - 12), cv2.FONT_HERSHEY_SIMPLEX,
-                .42, TEXT, 1, cv2.LINE_AA)
+    ui.results(frame, [(gesture, None)])
+    ui.statistics(frame, inference * 1000, fps)
+    ui.model(frame, 'Palm + 21 landmarks | VIP8000')
     draw_soc_temperature(frame, PANEL, TEXT)
     return frame
 
@@ -151,7 +149,7 @@ def run(args):
                       flush=True)
                 next_log = now + 1
             continue
-        draw(frame, points, gesture, fps, tracker.inference_seconds)
+        frame = draw(frame, points, gesture, fps, tracker.inference_seconds)
         if not window:
             cv2.namedWindow(TITLE, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
             if not args.windowed:

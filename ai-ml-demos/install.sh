@@ -492,6 +492,8 @@ else
         "${INSTALL_ROOT}/telemetry.py"
     install -m 0644 "${SOURCE_ROOT}/runtime.py" \
         "${INSTALL_ROOT}/runtime.py"
+    install -m 0644 "${SOURCE_ROOT}/vision_overlay.py" \
+        "${INSTALL_ROOT}/vision_overlay.py"
     install -m 0644 "${SOURCE_ROOT}/terminal_ui.py" \
         "${INSTALL_ROOT}/terminal_ui.py"
 fi

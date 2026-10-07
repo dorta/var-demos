@@ -11,13 +11,22 @@ SOURCE = Path(__file__).resolve().parents[1] / 'camera-vision/demo.py'
 tree = ast.parse(SOURCE.read_text())
 builders = [node for node in tree.body
             if isinstance(node, ast.FunctionDef)
-            and node.name in ('capture_tail', 'gpu_video_conversion')]
+            and node.name in ('capture_tail', 'gpu_video_conversion', 'video_decoder')]
 namespace = {}
 exec(compile(ast.Module(body=builders, type_ignores=[]), str(SOURCE), 'exec'),
      namespace)
 
 
 class CapturePipelineTests(unittest.TestCase):
+    def test_mx95_decoder_uses_owned_linear_buffers(self):
+        description = namespace['video_decoder']('imx95')
+        self.assertIn('v4l2h264dec capture-io-mode=2', description)
+        self.assertIn('video/x-raw,format=NV12', description)
+        self.assertNotIn('decodebin', description)
+
+    def test_mx93_keeps_cpu_mjpeg_decoder(self):
+        self.assertEqual(namespace['video_decoder']('imx93'), 'avidemux ! jpegdec')
+
     def test_gpu_download_renders_without_resizing_model_source(self):
         description = namespace['gpu_video_conversion']()
         self.assertIn('glcolorscale ! ', description)

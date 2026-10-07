@@ -20,7 +20,7 @@ from helper.config import TITLE
 from helper.opencv import create_window, put_info_on_frame, put_fps_on_frame
 from helper.utils import get_tensor, load_labels, Timer, Framerate
 
-from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup
+from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step
 
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
@@ -30,9 +30,9 @@ def open_video_capture(args):
         pipeline = "{}".format(args['video'])
     elif (args['videofmw'] == "gstreamer"):
         pipeline = "filesrc location={} ! qtdemux name=d d.video_0 ! " \
-                   "decodebin ! queue leaky=downstream max-size-buffers=1 ! " \
-                   "queue ! imxvideoconvert_g2d ! " \
-                   "videoconvert ! appsink".format(args['video'])
+                   "decodebin ! imxvideoconvert_g2d ! " \
+                   "videoconvert ! video/x-raw,format=BGR ! " \
+                   "appsink name=opencvsink max-buffers=1 drop=true sync=true".format(args['video'])
     else:
         raise SystemExit("videofmw: invalid value. Use 'opencv' or 'gstreamer'")
     return managed_capture(pipeline)
@@ -48,11 +48,13 @@ def image_detection(args):
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
+    warm_up_model(interpreter)
 
     model_height, model_width = input_details[0]['shape'][1:3]
     
     video_capture = open_video_capture(args)
     window_created = False
+    ready = False
     framerate = Framerate()
     pacer = ThermalPacer()
     while video_capture.isOpened():
@@ -92,6 +94,10 @@ def image_detection(args):
                 create_window(TITLE, args['windowed'])
                 window_created = True
             cv2.imshow(TITLE, frame)
+            if not ready:
+                cv2.waitKey(1)
+                startup_step('Frames and NPU inference ready', ready=True)
+                ready = True
             if cv2.waitKey(1) == 27:
                 break
 

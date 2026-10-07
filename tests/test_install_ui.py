@@ -92,7 +92,7 @@ class InstallUITests(unittest.TestCase):
             self.assertEqual(plan['total'], len(groups) + entries * 2 +
                              len(demos) + 2 + len(groups) - 1 + 1)
             self.assertEqual(plan['demos'], 10 if board == 'imx8mplus' else
-                             5 if board == 'imx93' else 6)
+                             7 if board == 'imx93' else 8)
 
     def test_cancel_stops_owned_worker_and_restores_cursor(self):
         with tempfile.TemporaryDirectory() as directory:
