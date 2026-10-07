@@ -7,8 +7,6 @@
 
 ## Installing Variscite Demos
 
-Run as root on the board:
-
 ```sh
 curl -fsSL https://raw.githubusercontent.com/dorta/var-demos/demos/install.sh | sh
 ```
