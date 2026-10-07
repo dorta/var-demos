@@ -5,7 +5,7 @@
 
 **Demos for Variscite System on Modules**
 
-## Install
+# Install
 
 Run as root on the board:
 
@@ -18,11 +18,12 @@ the command.
 
 Installation and removal show the board, demo and asset counts, current
 task, completed-step progress and elapsed time in one terminal dashboard.
-Downloads stay off the screen; assets are SHA-256 verified. Failures point
+The latest three assets appear with readable names and download/verification
+status; assets are SHA-256 verified. Failures point
 to a diagnostic log. ANSI terminals redraw in place; redirected output and
 `TERM=dumb` use plain status lines. `NO_COLOR=1` disables colors.
 
-## Run
+# Run
 
 ```sh
 var-demos
