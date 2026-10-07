@@ -5,7 +5,7 @@
 
 **Demos for Variscite System on Modules**
 
-# Install
+## Installing Variscite Demos
 
 Run as root on the board:
 
@@ -16,7 +16,7 @@ curl -fsSL https://raw.githubusercontent.com/dorta/var-demos/demos/install.sh | 
 The board is detected automatically. To update, close the demos and repeat
 the command.
 
-# Run
+## Running Variscite Demos
 
 ```sh
 var-demos
@@ -98,6 +98,134 @@ weights and preprocessing are not established. The NXP artifacts come from
 
 See [Model Sources and Conversion](CONVERTING_MODELS.md) for download links,
 checksums, quantization parameters and conversion commands.
+
+### Where the Models Come From
+
+This suite does not train new models. It installs existing models and prepares
+them for the board's NPU. Compilation changes the execution artifact; it
+does not mean training a new network.
+
+| Task | MPlus and MX93 Source | MX95 Source | Same Model on All Three? |
+| --- | --- | --- | --- |
+| Classification | Variscite MobileNet V1 1.0 | NXP MobileNet V1 1.0 | Same architecture, but identical weights and preprocessing are not established for MX95 |
+| Detection | Variscite SSD MobileNet V1 | NXP SSD-Lite MobileNet V2 | No. MPlus and MX93 share one source detector; MX95 uses a different detector |
+
+There are **two source detectors, not three independently trained detectors**.
+The MPlus and MX93 files differ because their NPU execution paths differ.
+The original Variscite models' exact earlier training/export recipe has not
+been recovered. The MX95 artifacts are supplied by NXP in
+`lf-6.18.20_2.0.0`; we did not compile them locally with the current SDK.
+Exact source links, filenames and checksums are in the
+[model provenance guide](CONVERTING_MODELS.md#exact-installed-artifacts-and-provenance).
+
+### Model Preparation Flow
+
+This flow applies to both classification and detection. All installed model
+files have a `.tflite` extension, but they are not interchangeable between NPUs.
+
+```mermaid
+flowchart TD
+    V["Variscite source models: MobileNet V1 and SSD MobileNet V1"]
+    V --> M["MPlus: load original quantized TFLite"]
+    M --> VX["VX delegate prepares graph at runtime for VIP8000"]
+    V --> C["MX93: compile with Vela 3.12.0 for Ethos-U65-256"]
+    C --> E["Load compiled TFLite with Ethos-U delegate"]
+    N["NXP models: MobileNet V1 and SSD-Lite MobileNet V2"]
+    N --> P["MX95: obtain BSP-compatible, precompiled Neutron TFLite"]
+    P --> D["Load with BSP tflite_runtime and Neutron delegate"]
+```
+
+For MX93, the recorded Vela command is
+`vela <source-model>.tflite --accelerator-config ethos-u65-256 --output-dir output`.
+The reproduced classifier and detector match the installed compiled artifacts
+byte-for-byte. VX preparation happens when the MPlus model is first invoked;
+it is not a Vela conversion. MX95 uses the NXP-precompiled artifacts rather
+than a conversion of the MPlus detector.
+
+### Image, Video and Camera Input Flow
+
+All three input types feed the same task-specific model on each board:
+
+| Input | How Frames Reach the Demo |
+| --- | --- |
+| Image file | CPU reads the selected still image; no video decoder is needed |
+| Video file | GStreamer decodes the selected HD or Full HD clip using the board-specific path below |
+| Camera | V4L2 captures frames at the selected camera resolution; no compressed-file decoder is needed |
+
+| SoM | Video File and Decoder | Image Conversion / Scaling |
+| --- | --- | --- |
+| i.MX 8M Plus | H.264 MP4; `v4l2h264dec`, hardware decoding | `imxvideoconvert_g2d`, using G2D hardware |
+| VAR-SOM-MX93 | MJPEG AVI; `jpegdec`, CPU decoding | `imxvideoconvert_pxp`, using PXP hardware |
+| DART-MX95 | H.264 MP4; `v4l2h264dec`, hardware decoding | OpenGL/EGL conversion with `glupload`, `glcolorconvert` and `gldownload` |
+
+**AVI, MJPEG and PXP are different things:** AVI is the file container,
+MJPEG is the video compression inside it, and PXP is an image-processing
+hardware block. On MX93, the CPU decodes MJPEG; PXP converts/scales the
+decoded images. PXP is neither a video decoder nor the inference NPU.
+This is a compatibility adaptation for the installed BSP, with larger files
+and CPU decoding costs compared with the H.264 paths.
+
+The [two supplied Freepik clips](ai-ml-demos/VIDEO_SOURCES.md) are the same
+content on all boards. MX93 uses converted MJPEG copies; MX95 uses H.264
+compatibility copies without B-frames. Video conversion is separate from
+model compilation.
+
+MPlus and MX93 video inference can first scale decoded frames to a
+display-sized working image with G2D/PXP. The CPU then resizes that image
+to the model input. MX95 inference currently keeps its validated native-frame
+conversion path by default; accelerated working-size scaling remains
+experimental. The player has its own display-scaling path and does not run
+an AI model. These differences affect full-pipeline FPS.
+
+### Classification Flow
+
+Classification answers **“What is the main category in this image?”** It
+produces category scores, not object boxes. For video and camera, this flow
+is repeated for each processed frame.
+
+```mermaid
+flowchart LR
+    I["Image, decoded video frame or camera frame"]
+    I --> P["CPU: resize to 224 x 224, convert to RGB UINT8"]
+    P --> N["MobileNet V1: execute through the board's NPU delegate"]
+    N --> S["CPU: interpret output scores using their quantization parameters"]
+    S --> L["CPU: rank scores and map indices to matching labels"]
+    L --> O["Fullscreen image with categories and timing overlay"]
+```
+
+MPlus/MX93 classifiers return quantized UINT8 scores; MX95 returns FLOAT32
+scores. Their input quantization parameters also differ. A common architecture
+or UINT8 input does not prove identical predictions.
+
+### Detection Flow
+
+Detection answers **“Which objects are present, and where are they?”** It
+produces boxes, categories and confidence scores. The network computation
+uses the NPU, but detection postprocessing and drawing still use the CPU.
+
+```mermaid
+flowchart TD
+    I["Image, decoded video frame or camera frame"]
+    I --> P["CPU: resize to 300 x 300, convert to RGB UINT8"]
+    P --> V["MPlus / MX93: SSD MobileNet V1 through VIP8000 / Ethos-U65"]
+    P --> N["MX95: SSD-Lite MobileNet V2 through Neutron"]
+    V --> T["CPU: TFLite detection postprocessing returns boxes, classes and scores"]
+    N --> R["CPU: decode raw boxes with matching anchors, calculate scores and apply NMS"]
+    T --> F["CPU: filter detections and map matching labels and box coordinates"]
+    R --> F
+    F --> O["Fullscreen image with object boxes and timing overlay"]
+```
+
+NMS (non-maximum suppression) removes overlapping duplicate detections.
+MX95 must use its matching NXP anchors and COCO labels, not the MPlus
+postprocessor. Source videos can be 720p or 1080p, but the detector still
+receives 300×300 inputs. Display size, video size and model input size are
+three separate dimensions.
+
+**Comparing boards:** inference time measures model execution, not the
+entire decoder, preprocessing and display path. MPlus/MX93 share source
+models, while MX95 uses a different detector. The pipelines also differ,
+so these demo FPS results are not a controlled comparison of NPU speed alone.
 
 ## Performance
 
