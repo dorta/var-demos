@@ -32,6 +32,11 @@ class DocumentationTests(unittest.TestCase):
 
     def test_root_guide_keeps_install_and_run_concise(self):
         text = (ROOT / 'README.md').read_text()
+        self.assertNotIn('—', text)
+        self.assertNotIn('–', text)
+        self.assertIn('| Model Detail | i.MX 8M Plus | VAR-SOM-MX93 | DART-MX95 |', text)
+        self.assertIn('## Board Support', text)
+        self.assertIn('## Models and Conversion', text)
         self.assertIn('curl -fsSL https://raw.githubusercontent.com/'
                       'dorta/var-demos/demos/install.sh | sh', text)
         self.assertIn('```sh\nvar-demos\n```', text)
@@ -60,7 +65,7 @@ class DocumentationTests(unittest.TestCase):
                 self.assertIn(cells[2], ('Measured', 'Functional',
                                         'Experimental', 'Not enabled'))
                 if cells[2] != 'Measured':
-                    self.assertEqual(cells[3:], ['—', '—', '—'])
+                    self.assertEqual(cells[3:], ['N/A', 'N/A', 'N/A'])
         self.assertIn('not one standardized benchmark', performance)
 
 

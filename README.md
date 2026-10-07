@@ -44,17 +44,17 @@ Choose a demo, then select the video or camera resolution when prompted.
 | 720p / 1080p classification | ✓ | ✓ | ✓ |
 | 720p / 1080p detection | ✓ | ✓ | ✓ |
 | Video player | ✓ | ✓ | ✓ |
-| OpenCL / GPU examples | ✓ | — | ✓ |
-| Hand gestures | Experimental | — | — |
+| OpenCL / GPU examples | ✓ | N/A | ✓ |
+| Hand gestures | Experimental | N/A | N/A |
 
-✓ Tested on the connected boards; — not enabled. This does not certify
+✓ means tested on the connected boards. N/A means not enabled. This does not certify
 continuous operation. MX93 uses CPU-decoded MJPEG, not H.264.
 Both buildings clips are available in 720p and 1080p; 720p is the default.
 
 | Camera capture choice | i.MX 8M Plus | i.MX 93 | i.MX 95 |
 | --- | :---: | :---: | :---: |
 | VGA 640×480 | ✓ | ✓ (default) | ✓ |
-| SD 720×480 | ✓ (default) | — | — |
+| SD 720×480 | ✓ (default) | N/A | N/A |
 | HD 1280×720 | ✓ | ✓ | ✓ (default) |
 | Full HD 1920×1080 | ✓ | ✓ | ✓ |
 
@@ -64,98 +64,105 @@ classification and detection. They are capture modes, not a promise of
 
 ## Models and Conversion
 
-These are **8-bit quantized models, not universally signed INT8 models**.
-The installed models all accept RGB **UINT8** tensors; their output types
-and quantization parameters differ. Source video resolution (720p/1080p)
-does not change the model's input dimensions.
+Classification identifies the image's main category. Detection finds objects
+and draws boxes around them.
 
-| SoM | NPU / delegate | Classification | Detection | Preparation / origin |
-| --- | --- | --- | --- | --- |
-| i.MX 8M Plus | VeriSilicon VIP8000 / VX | MobileNet V1 1.0, 224×224; UINT8 input/output | SSD MobileNet V1, 300×300; UINT8 input, FLOAT32 detection outputs | Original Variscite demo artifacts; VX prepares the graph at runtime |
-| VAR-SOM-MX93 | Arm Ethos-U65-256 / Ethos-U | MobileNet V1 1.0, 224×224; UINT8 input/output | SSD MobileNet V1, 300×300; UINT8 input, FLOAT32 detection outputs | Same MPlus source models, compiled with Vela 3.12.0; verified by SHA-256 |
-| DART-MX95 | NXP Neutron / Neutron delegate | MobileNet V1 1.0, 224×224; UINT8 input, FLOAT32 output | SSD-Lite MobileNet V2, 300×300; UINT8 input, FLOAT32 raw boxes/scores | Already compiled NXP artifacts from `lf-6.18.20_2.0.0`; not converted locally with the current SDK |
+| Model Detail | i.MX 8M Plus | VAR-SOM-MX93 | DART-MX95 |
+| --- | --- | --- | --- |
+| NPU | VeriSilicon VIP8000 | Arm Ethos-U65-256 | NXP Neutron |
+| Delegate | VX | Ethos-U | Neutron |
+| Classification Model | MobileNet V1 1.0 | MobileNet V1 1.0 | MobileNet V1 1.0 |
+| Classification Input | RGB, 224×224, UINT8 | RGB, 224×224, UINT8 | RGB, 224×224, UINT8 |
+| Classification Output | UINT8 scores | UINT8 scores | FLOAT32 scores |
+| Detection Model | SSD MobileNet V1 | SSD MobileNet V1 | SSD-Lite MobileNet V2 |
+| Detection Input | RGB, 300×300, UINT8 | RGB, 300×300, UINT8 | RGB, 300×300, UINT8 |
+| Detection Output | FLOAT32 boxes and scores | FLOAT32 boxes and scores | FLOAT32 raw boxes and scores |
+| Model Source | Original Variscite demos | Same source models as MPlus | NXP precompiled models |
+| Preparation | Graph prepared at runtime | Compiled with Vela 3.12.0 | Already compiled for Neutron |
 
-**Not the same detector on all three:** MPlus and MX93 use SSD MobileNet
-V1; MX95 uses SSD-Lite MobileNet V2, with matching COCO labels, anchors and
-CPU box decoding/NMS. The classifiers share an architecture; this alone
-does not prove identical weights or preprocessing. In particular, MX95
-uses a different input scale/zero point. Recompiling the MPlus classifier
-with Vela reproduced the installed MX93 classifier byte-for-byte.
+**Data types:** UINT8 means unsigned 8-bit integers, not signed INT8.
+FLOAT32 means 32-bit floating-point values. A 720p or 1080p video is resized
+to the model input size above before inference.
 
-See [model provenance and conversion](CONVERTING_MODELS.md) for source links,
-artifact filenames and checksums, tensor quantization, compiler options,
-runtime compatibility and the limits of what was actually reproduced.
+**Shared models:** MPlus and MX93 use the same source models. Recompiling
+them with Vela reproduced the installed MX93 artifacts byte-for-byte.
+
+**MX95 differences:** its detector is a different model and requires CPU
+box decoding/NMS. Its classifier has the same architecture, but identical
+weights and preprocessing are not established. The NXP artifacts come from
+`lf-6.18.20_2.0.0`; they were not compiled locally with the current SDK.
+
+See [Model Sources and Conversion](CONVERTING_MODELS.md) for download links,
+checksums, quantization parameters and conversion commands.
 
 ## Performance
 
-Every demo in the support matrix is listed for every SoM. Video detection
-has separate 720p and 1080p rows; the NPU is identified above each table.
+The same scenarios appear in each SoM table, so missing measurements are
+visible rather than omitted.
 
-- **Measured:** a recorded run with FPS and inference timing.
-- **Functional:** ran successfully; timing is not reported here.
-- **Experimental:** available, but still needs representative validation.
-- **Not enabled:** not installed or offered on this SoM.
-- **—:** no recorded measurement, not a failed or unsupported demo.
+**Validation:** Measured = tested with recorded timing; Functional = works,
+without reported timing; Experimental = needs further validation;
+Not enabled = unavailable in this suite. **N/A** means no recorded value.
 
-**FPS** is the processed frame rate. **Inference** is model execution time
-only; it excludes capture, decoding and drawing. Video resolution describes
-the source, not the resized image passed to the model.
+**FPS** measures processed frames per second, including capture, decoding
+and drawing. **Inference** measures only model execution, in milliseconds.
+Lower inference time does not necessarily mean higher video FPS.
 
 ### i.MX 8M Plus
 
-VX NPU · MobileNet V1 classification · SSD MobileNet V1 detection.
+VIP8000 NPU. MobileNet V1 classification and SSD MobileNet V1 detection.
 
 | Scenario | Source | Validation | Duration | FPS | Inference |
 | --- | --- | --- | --- | ---: | ---: |
-| Image classification | Sample image | Functional | — | — | — |
-| Image detection | Sample image | Functional | — | — | — |
-| 720p video classification | 720p H.264 | Functional | — | — | — |
-| 1080p video classification | 1080p H.264 | Functional | — | — | — |
-| Camera classification | Camera | Functional | — | — | — |
+| Image classification | Sample image | Functional | N/A | N/A | N/A |
+| Image detection | Sample image | Functional | N/A | N/A | N/A |
+| 720p video classification | 720p H.264 | Functional | N/A | N/A | N/A |
+| 1080p video classification | 1080p H.264 | Functional | N/A | N/A | N/A |
+| Camera classification | Camera | Functional | N/A | N/A | N/A |
 | Camera detection | 720×480 | Measured | 10 min | 15.76 | 9.00 ms |
-| 720p video detection | 720p H.264 | Functional | — | — | — |
-| 1080p video detection | 1080p H.264 | Functional | — | — | — |
-| Video player | 720p H.264 | Functional | — | — | — |
-| OpenCL / GPU examples | GPU | Functional | — | — | — |
-| Hand gestures | Camera | Experimental | — | — | — |
+| 720p video detection | 720p H.264 | Functional | N/A | N/A | N/A |
+| 1080p video detection | 1080p H.264 | Functional | N/A | N/A | N/A |
+| Video player | 720p H.264 | Functional | N/A | N/A | N/A |
+| OpenCL / GPU examples | GPU | Functional | N/A | N/A | N/A |
+| Hand gestures | Camera | Experimental | N/A | N/A | N/A |
 
 ### VAR-SOM-MX93
 
-Ethos-U65 NPU · MobileNet V1 classification · SSD MobileNet V1 detection.
+Ethos-U65 NPU. MobileNet V1 classification and SSD MobileNet V1 detection.
 
 | Scenario | Source | Validation | Duration | FPS | Inference |
 | --- | --- | --- | --- | ---: | ---: |
-| Image classification | Sample image | Functional | — | — | — |
-| Image detection | Sample image | Functional | — | — | — |
-| 720p video classification | 720p MJPEG | Functional | — | — | — |
-| 1080p video classification | 1080p MJPEG | Functional | — | — | — |
+| Image classification | Sample image | Functional | N/A | N/A | N/A |
+| Image detection | Sample image | Functional | N/A | N/A | N/A |
+| 720p video classification | 720p MJPEG | Functional | N/A | N/A | N/A |
+| 1080p video classification | 1080p MJPEG | Functional | N/A | N/A | N/A |
 | Camera classification | 640×480 | Measured | 60 s | 29.98 | 4.12 ms |
 | Camera detection | 640×480 | Measured | 60 s | 29.97 | 8.64 ms |
 | 720p video detection | 720p MJPEG | Measured | 12 s | 18.51 | 9.16 ms |
 | 1080p video detection | 1080p MJPEG | Measured | 12 s | 11.28 | 9.03 ms |
-| Video player | 720p MJPEG | Functional | — | — | — |
-| OpenCL / GPU examples | — | Not enabled | — | — | — |
-| Hand gestures | — | Not enabled | — | — | — |
+| Video player | 720p MJPEG | Functional | N/A | N/A | N/A |
+| OpenCL / GPU examples | N/A | Not enabled | N/A | N/A | N/A |
+| Hand gestures | N/A | Not enabled | N/A | N/A | N/A |
 
 MJPEG is decoded on the CPU; this BSP has no H.264 decoder.
 
 ### DART-MX95
 
-Neutron NPU · MobileNet V1 classification · SSD-Lite V2 detection.
+Neutron NPU. MobileNet V1 classification and SSD-Lite V2 detection.
 
 | Scenario | Source | Validation | Duration | FPS | Inference |
 | --- | --- | --- | --- | ---: | ---: |
-| Image classification | Sample image | Functional | — | — | — |
-| Image detection | Sample image | Functional | — | — | — |
-| 720p video classification | 720p H.264 | Functional | — | — | — |
-| 1080p video classification | 1080p H.264 | Functional | — | — | — |
+| Image classification | Sample image | Functional | N/A | N/A | N/A |
+| Image detection | Sample image | Functional | N/A | N/A | N/A |
+| 720p video classification | 720p H.264 | Functional | N/A | N/A | N/A |
+| 1080p video classification | 1080p H.264 | Functional | N/A | N/A | N/A |
 | Camera classification | 1280×720 | Measured | 10 s | 5.90 | 1.40 ms |
 | Camera detection | 1280×720 | Measured | 12 s | 5.83 | 3.72 ms |
-| 720p video detection | 720p H.264 | Functional | — | — | — |
-| 1080p video detection | 1080p H.264 | Functional | — | — | — |
-| Video player | 720p H.264 | Functional | — | — | — |
-| OpenCL / GPU examples | GPU | Functional | — | — | — |
-| Hand gestures | — | Not enabled | — | — | — |
+| 720p video detection | 720p H.264 | Functional | N/A | N/A | N/A |
+| 1080p video detection | 1080p H.264 | Functional | N/A | N/A | N/A |
+| Video player | 720p H.264 | Functional | N/A | N/A | N/A |
+| OpenCL / GPU examples | GPU | Functional | N/A | N/A | N/A |
+| Hand gestures | N/A | Not enabled | N/A | N/A | N/A |
 
 The previous Full HD timing was withdrawn: its GL conversion delivered
 black frames. The corrected path was checked with visible detections;
