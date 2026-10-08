@@ -303,6 +303,25 @@ experiments kept/rejected and commands to reproduce the measurements.
 Local regression: 134 AI tests and 53 suite tests passed. The distributed
 profiling helper also ran on MX95 and emitted per-stage JSON successfully.
 
+## Lightweight People Segmentation and Task Menus
+
+Selfie Segmenter landscape was checked on the existing MPlus 6.6.144,
+MX93 6.6.138 and MX95 6.18.20 images. The sample portrait produced a foreground
+mask on all three (about 24% viewport coverage). Complete HD/Full HD City
+Selfie runs completed; [recorded timings](people-segmentation.md#measured-video-results)
+include thermal pauses rather than hiding them.
+
+Bounded HD camera tests also completed on all three with 800x480 fullscreen
+output: MPlus 76 displayed frames, MX93 146 and MX95 31. Mean invocation times
+were 4.41, 2.76 and 4.46 ms respectively. These short checks validate camera
+capture, repeated inference and display, not an accuracy dataset or sustained
+camera benchmark. MX95 camera throughput remained low despite fast inference.
+
+Public downloads of all three model artifacts matched the manifest SHA-256.
+Task/input menus share one implementation across SoMs; resolution/video
+selectors and camera preflight remain active. The menu helper is included in
+both suite and standalone AI installations, including the removal path.
+
 ## Related Guides
 
 - [Performance](performance.md): the current per-SoM measurement tables.

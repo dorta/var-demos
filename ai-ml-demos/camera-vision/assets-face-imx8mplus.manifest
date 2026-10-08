@@ -9,3 +9,5 @@ e993b00474b75da6b424da30bc1e548305b397ea43a8facf20365c06165123ab https://nyc3.di
 45e0719304d0c86ce5cbe628b086655ccebf0c23477a1436975e9dbcf1ac2bff https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/models/LICENSE model/deeplab-code-LICENSE
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30 https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/models/MODEL_LICENSE model/deeplab-model-LICENSE
 ba878adab3671263d6907d91ec87be6c1abd049cdef30ee896fd11857b4c9a5c https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/branding/v1/variscite-logo-white.png media/variscite-logo-white.png
+8b3de305a6b0f35bc533cd6b46557804b915c8dff0efcc98310c96125b22f66a https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/people-segmentation/v1/models/people.tflite model/people.tflite
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30 https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/models/MODEL_LICENSE model/people-model-LICENSE

@@ -17,6 +17,7 @@ import time
 import tomllib
 
 from telemetry import SOC_TEMPERATURE
+from demo_menu import demo_entries, clean_title, NPU_NAMES
 from runtime import (clock_is_limited, temperature, thermal_limits, StartupProgress,
                      CameraUnavailable, check_camera)
 
@@ -67,12 +68,13 @@ def launchers_for(catalog, platform):
              'detection-video': 4, 'detection-camera': 5,
              'face-image': 6, 'face-video': 7, 'face-camera': 8,
              'segmentation-image': 9, 'segmentation-video': 10,
-             'segmentation-camera': 11}
+             'segmentation-camera': 11, 'people-segmentation-image': 12,
+             'people-segmentation-video': 13, 'people-segmentation-camera': 14}
     def rank(item):
         name = item['id']
         for prefix in ('ethosu-', 'neutron-'):
             name = name.removeprefix(prefix)
-        return order.get(name, 12)
+        return order.get(name, 15)
     return sorted(launchers, key=rank)
 
 
@@ -297,13 +299,14 @@ def show_menu(platform, launchers, back=False, suite=False):
     clear_screen()
     print('VARISCITE DEMOS' if suite else 'VARISCITE AI/ML DEMOS')
     print(f"Platform: {platform}")
+    print(f"NPU: {NPU_NAMES.get(platform, 'N/A')}")
     category = None
     for index, launcher in enumerate(launchers, start=1):
         if launcher.get("category") != category:
             category = launcher.get("category")
             if category:
                 print(category)
-        title = launcher.get("menu_title", launcher["title"])
+        title = clean_title(launcher.get("menu_title", launcher["title"]))
         description = launcher.get("description", "")
         print(f"  {index}. {title:<9} {description}")
     print('\n  q. Back' if back else '\n  q. Quit')
@@ -315,6 +318,7 @@ def interactive(catalog, platform, launchers):
     groups = [group for group in catalog.get('groups', []) if any(
         item.get('group') == group['id'] for item in launchers)]
     selected_group = None
+    selected_task = None
     while True:
         if groups and selected_group is None:
             clear_screen()
@@ -337,16 +341,22 @@ def interactive(catalog, platform, launchers):
                 continue
             launchers = [item for item in all_launchers
                          if item.get('group') == selected_group['id']]
-        show_menu(platform, launchers, back=bool(groups), suite=bool(groups))
+        entries = (selected_task['children'] if selected_task else demo_entries(launchers))
+        show_menu(platform, entries, back=bool(groups or selected_task), suite=bool(groups))
+        if selected_task:
+            print(f"\n{selected_task['title']}: choose Image, Video or Camera.")
         try:
             choice = input(
-                f"\nSelect a demo [1-{len(launchers)}]: "
+                f"\nSelect {'input' if selected_task else 'demo'} [1-{len(entries)}]: "
             ).strip().lower()
         except (EOFError, KeyboardInterrupt):
             print()
             return 0
 
         if choice in {"q", "quit", "exit"}:
+            if selected_task:
+                selected_task = None
+                continue
             if groups:
                 selected_group = None
                 continue
@@ -354,8 +364,12 @@ def interactive(catalog, platform, launchers):
         try:
             if int(choice) < 1:
                 continue
-            launcher = launchers[int(choice) - 1]
+            launcher = entries[int(choice) - 1]
         except (ValueError, IndexError):
+            continue
+
+        if 'children' in launcher:
+            selected_task = launcher
             continue
 
         try:
@@ -372,7 +386,7 @@ def interactive(catalog, platform, launchers):
                 launcher = with_camera_resolution(launcher, choices[int(choice)-1])
             if launcher.get('select_video'):
                 video = select_video(catalog, launcher_video_demo(launcher, platform),
-                                     launcher.get('video_task'))
+                                     launcher.get('video_task'), launcher.get('video_prompt'))
                 if video is None:
                     continue
             result = run_launcher(catalog, launcher, video=video)
@@ -431,7 +445,7 @@ def select_plain(title, items):
             pass
 
 
-def select_video(catalog, demo_id, task=None):
+def select_video(catalog, demo_id, task=None, prompt=None):
     resolutions = video_resolutions(catalog, demo_id, task)
     if not resolutions:
         raise RuntimeError('no videos are configured for this demo')
@@ -439,7 +453,7 @@ def select_video(catalog, demo_id, task=None):
         resolution = select_plain('Choose Video Quality', resolutions)
         if resolution is None:
             return None
-        video = select_plain('Choose a Face Video' if task == 'face' else 'Choose a Freepik Video',
+        video = select_plain(prompt or ('Choose a Face Video' if task == 'face' else 'Choose a Freepik Video'),
                              video_choices(catalog, demo_id, resolution['id'], task))
         if video is not None:
             return video

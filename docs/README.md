@@ -19,8 +19,10 @@ images, videos and camera frames are processed.
 | Guide | What You Will Find |
 | --- | --- |
 | [SoM Support](som-support.md) | Demo availability, NPUs and tested camera modes |
+| [Software Versions](software-versions.md) | Installed/tested kernels, latest official Yocto targets and BSP validation policy |
 | [Face Detection](face-detection.md) | UltraFace image/video/camera demos, NPU preparation, frame flow and validation limits |
 | [People and Vehicle Segmentation](segmentation.md) | Colored masks, shared input modes, model conversion and current platform limits |
+| [People Segmentation](people-segmentation.md) | Lightweight person/background model, conversion, frame flow and HD/Full HD results |
 | [Hardware](hardware.md) | Official CPU/GPU/NPU specifications, photos and source links |
 | [NPU Guides](npus/README.md) | What each NPU expects and per-SoM startup, classification and detection flows |
 | [Models and Processing Flows](models.md) | Model comparison, origins and preparation, classification and detection flows |

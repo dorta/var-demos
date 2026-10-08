@@ -90,14 +90,17 @@ class TerminalTests(unittest.TestCase):
         launcher = next(item for item in ui.catalog['launchers']
                         if item['id'] == 'detection-video')
         ui.launchers = [launcher]
+        from demo_menu import demo_entries
+        task = demo_entries(ui.launchers)[0]
+        mode = task['children'][0]
         qualities = manager.video_resolutions(ui.catalog, launcher['video_demo'])
         video = manager.video_choices(ui.catalog, launcher['video_demo'], '1080p')[1]
-        ui.choose = Mock(side_effect=[launcher, qualities[0], None,
-                                      qualities[1], video, None])
+        ui.choose = Mock(side_effect=[task, mode, qualities[0], None,
+                                      qualities[1], video, None, None])
         ui.run = Mock()
         self.assertEqual(ui.main(), 0)
-        ui.run.assert_called_once_with(launcher, video)
-        self.assertEqual(ui.choose.call_args_list[3].args[0], 'Choose Video Quality')
+        ui.run.assert_called_once_with(mode, video)
+        self.assertEqual(ui.choose.call_args_list[4].args[0], 'Choose Video Quality')
 
     @patch('terminal_ui.subprocess.Popen')
     def test_crashed_child_is_reported_without_raising(self, popen):

@@ -35,6 +35,8 @@ def asset_name(path):
                       '1920x1080': '1080p'}[size]
         return f'{title} - {resolution}'
     if name.endswith('.tflite'):
+        if name.startswith('people'):
+            return 'Selfie Segmenter people model'
         if name.startswith('deeplab'):
             return 'DeepLabV3 segmentation model'
         if name.startswith('ultraface'):

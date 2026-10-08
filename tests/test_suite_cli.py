@@ -135,7 +135,7 @@ class SuiteCommandTests(unittest.TestCase):
             lib = root / 'lib'
             lib.mkdir()
             for name in ('manager.py', 'runtime.py', 'telemetry.py',
-                         'terminal_ui.py'):
+                         'terminal_ui.py', 'demo_menu.py'):
                 shutil.copy2(ROOT / 'ai-ml-demos' / name, lib / name)
             preview = subprocess.run([
                 sys.executable, str(root / 'suite.py'), '--uninstall',

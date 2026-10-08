@@ -22,3 +22,5 @@ ba878adab3671263d6907d91ec87be6c1abd049cdef30ee896fd11857b4c9a5c https://nyc3.di
 6e19835442a4713c18235d50031776f0aca1dca6fb7a7098c744f1663b1e31fa https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/media/segmentation-image.jpg media/segmentation-image.jpg
 45e0719304d0c86ce5cbe628b086655ccebf0c23477a1436975e9dbcf1ac2bff https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/models/LICENSE model/deeplab-code-LICENSE
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30 https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/models/MODEL_LICENSE model/deeplab-model-LICENSE
+f28d907032c04bc67b6b04a95e6f5f257722803873737cbb5166d2dae14c718a https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/people-segmentation/v1/models/people_neutron.tflite model/people_neutron.tflite
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30 https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/segmentation/v1/models/MODEL_LICENSE model/people-model-LICENSE

@@ -9,8 +9,9 @@ tracking numbers. This is not YOLO-seg or face detection.
 
 ## Running the Demo
 
-Update the suite, run `var-demos`, then choose **AI / ML**. Segmentation's
-image, video and camera entries follow the face demos on all three SoMs.
+Update the suite, run `var-demos`, then choose **AI / ML** and
+**People and Vehicle Segmentation**. Inside the task, choose **Image**,
+**Video** or **Camera**, with the same navigation on all three SoMs.
 The image is a frame extracted at two seconds from your City Selfie clip.
 Videos reuse your Buildings A/B clips in HD or Full HD. Camera mode offers
 the SoM's configured OV5640 capture resolutions.

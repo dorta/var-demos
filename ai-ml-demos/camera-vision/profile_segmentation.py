@@ -18,6 +18,7 @@ def main():
     import cv2
     import runtime
     import segmentation
+    import people_segmentation
     import capture
     from tflite_runtime.interpreter import Interpreter
     measurements = collections.defaultdict(list)
@@ -39,6 +40,8 @@ def main():
         (runtime.ThermalPacer, 'wait', 'thermal_wait'),
         (segmentation, 'prepare_segmentation_input', 'normalize'),
         (segmentation, 'read_segmentation', 'mask_decode'),
+        (people_segmentation, 'prepare_people_input', 'normalize'),
+        (people_segmentation, 'read_people', 'mask_decode'),
         (segmentation, 'paint_segmentation', 'paint'),
         (Interpreter, 'set_tensor', 'input_copy'),
         (Interpreter, 'invoke', 'invoke'),

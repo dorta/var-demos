@@ -27,8 +27,11 @@ on the CPU. MX95 uses matching Neutron models; SSD-Lite box decoding and
 non-maximum suppression run on the CPU. Label indices and SSD anchors are
 model-specific. The video resolution is not the model input resolution.
 
-The shared menu starts with classification (image, video, camera), followed
-by detection (image, video, camera). Sample image predictions stay visible
+The shared menu starts with Classification, followed by Object Detection.
+Each task opens an Image / Video / Camera submenu. Face Detection and
+Segmentation follow the same navigation on all three SoMs. The NPU appears
+in the header beside the temperature, not in demo names.
+Sample image predictions stay visible
 until Esc. All views use the shared MPlus-style panels and fullscreen.
 
 Only the two user-provided Freepik Buildings clips are installed as video

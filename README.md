@@ -28,6 +28,9 @@ var-demos
 Arrows to select, Enter to launch, Esc to return.
 
 Choose a demo, then select the video or camera resolution when prompted.
+The AI / ML menu groups demos by task: Classification, Object Detection,
+Face Detection and Segmentation. Inside each task, choose **Image**, **Video**
+or **Camera**. The NPU name appears in the menu header, not in demo names.
 
 For videos, choose **HD (720p)** or **Full HD (1080p)**, then **Buildings A**
 or **Buildings B**. AI demos and the player use the same [two Freepik clips](docs/video-sources.md),
@@ -36,6 +39,8 @@ with identical choices on all three SoMs.
 Face detection has its own **City Selfie** video, also available in HD and Full HD.
 Experimental [people and vehicle segmentation](docs/segmentation.md) is available
 on all three SoMs, with image, video and camera modes.
+For faster person-only masks, choose [People Segmentation](docs/people-segmentation.md),
+also available on all three SoMs.
 
 ## Supported System on Modules
 
@@ -61,6 +66,7 @@ and [SoM Support](docs/som-support.md). Maximum CPU specifications depend on SKU
 | Guide | Contents |
 | --- | --- |
 | [SoM Support](docs/som-support.md) | Available demos, NPUs and camera resolutions |
+| [Software Versions](docs/software-versions.md) | Tested images and latest official Yocto targets for each SoM |
 | [Face Detection](docs/face-detection.md) | Image, video and camera modes, UltraFace models and preparation |
 | [Hardware](docs/hardware.md) | CPU, GPU, NPU specifications and official sources |
 | [NPU Guides](docs/npus/README.md) | Per-NPU requirements, preparation, startup and hardware/software flows |

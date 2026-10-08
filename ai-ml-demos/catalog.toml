@@ -1,6 +1,90 @@
 version = 1
 
 [[launchers]]
+id = "people-segmentation-image"
+title = "Segment people in an image with VIP8000"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx8mplus"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "people", "--image", "media/segmentation-image.jpg"]
+
+[[launchers]]
+id = "people-segmentation-video"
+title = "Segment people in a video with VIP8000"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx8mplus"
+startup_progress = true
+select_video = true
+video_task = "face"
+video_prompt = "Choose a People Video"
+command = ["python3", "demo.py", "--task", "people"]
+
+[[launchers]]
+id = "people-segmentation-camera"
+title = "Segment people in the camera with VIP8000"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx8mplus"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "people"]
+
+[[launchers]]
+id = "ethosu-people-segmentation-image"
+title = "Segment people in an image with Ethos-U65"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "people", "--image", "media/segmentation-image.jpg"]
+
+[[launchers]]
+id = "ethosu-people-segmentation-video"
+title = "Segment people in a video with Ethos-U65"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx93"
+startup_progress = true
+select_video = true
+video_task = "face"
+video_prompt = "Choose a People Video"
+command = ["python3", "demo.py", "--task", "people"]
+
+[[launchers]]
+id = "ethosu-people-segmentation-camera"
+title = "Segment people in the camera with Ethos-U65"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx93"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "people"]
+
+[[launchers]]
+id = "neutron-people-segmentation-image"
+title = "Segment people in an image with Neutron"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "people", "--image", "media/segmentation-image.jpg"]
+
+[[launchers]]
+id = "neutron-people-segmentation-video"
+title = "Segment people in a video with Neutron"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx95"
+startup_progress = true
+select_video = true
+video_task = "face"
+video_prompt = "Choose a People Video"
+command = ["python3", "demo.py", "--task", "people"]
+
+[[launchers]]
+id = "neutron-people-segmentation-camera"
+title = "Segment people in the camera with Neutron"
+description = "Lightweight person/background mask; experimental"
+demo = "vision-imx95"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "people"]
+
+[[launchers]]
 id = "neutron-segmentation-image"
 title = "Paint people and vehicles in an image with Neutron"
 description = "Semantic masks by class; experimental, not instance tracking"

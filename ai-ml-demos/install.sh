@@ -508,6 +508,8 @@ else
         "${INSTALL_ROOT}/vision_overlay.py"
     install -m 0644 "${SOURCE_ROOT}/terminal_ui.py" \
         "${INSTALL_ROOT}/terminal_ui.py"
+    install -m 0644 "${SOURCE_ROOT}/demo_menu.py" \
+        "${INSTALL_ROOT}/demo_menu.py"
     install -m 0644 "${SOURCE_ROOT}/retired_assets.py" \
         "${INSTALL_ROOT}/retired_assets.py"
     install -m 0644 "${SOURCE_ROOT}/retired-assets.manifest" \

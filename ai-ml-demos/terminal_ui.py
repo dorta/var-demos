@@ -12,6 +12,7 @@ import textwrap
 import time
 
 from telemetry import SOC_TEMPERATURE
+from demo_menu import demo_entries, clean_title, NPU_NAMES
 from runtime import (clock_is_limited, temperature, thermal_limits, StartupProgress,
                      CameraUnavailable, check_camera)
 
@@ -145,6 +146,12 @@ class TerminalUI:
         self.text(1, 2, f'VARISCITE  /  {brand}', self.accent)
         value = SOC_TEMPERATURE.read()
         thermal = 'SoC --.- C' if value is None else f'SoC {value:.1f} C'
+        npu = NPU_NAMES.get(self.platform)
+        if npu:
+            thermal = f'{npu} | {thermal}'
+        if len(thermal) + len(f'VARISCITE  /  {brand}') + 7 >= width:
+            self.text(3, 2, f'NPU: {npu}', curses.A_DIM)
+            thermal = 'SoC --.- C' if value is None else f'SoC {value:.1f} C'
         self.text(1, width - len(thermal) - 3, thermal, curses.A_BOLD)
         self.text(2, 2, f'{self.platform}  |  {title}', curses.A_DIM)
         self.text(4, 2, '-' * (width - 5), curses.A_DIM)
@@ -178,7 +185,7 @@ class TerminalUI:
                     start = (selected // page_size) * page_size
                     for index in range(start, min(len(items), start + page_size)):
                         item = items[index]
-                        label = f" {index + 1:>2}  {item['title']} "
+                        label = f" {index + 1:>2}  {clean_title(item.get('menu_title', item['title']))} "
                         style = self.selected_style if index == selected else 0
                         self.text(5 + index - start, 2,
                                   label.ljust(width - 5), style)
@@ -243,7 +250,7 @@ class TerminalUI:
                             cooling = False
                         if self.header('Demo running' if progress.ready
                                        else 'Preparing demo'):
-                            self.text(5, 2, launcher['title'], curses.A_BOLD)
+                            self.text(5, 2, clean_title(launcher['title']), curses.A_BOLD)
                             status = ('Cooling - inference paused' if cooling
                                       else 'Running' if progress.ready
                                       else 'Preparing')
@@ -292,6 +299,8 @@ class TerminalUI:
         self.message(self.notice, lines)
 
     def main(self):
+        selected_group = None
+        selected_task = None
         while True:
             launchers = self.launchers
             groups = self.catalog.get('groups', [])
@@ -300,17 +309,28 @@ class TerminalUI:
                     launcher.get('group') == group['id']
                     for launcher in self.launchers
                 )]
-                group = self.choose('Choose a category', groups, 'Quit')
-                if group is None:
-                    return 0
+                if selected_group is None:
+                    selected_group = self.choose('Choose a category', groups, 'Quit')
+                    if selected_group is None:
+                        return 0
                 launchers = [launcher for launcher in self.launchers
-                             if launcher.get('group') == group['id']]
-            launcher = self.choose('Choose a demo', launchers,
-                                   'Back' if groups else 'Quit')
+                             if launcher.get('group') == selected_group['id']]
+            entries = selected_task['children'] if selected_task else demo_entries(launchers)
+            title = (f"{selected_task['title']}: Choose Input" if selected_task
+                     else 'Choose a demo')
+            launcher = self.choose(title, entries,
+                                   'Back' if groups or selected_task else 'Quit')
             if launcher is None:
+                if selected_task:
+                    selected_task = None
+                    continue
                 if groups:
+                    selected_group = None
                     continue
                 return 0
+            if 'children' in launcher:
+                selected_task = launcher
+                continue
             try:
                 video = None
                 if launcher.get('select_camera'):
@@ -328,8 +348,9 @@ class TerminalUI:
                             self.api.video_resolutions(self.catalog, demo_id, video_task))
                         if resolution is None:
                             break
-                        video = self.choose('Choose a Face Video' if video_task == 'face'
-                                            else 'Choose a Freepik Video',
+                        video = self.choose(launcher.get('video_prompt',
+                                            'Choose a Face Video' if video_task == 'face'
+                                            else 'Choose a Freepik Video'),
                             self.api.video_choices(self.catalog, demo_id,
                                                    resolution['id'], video_task))
                         if video is not None:

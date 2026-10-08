@@ -96,6 +96,10 @@ are still pending; multi-hour stability is not certified.
 
 ## Segmentation Diagnostics
 
+The lightweight Selfie Segmenter variant has complete HD and Full HD runs
+on all three SoMs. See [People Segmentation](people-segmentation.md#measured-video-results)
+for timings, source resolution, temperatures and cooling pauses.
+
 The optimized experimental DeepLab runner's ten-second Buildings A HD checks
 measured 1.42 FPS on MPlus, 5.48 on MX93 and 5.15 on MX95. These are diagnostic
 runs at different temperatures/codecs, not a standardized hardware ranking.

@@ -1,5 +1,9 @@
 # NPU Guides
 
+The lightweight [People Segmentation](../people-segmentation.md) guide covers
+the same Selfie Segmenter source prepared for all three NPUs, exact tensor
+interfaces, converter commands and the frame-processing flow.
+
 [Documentation](../README.md) · [Project Overview](../../README.md)
 
 Choose the NPU in your SoM to see how to start the demos, what the model must

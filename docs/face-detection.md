@@ -8,9 +8,9 @@ and display layout on all three SoMs.
 
 ## Running the Demo
 
-Open `var-demos`, select AI / ML, then choose face detection for an image,
-video or camera. These three entries follow classification and object
-detection, before platform-specific extras. Demos open fullscreen; Esc
+Open `var-demos`, select **AI / ML**, then **Face Detection**. Inside that
+task, choose **Image**, **Video** or **Camera**. The NPU appears in the menu
+header rather than demo names. Demos open fullscreen; Esc
 returns to the menu. Video mode offers HD and Full HD, then City Selfie.
 Camera mode asks for a capture resolution.
 All camera demos, including experimental hand gestures, use the SoM's
