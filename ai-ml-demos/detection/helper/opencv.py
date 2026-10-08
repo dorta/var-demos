@@ -106,7 +106,7 @@ def _model_title(model_name):
 
 
 def put_info_on_frame(frame, result, time, labels, model_name, _source_file,
-                      video_size=None):
+                      video_size=None, camera_size=None):
     frame, box_area = display_view(frame)
     for obj in result:
         class_id = int(obj['_id'])
@@ -121,6 +121,8 @@ def put_info_on_frame(frame, result, time, labels, model_name, _source_file,
     ui.statistics(frame, _inference_ms(time))
     if video_size is not None:
         ui.video_resolution(frame, video_size)
+    elif camera_size is not None:
+        ui.camera_resolution(frame, camera_size)
     ui.model(frame, _model_title(model_name).replace(' | NPU', ' | VIP8000'))
     draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR)
     return frame

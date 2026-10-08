@@ -17,10 +17,12 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runtime import (demo_session, managed_capture, record_inference,
                      register_cleanup, startup_step, ThermalPacer,
-                     display_view, display_box, video_work_size, video_source_size)
+                     display_view, display_box, video_work_size, video_source_size,
+                     display_size, viewport_geometry)
 from telemetry import SoCTemperature
 import vision_overlay as ui
 from postprocess import decode_postprocessed, decode_ssdlite
+from face import load_face_model, prepare_face_input, decode_faces
 
 ROOT = Path(__file__).resolve().parent
 COLORS = [(52, 211, 153), (245, 189, 66), (223, 147, 70), (194, 133, 246)]
@@ -43,9 +45,22 @@ def gpu_video_conversion(size=None):
             'video/x-raw,format=RGBA ! ')
 
 
+def face_camera_conversion(platform, size):
+    if platform == 'imx8mplus':
+        converter, pixel_format = 'imxvideoconvert_g2d', 'RGBx'
+    elif platform == 'imx93':
+        converter, pixel_format = 'imxvideoconvert_pxp', 'BGR'
+    else:
+        return ''
+    return (f'{converter} ! video/x-raw,format={pixel_format},'
+            f'width={size[0]},height={size[1]} ! ')
+
+
 def video_decoder(platform):
     if platform == 'imx93':
         return 'avidemux ! jpegdec'
+    if platform == 'imx8mplus':
+        return 'qtdemux ! h264parse ! decodebin'
     # Automatic DMA_DRM import returned future/stale images despite increasing
     # PTS. MMAP NV12 plus GL upload was checked against a CPU-decoded reference.
     return ('qtdemux ! h264parse ! v4l2h264dec capture-io-mode=2 ! '
@@ -54,13 +69,18 @@ def video_decoder(platform):
 
 def board():
     compatible = Path('/proc/device-tree/compatible').read_bytes().split(b'\0')
-    for name in ('imx93', 'imx95'):
-        if ('fsl,' + name).encode() in compatible:
+    for name, identifier in (('imx8mplus', 'imx8mp'), ('imx93', 'imx93'),
+                             ('imx95', 'imx95')):
+        if ('fsl,' + identifier).encode() in compatible:
             return name
-    raise RuntimeError('This demo requires a tested i.MX 93 or i.MX 95')
+    raise RuntimeError('This demo requires i.MX 8M Plus, i.MX 93 or i.MX 95')
 
 
 def configure_camera(platform, device, resolution):
+    if platform == 'imx8mplus':
+        if device != '/dev/video4':
+            raise RuntimeError('Only the tested MPlus OV5640 /dev/video4 is supported')
+        return
     if device != '/dev/video0':
         raise RuntimeError('Only the tested OV5640 /dev/video0 is supported')
     if platform == 'imx93':
@@ -71,6 +91,10 @@ def configure_camera(platform, device, resolution):
             f'"ov5640 4-003c":0 [fmt:UYVY8_1X16/{resolution} field:none]'],
             check=True)
         return
+    if not Path('/dev/media0').exists():
+        raise RuntimeError('MX95 camera media-controller is missing. Check the '
+                           'OV5640 cable with the board powered off and inspect '
+                           'the kernel sensor probe errors before retrying.')
     topology = subprocess.check_output(['media-ctl', '-p'], text=True)
     sensor = 'ov5640 2-003c'
     if sensor not in topology:
@@ -88,6 +112,10 @@ def configure_camera(platform, device, resolution):
 
 
 def load_model(platform, task):
+    if task == 'face':
+        return load_face_model(ROOT, platform)
+    if platform == 'imx8mplus':
+        raise RuntimeError('Use the existing MPlus classification/detection demos')
     suffix = 'vela' if platform == 'imx93' else 'neutron'
     filename = ('mobilenet' if task == 'classification' else 'ssd')
     delegate = ('ethosu' if platform == 'imx93' else 'neutron')
@@ -133,13 +161,15 @@ def load_model(platform, task):
 
 
 def overlay(frame, detections, labels, title, fps, ms, thermal, sensor,
-            box_area=None):
+            box_area=None, faces=False):
     height, width = frame.shape[:2]
     box_area = box_area or (0, 0, width, height)
     for box, class_id, score in detections:
         left, top, right, bottom = display_box(box, box_area)
         ui.box(frame, (left, top, right, bottom),
-               labels.get(class_id, 'object'), score)
+               labels.get(class_id, 'object'), score, show_label=not faces)
+    if faces:
+        ui.results(frame, [(f'Faces detected: {len(detections)}', None)])
     ui.statistics(frame, ms, fps)
     ui.model(frame, title)
     ui.temperature(frame, thermal.read())
@@ -148,6 +178,8 @@ def overlay(frame, detections, labels, title, fps, ms, thermal, sensor,
 @demo_session()
 def run(args):
     platform = board()
+    args.camera = args.camera or ('/dev/video4' if platform == 'imx8mplus'
+                                 else '/dev/video0')
     pacer = ThermalPacer(clock_paced=bool(args.video))
     # Do not start a decoder that keeps the GPU busy while waiting to cool.
     if not pacer.wait():
@@ -182,10 +214,14 @@ def run(args):
             os.environ.setdefault('QT_QPA_PLATFORM', 'xcb')
             pipeline += gpu_video_conversion(working_size)
         elif working_size:
-            pipeline += ('imxvideoconvert_pxp ! video/x-raw,format=BGR,'
+            converter = ('imxvideoconvert_g2d' if platform == 'imx8mplus'
+                         else 'imxvideoconvert_pxp')
+            pixel_format = 'RGBx' if platform == 'imx8mplus' else 'BGR'
+            pipeline += (f'{converter} ! video/x-raw,format={pixel_format},'
                          f'width={working_size[0]},height={working_size[1]} ! ')
     else:
-        resolution = args.resolution or ('1280x720' if platform == 'imx95' else '640x480')
+        resolution = args.resolution or ('1280x720' if platform == 'imx95' else
+                                        '720x480' if platform == 'imx8mplus' else '640x480')
         configure_camera(platform, args.camera, resolution)
         width, height = map(int, resolution.split('x'))
         dimensions = f'width={width},height={height}'
@@ -198,6 +234,10 @@ def run(args):
     # files clocked, and drop only late sink samples. Live cameras may leak.
     if not args.video and not args.image:
         pipeline += 'queue leaky=downstream max-size-buffers=1 ! '
+        if args.task == 'face':
+            _, _, work_width, work_height = viewport_geometry(
+                (height, width, 3), display_size())
+            pipeline += face_camera_conversion(platform, (work_width, work_height))
     if not args.image:
         pipeline += capture_tail(bool(args.video))
         startup_step('Opening video; waiting for the first frame')
@@ -210,12 +250,19 @@ def run(args):
     else:
         cap = managed_capture(pipeline)
     thermal = SoCTemperature(sensor_name=(
-        'cpu-thermal' if platform == 'imx93' else 'a55-thermal'))
+        'cpu-thermal' if platform == 'imx93' else
+        'soc-thermal' if platform == 'imx8mplus' else 'a55-thermal'))
     started, frames = monotonic(), 0
-    video_size = video_source_size(path) if args.video and args.task == 'detection' else None
-    title = ('MobileNet V1' if args.task == 'classification' else
+    video_size = video_source_size(path) if args.video and args.task != 'classification' else None
+    # Caps above require the selected capture mode. Face conversion may resize
+    # afterward, so cap/frame dimensions are not the camera's resolution.
+    camera_size = (width, height) if not args.video and not args.image else None
+    title = ('UltraFace Slim' if args.task == 'face' else
+             'MobileNet V1' if args.task == 'classification' else
              'SSD MobileNet V1' if platform == 'imx93' else 'SSD-Lite V2')
-    title += ' | ' + ('Ethos-U65' if platform == 'imx93' else 'Neutron')
+    title += ' | ' + ('Ethos-U65' if platform == 'imx93' else
+                      'VIP8000' if platform == 'imx8mplus' else 'Neutron')
+    most_faces = 0
     while not args.seconds or monotonic() - started < args.seconds:
         def stop_requested():
             return (bool(args.seconds and monotonic() - started >= args.seconds)
@@ -230,7 +277,8 @@ def run(args):
                 break
             raise RuntimeError('Capture stopped delivering frames')
         rgb = cv2.cvtColor(cv2.resize(frame, size), cv2.COLOR_BGR2RGB)
-        interpreter.set_tensor(source['index'], rgb[None])
+        interpreter.set_tensor(source['index'], prepare_face_input(rgb, source)
+                               if args.task == 'face' else rgb[None])
         before = monotonic()
         interpreter.invoke()
         ms = (monotonic() - before) * 1000
@@ -239,7 +287,10 @@ def run(args):
         if not all(np.isfinite(value).all() for value in values):
             raise RuntimeError('Invalid model output')
         detections = []
-        if args.task == 'detection':
+        if args.task == 'face':
+            detections = decode_faces(values[0], args.threshold)
+            most_faces = max(most_faces, len(detections))
+        elif args.task == 'detection':
             detections = (decode_postprocessed(values) if priors is None else
                           decode_ssdlite(values[0], values[1], priors))
         frames += 1
@@ -258,9 +309,11 @@ def run(args):
         frame, box_area = display_view(frame)
         overlay(frame, detections, labels, title,
                 None if args.image else frames / max(monotonic() - started, .001), ms, thermal, 'CPU',
-                box_area)
+                box_area, faces=args.task == 'face')
         if video_size is not None:
             ui.video_resolution(frame, video_size)
+        elif camera_size is not None:
+            ui.camera_resolution(frame, camera_size)
         if args.task == 'classification':
             scores = values[0][0].astype(np.float32)
             scale, zero = outputs[0]['quantization']
@@ -284,17 +337,24 @@ def run(args):
         raise RuntimeError('No frames processed')
     print(f'Processed {frames} frames in {monotonic() - started:.2f} seconds',
           flush=True)
+    if args.task == 'face':
+        print(f'Maximum faces in a frame: {most_faces}', flush=True)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', choices=['classification', 'detection'],
+    parser.add_argument('--task', choices=['classification', 'detection', 'face'],
                         default='detection')
-    parser.add_argument('--camera', default='/dev/video0')
-    parser.add_argument('--video')
-    parser.add_argument('--image')
-    parser.add_argument('--resolution', choices=['640x480', '1280x720', '1920x1080'])
+    sources = parser.add_mutually_exclusive_group()
+    sources.add_argument('--camera')
+    sources.add_argument('--video')
+    sources.add_argument('--image')
+    parser.add_argument('--resolution', choices=['720x480', '640x480', '1280x720', '1920x1080'])
+    parser.add_argument('--threshold', type=float, default=.5)
     parser.add_argument('--headless', action='store_true')
     parser.add_argument('--windowed', action='store_true')
     parser.add_argument('--seconds', type=float, default=0)
-    run(parser.parse_args())
+    args = parser.parse_args()
+    if not 0 <= args.threshold <= 1:
+        parser.error('--threshold must be between zero and one')
+    run(args)

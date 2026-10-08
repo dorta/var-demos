@@ -12,7 +12,7 @@ import textwrap
 import time
 
 from telemetry import SOC_TEMPERATURE
-from runtime import clock_is_limited, temperature, StartupProgress
+from runtime import clock_is_limited, temperature, thermal_limits, StartupProgress
 
 
 def navigate(key, selected, count):
@@ -236,9 +236,9 @@ class TerminalUI:
                         peak = temperature()
                         inference_demo = launcher.get('group', 'ai-ml') == 'ai-ml'
                         if inference_demo and (clock_is_limited() or
-                                              (peak is not None and peak >= 82)):
+                                              (peak is not None and peak >= thermal_limits().pause)):
                             cooling = True
-                        elif peak is not None and peak < 78:
+                        elif peak is not None and peak < thermal_limits().resume:
                             cooling = False
                         if self.header('Demo running' if progress.ready
                                        else 'Preparing demo'):
@@ -320,14 +320,16 @@ class TerminalUI:
                     launcher = self.api.with_camera_resolution(launcher, resolution)
                 if launcher.get('select_video'):
                     demo_id = self.api.launcher_video_demo(launcher, self.platform)
+                    video_task = launcher.get('video_task')
                     while True:
                         resolution = self.choose('Choose Video Quality',
-                            self.api.video_resolutions(self.catalog, demo_id))
+                            self.api.video_resolutions(self.catalog, demo_id, video_task))
                         if resolution is None:
                             break
-                        video = self.choose('Choose a Freepik Video',
+                        video = self.choose('Choose a Face Video' if video_task == 'face'
+                                            else 'Choose a Freepik Video',
                             self.api.video_choices(self.catalog, demo_id,
-                                                   resolution['id']))
+                                                   resolution['id'], video_task))
                         if video is not None:
                             break
                     if video is None:

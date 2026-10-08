@@ -1,5 +1,10 @@
 # Accelerated camera and video inference
 
+UltraFace image, video and camera modes support MPlus, MX93 and MX95
+through this shared runner. See [Face Detection](../../docs/face-detection.md)
+for models, quantization, conversion and current validation limits.
+Its City Selfie video selector is separate from Buildings A/B.
+
 MobileNet classification and SSD detection for the tested MX93 and MX95
 BSPs. Select the demo through `var-demos`; the installer selects compiled
 models and labels for the detected board, not another board's artifacts.
@@ -42,7 +47,12 @@ default; scaled EGL is experimental, enabled only with
 `VAR_AI_ACCELERATED_VIDEO=1`, pending a cooled-board retest.
 Video playback follows the file clock; there is
 no extra cold-board frame limiter. Thermal limits still apply: 15 FPS
-above 80 C, pause at 82 C, resume below 78 C. The decoder is paused too
+at the warm threshold, then a pause/resume policy read from the SoC kernel's
+thermal trip points with conservative headroom. The tested thresholds
+(warm/pause/resume) are MPlus 80/82/78 C, MX93 88/90/86 C and MX95 93/95/91 C.
+Missing policy data uses the previous 80/82/78 C fallback. No kernel trip
+point is modified; actual driver throttling still pauses inference.
+The decoder is paused too
 during cooling on MX93/MX95 and in the MPlus HD-specific runner, and is not
 started on a hot MX93/MX95 before cooling. The shared MPlus OpenCV capture
 backend cannot pause its decoder, so that path retains inference-only cooling.

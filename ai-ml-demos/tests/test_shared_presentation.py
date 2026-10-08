@@ -38,7 +38,8 @@ class SharedPresentationTests(unittest.TestCase):
         titles = []
         root = Path(__file__).resolve().parents[1]
         for demo_id in ['high-resolution-video-detection', 'vision-imx93', 'vision-imx95']:
-            videos = [x for x in catalog['videos'] if x['demo'] == demo_id]
+            videos = [x for x in catalog['videos']
+                      if x['demo'] == demo_id and not x.get('task')]
             self.assertEqual(len(videos), 4)
             titles.append([x['title'] for x in videos])
             demo = manager.find_demo(catalog, demo_id)
@@ -57,6 +58,27 @@ class SharedPresentationTests(unittest.TestCase):
                     manager.camera_choices(catalog, board)[0])
                 self.assertEqual(selected['command'][-2], '--resolution')
                 self.assertNotIn('--resolution', item['command'])
+
+    def test_every_camera_launcher_offers_the_som_capture_modes(self):
+        catalog = manager.load_catalog()
+        for board in catalog['platforms']:
+            choices = manager.camera_choices(catalog, board)
+            self.assertTrue(choices, board)
+            for launcher in manager.launchers_for(catalog, board):
+                if '--camera' in launcher['command']:
+                    self.assertTrue(launcher.get('select_camera'), launcher['id'])
+                    for choice in choices:
+                        selected = manager.with_camera_resolution(launcher, choice)
+                        self.assertEqual(selected['command'][-1], choice['value'])
+
+    def test_camera_badge_matches_video_geometry_and_uses_capture_size(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        for size in ((640, 480), (720, 480), (1280, 720), (1920, 1080)):
+            with patch.object(ui, 'panel') as panel, \
+                    patch.object(ui.cv2, 'putText') as draw:
+                ui.camera_resolution(frame, size)
+            self.assertEqual(panel.call_args.args[1:5], (540, 86, 250, 34))
+            self.assertEqual(draw.call_args.args[1], f'CAMERA  {size[0]} x {size[1]}')
 
     def test_badge_origin_does_not_change_with_values(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -94,6 +116,13 @@ class SharedPresentationTests(unittest.TestCase):
         self.assertEqual(ui.color_for(' person '), ui.PALETTE[0])
         self.assertEqual(ui.color_for('CAR'), ui.PALETTE[2])
         self.assertEqual(ui.color_for('car', True), ui.color_for('car')[::-1])
+
+    def test_faces_can_use_boxes_without_overlapping_label_panels(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        with patch.object(ui.cv2, 'putText') as draw:
+            ui.box(frame, (100, 100, 150, 160), 'face', .9, show_label=False)
+        draw.assert_not_called()
+        self.assertTrue(frame.any())
 
     def test_rgb_and_bgr_paths_have_same_colors(self):
         bgr = np.zeros((480, 800, 3), np.uint8)

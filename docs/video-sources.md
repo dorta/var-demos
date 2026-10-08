@@ -2,16 +2,22 @@
 
 [Documentation](README.md) · [Project Overview](../README.md)
 
-The suite offers only the two Buildings clips supplied by the user and
-identified as Freepik downloads. Each was supplied in 720p and 1080p.
+Classification, object detection and the player offer the two Buildings
+clips supplied by the user and identified as Freepik downloads.
+Face detection separately offers City Selfie, supplied as clip `1117992`.
+All three clips were supplied in 720p and 1080p.
 
 | Clip | Original Filename Pattern | Duration | Frame Rate |
 | --- | --- | --- | --- |
 | Buildings A | `458687_High_rise_Buildings_<resolution>.mp4` | 34.08 seconds | 25 FPS |
 | Buildings B | `458688_High_rise_Buildings_<resolution>.mp4` | 31.80 seconds | 25 FPS |
+| City Selfie | `1117992_1080p_4k_<resolution>.mp4` | 41.24 seconds | 25 FPS |
 
 The menu first selects HD (1280x720) or Full HD (1920x1080), then A or B.
 Classification, detection and the player use the same content on each SoM.
+Face menus instead show City Selfie at the selected quality on all three
+SoMs. Despite `4k` in its downloaded name, the supplied versions are
+1280×720 and 1920×1080, not 4K.
 
 | SoM | Installed Video Format | Preparation |
 | --- | --- | --- |
@@ -27,6 +33,27 @@ for decoding and preprocessing differences.
 The original Freepik page URLs and license documents were not supplied.
 No independent license verification or new video license is claimed here.
 Model license files do not serve as licenses for these videos.
+
+## Preparing the Face Clip
+
+The original H.264 files are retained on MPlus. MX93 receives MJPEG
+compatibility copies and MX95 receives H.264 copies without B-frames:
+
+```sh
+ffmpeg -i input.mp4 -an -c:v mjpeg -q:v 3 -pix_fmt yuvj420p -threads 2 output.avi
+ffmpeg -i input.mp4 -an -c:v libx264 -preset fast -crf 18 -bf 0 -g 50 -pix_fmt yuv420p -movflags +faststart -threads 2 output.mp4
+```
+
+No output size or frame rate is forced. Both versions were probed after
+conversion: their dimensions, 25 FPS and 41.24-second duration are preserved.
+They are stored under `demos/machine-learning/face-detection/v1/` on
+DigitalOcean Spaces with names `face_1117992_<resolution>.mp4` or `.avi`.
+The installer verifies each SHA-256 in its per-SoM manifest. The original
+downloaded files were not overwritten. No original page or license document
+was supplied for City Selfie, so its redistribution license is not
+independently verified here.
+
+See [Face Detection](face-detection.md) for model preparation and frame flow.
 
 Chicago and Jijiga examples are retired. Updates remove their known,
 unchanged suite-installed files by checksum. Changed files, custom videos

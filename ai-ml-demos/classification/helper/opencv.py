@@ -97,10 +97,12 @@ def _model_title(model_name):
 
 
 def put_info_on_frame(frame, top_result, labels,
-                      inference_time, model_name, _source_file):
+                      inference_time, model_name, _source_file, camera_size=None):
     frame, _ = display_view(frame)
     ui.results(frame, [(labels[index], score) for index, score in top_result])
     ui.statistics(frame, _inference_ms(inference_time))
+    if camera_size is not None:
+        ui.camera_resolution(frame, camera_size)
     ui.model(frame, _model_title(model_name).replace(' | NPU', ' | VIP8000'))
     draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR)
     return frame

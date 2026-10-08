@@ -95,7 +95,7 @@ class VideoMenuTests(unittest.TestCase):
                       (ROOT / manifest).read_text().splitlines()
                       if line and not line.startswith('#')}
             videos = [item for item in self.catalog['videos']
-                      if item['demo'] == demo]
+                      if item['demo'] == demo and not item.get('task')]
             self.assertIn('1280x720', videos[0]['path'])
             for clip in ('458687', '458688'):
                 for resolution in ('1280x720', '1920x1080'):

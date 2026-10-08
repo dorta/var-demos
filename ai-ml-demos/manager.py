@@ -17,7 +17,7 @@ import time
 import tomllib
 
 from telemetry import SOC_TEMPERATURE
-from runtime import clock_is_limited, temperature, StartupProgress
+from runtime import clock_is_limited, temperature, thermal_limits, StartupProgress
 
 
 ROOT = Path(__file__).resolve().parent
@@ -63,12 +63,13 @@ def launchers_for(catalog, platform):
     ]
     order = {'classification-image': 0, 'classification-video': 1,
              'classification-camera': 2, 'detection-image': 3,
-             'detection-video': 4, 'detection-camera': 5}
+             'detection-video': 4, 'detection-camera': 5,
+             'face-image': 6, 'face-video': 7, 'face-camera': 8}
     def rank(item):
         name = item['id']
         for prefix in ('ethosu-', 'neutron-'):
             name = name.removeprefix(prefix)
-        return order.get(name, 6)
+        return order.get(name, 9)
     return sorted(launchers, key=rank)
 
 
@@ -181,9 +182,9 @@ def run_with_dashboard(launcher, command, directory):
                     limited = clock_is_limited()
                     inference_demo = launcher.get('group', 'ai-ml') == 'ai-ml'
                     if inference_demo and (limited or (
-                            peak is not None and peak >= 82)):
+                            peak is not None and peak >= thermal_limits().pause)):
                         cooling = True
-                    elif peak is not None and peak < 78:
+                    elif peak is not None and peak < thermal_limits().resume:
                         cooling = False
                     progress.read(log.name)
                     state = ('Cooling' if cooling else 'Running'
@@ -364,7 +365,8 @@ def interactive(catalog, platform, launchers):
                     continue
                 launcher = with_camera_resolution(launcher, choices[int(choice)-1])
             if launcher.get('select_video'):
-                video = select_video(catalog, launcher_video_demo(launcher, platform))
+                video = select_video(catalog, launcher_video_demo(launcher, platform),
+                                     launcher.get('video_task'))
                 if video is None:
                     continue
             result = run_launcher(catalog, launcher, video=video)
@@ -383,20 +385,21 @@ def launcher_video_demo(launcher, platform):
         launcher.get('video_demo', launcher['demo']))
 
 
-def video_resolutions(catalog, demo_id):
+def video_resolutions(catalog, demo_id, task=None):
     available = {item.get('resolution') for item in catalog.get('videos', [])
-                 if item['demo'] == demo_id}
+                 if item['demo'] == demo_id and item.get('task') == task}
     return [dict(id=key, title=title) for key, title in (
         ('720p', 'HD - 720p (1280 x 720)'),
         ('1080p', 'Full HD - 1080p (1920 x 1080)')) if key in available]
 
 
-def video_choices(catalog, demo_id, resolution):
+def video_choices(catalog, demo_id, resolution, task=None):
     return [dict(item, title=item.get('clip_title', item['title']),
                  menu_title=item.get('clip_title', item['title']),
                  run_title=item['title'])
             for item in catalog.get('videos', [])
-            if item['demo'] == demo_id and item.get('resolution') == resolution]
+            if item['demo'] == demo_id and item.get('resolution') == resolution
+            and item.get('task') == task]
 
 
 def select_plain(title, items):
@@ -420,16 +423,16 @@ def select_plain(title, items):
             pass
 
 
-def select_video(catalog, demo_id):
-    resolutions = video_resolutions(catalog, demo_id)
+def select_video(catalog, demo_id, task=None):
+    resolutions = video_resolutions(catalog, demo_id, task)
     if not resolutions:
         raise RuntimeError('no videos are configured for this demo')
     while True:
         resolution = select_plain('Choose Video Quality', resolutions)
         if resolution is None:
             return None
-        video = select_plain('Choose a Freepik Video',
-                             video_choices(catalog, demo_id, resolution['id']))
+        video = select_plain('Choose a Face Video' if task == 'face' else 'Choose a Freepik Video',
+                             video_choices(catalog, demo_id, resolution['id'], task))
         if video is not None:
             return video
 

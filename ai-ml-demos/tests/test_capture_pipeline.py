@@ -11,13 +11,27 @@ SOURCE = Path(__file__).resolve().parents[1] / 'camera-vision/demo.py'
 tree = ast.parse(SOURCE.read_text())
 builders = [node for node in tree.body
             if isinstance(node, ast.FunctionDef)
-            and node.name in ('capture_tail', 'gpu_video_conversion', 'video_decoder')]
+            and node.name in ('capture_tail', 'gpu_video_conversion', 'video_decoder',
+                             'face_camera_conversion')]
 namespace = {}
 exec(compile(ast.Module(body=builders, type_ignores=[]), str(SOURCE), 'exec'),
      namespace)
 
 
 class CapturePipelineTests(unittest.TestCase):
+    def test_gesture_capture_keeps_bgr_at_every_resolution(self):
+        gesture = SOURCE.parents[1] / 'hand-gesture' / 'demo.py'
+        source = gesture.read_text()
+        self.assertIn("'videoconvert ! video/x-raw,format=BGR ! '", source)
+        self.assertIn('width={capture_width},height={capture_height}', source)
+        self.assertIn('ui.camera_resolution(frame, camera_size)', source)
+
+    def test_face_camera_conversion_uses_tested_image_engines(self):
+        self.assertIn('imxvideoconvert_g2d ! video/x-raw,format=RGBx,width=800,height=450',
+                      namespace['face_camera_conversion']('imx8mplus', (800, 450)))
+        self.assertIn('imxvideoconvert_pxp ! video/x-raw,format=BGR,width=800,height=450',
+                      namespace['face_camera_conversion']('imx93', (800, 450)))
+        self.assertEqual(namespace['face_camera_conversion']('imx95', (800, 450)), '')
     def test_mx95_decoder_uses_owned_linear_buffers(self):
         description = namespace['video_decoder']('imx95')
         self.assertIn('v4l2h264dec capture-io-mode=2', description)

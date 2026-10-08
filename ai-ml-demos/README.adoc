@@ -3,7 +3,11 @@
 
 = AI/ML Demos
 
-Classification, object detection, HD video and experimental hand gestures.
+Classification, object detection, face detection and experimental hand gestures.
+
+UltraFace provides image, HD/Full HD video and OV5640 camera modes on all
+three SoMs. See link:../docs/face-detection.md[Face Detection] for model
+sources, per-NPU preparation and current camera validation limits.
 
 == Support
 

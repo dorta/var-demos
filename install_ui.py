@@ -21,6 +21,10 @@ PREFIX = 'VAR_INSTALL_EVENT '
 def asset_name(path):
     """Display the same content name regardless of its board-specific container."""
     name = Path(path).name
+    face_video = re.fullmatch(r'face_1117992_(1280x720|1920x1080)\.(mp4|avi)', name)
+    if face_video:
+        quality = '720p' if face_video[1] == '1280x720' else '1080p'
+        return f'City Selfie - {quality}'
     video = re.fullmatch(r'(buildings_458687|buildings_458688|chicago|video)_(1280x720|1280x800|1920x1080)\.(mp4|avi)', name)
     if video:
         clip, size, _ = video.groups()
@@ -31,6 +35,8 @@ def asset_name(path):
                       '1920x1080': '1080p'}[size]
         return f'{title} - {resolution}'
     if name.endswith('.tflite'):
+        if name.startswith('ultraface'):
+            return 'UltraFace face detection model'
         if name.startswith('mobilenet'):
             return 'MobileNet V1 classification model'
         if name.startswith('ssd'):
@@ -43,6 +49,8 @@ def asset_name(path):
                 name in ('classification-labels.txt', 'labels.txt')
                 else 'Object detection labels')
     return {'classification-image.jpg': 'Classification sample image',
+            'face-image.jpg': 'Face detection sample image',
+            'example_input.jpg': 'Face detection sample image',
             'detection-image.png': 'Object detection sample image',
             'hand.bmp': 'Hand gesture sample image',
             'LICENSE': 'Model license', 'anchors.csv': 'Hand model anchors',

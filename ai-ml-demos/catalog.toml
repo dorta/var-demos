@@ -1,5 +1,60 @@
 version = 1
 
+[[videos]]
+demo = "vision-imx8mplus"
+task = "face"
+title = "City Selfie - HD 720p, 41 seconds"
+clip_title = "City Selfie - 41 seconds"
+resolution = "720p"
+source = "User-provided clip 1117992"
+path = "assets/videos/face_1117992_1280x720.mp4"
+
+[[videos]]
+demo = "vision-imx8mplus"
+task = "face"
+title = "City Selfie - Full HD 1080p, 41 seconds"
+clip_title = "City Selfie - 41 seconds"
+resolution = "1080p"
+source = "User-provided clip 1117992"
+path = "assets/videos/face_1117992_1920x1080.mp4"
+
+[[videos]]
+demo = "vision-imx93"
+task = "face"
+title = "City Selfie - HD 720p, 41 seconds"
+clip_title = "City Selfie - 41 seconds"
+resolution = "720p"
+source = "User-provided clip 1117992"
+path = "assets/videos/face_1117992_1280x720.avi"
+
+[[videos]]
+demo = "vision-imx93"
+task = "face"
+title = "City Selfie - Full HD 1080p, 41 seconds"
+clip_title = "City Selfie - 41 seconds"
+resolution = "1080p"
+source = "User-provided clip 1117992"
+path = "assets/videos/face_1117992_1920x1080.avi"
+
+[[videos]]
+demo = "vision-imx95"
+task = "face"
+title = "City Selfie - HD 720p, 41 seconds"
+clip_title = "City Selfie - 41 seconds"
+resolution = "720p"
+source = "User-provided clip 1117992"
+path = "assets/videos/face_1117992_1280x720.mp4"
+
+[[videos]]
+demo = "vision-imx95"
+task = "face"
+title = "City Selfie - Full HD 1080p, 41 seconds"
+clip_title = "City Selfie - 41 seconds"
+resolution = "1080p"
+source = "User-provided clip 1117992"
+path = "assets/videos/face_1117992_1920x1080.mp4"
+
+
 [platforms.imx8mplus]
 camera_resolutions = [{title = "SD - 720 x 480 (default)", value = "720x480"}, {title = "VGA - 640 x 480", value = "640x480"}, {title = "HD - 720p (1280 x 720)", value = "1280x720"}, {title = "Full HD - 1080p (1920 x 1080)", value = "1920x1080"}]
 name = "i.MX 8M Plus"
@@ -7,7 +62,7 @@ compatible = ["fsl,imx8mp"]
 status = "validated"
 asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx8mplus/v2"
 delegate_path = "/usr/lib/libvx_delegate.so"
-runtime_plugins = "appsink decodebin imxvideoconvert_g2d"
+runtime_plugins = "appsink decodebin imxvideoconvert_g2d h264parse qtdemux v4l2src videoconvert"
 
 [platforms.imx93]
 camera_resolutions = [{title = "VGA - 640 x 480 (default)", value = "640x480"}, {title = "HD - 720p (1280 x 720)", value = "1280x720"}, {title = "Full HD - 1080p (1920 x 1080)", value = "1920x1080"}]
@@ -26,6 +81,86 @@ status = "validated"
 asset_base_url = "https://nyc3.digitaloceanspaces.com/variscite-marketing/demos/machine-learning/imx95/v1"
 delegate_path = "/usr/lib/libneutron_delegate.so"
 runtime_plugins = "appsink v4l2src videoconvert qtdemux h264parse v4l2h264dec glupload glcolorconvert glcolorscale gldownload"
+
+[[demos]]
+id = "vision-imx8mplus"
+title = "UltraFace image, video and camera inference"
+path = "camera-vision"
+platforms = ["imx8mplus"]
+entrypoint = "python3 demo.py --task face"
+manifest = "assets-face-imx8mplus.manifest"
+
+[[launchers]]
+id = "face-image"
+title = "Detect faces in an image with VIP8000"
+demo = "vision-imx8mplus"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "face", "--image", "media/face-image.jpg"]
+
+[[launchers]]
+id = "face-video"
+title = "Detect faces in a video with VIP8000"
+demo = "vision-imx8mplus"
+startup_progress = true
+select_video = true
+video_task = "face"
+command = ["python3", "demo.py", "--task", "face"]
+
+[[launchers]]
+id = "face-camera"
+title = "Detect faces in the camera with VIP8000"
+demo = "vision-imx8mplus"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "face"]
+
+[[launchers]]
+id = "ethosu-face-image"
+title = "Detect faces in an image with Ethos-U65"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "face", "--image", "media/face-image.jpg"]
+
+[[launchers]]
+id = "ethosu-face-video"
+title = "Detect faces in a video with Ethos-U65"
+demo = "vision-imx93"
+startup_progress = true
+select_video = true
+video_task = "face"
+command = ["python3", "demo.py", "--task", "face"]
+
+[[launchers]]
+id = "ethosu-face-camera"
+title = "Detect faces in the camera with Ethos-U65"
+demo = "vision-imx93"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "face"]
+
+[[launchers]]
+id = "neutron-face-image"
+title = "Detect faces in an image with Neutron"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "face", "--image", "media/face-image.jpg"]
+
+[[launchers]]
+id = "neutron-face-video"
+title = "Detect faces in a video with Neutron"
+demo = "vision-imx95"
+startup_progress = true
+select_video = true
+video_task = "face"
+command = ["python3", "demo.py", "--task", "face"]
+
+[[launchers]]
+id = "neutron-face-camera"
+title = "Detect faces in the camera with Neutron"
+demo = "vision-imx95"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "face"]
 
 [[demos]]
 id = "vision-imx93"
@@ -177,6 +312,7 @@ manifest = "assets.manifest"
 
 [[launchers]]
 id = "hand-gesture-camera"
+select_camera = true
 startup_progress = true
 title = "Recognize hand gestures with VIP8000 (experimental)"
 category = "HAND AND GESTURES"

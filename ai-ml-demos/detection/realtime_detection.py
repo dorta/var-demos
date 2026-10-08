@@ -89,7 +89,8 @@ def image_detection(args):
                     })
 
             frame = put_info_on_frame(frame, result, timer.time, labels,
-                                      args['model'], args['camera'])
+                                      args['model'], args['camera'],
+                                      camera_size=(camera_width, camera_height))
             frame = put_fps_on_frame(frame, framerate.fps)
             if not window_created:
                 create_window(TITLE, args['windowed'])

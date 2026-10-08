@@ -33,6 +33,8 @@ For videos, choose **HD (720p)** or **Full HD (1080p)**, then **Buildings A**
 or **Buildings B**. AI demos and the player use the same [two Freepik clips](docs/video-sources.md),
 with identical choices on all three SoMs.
 
+Face detection has its own **City Selfie** video, also available in HD and Full HD.
+
 ## Supported System on Modules
 
 | SoM | Photo | CPU | GPU / Image Engine | NPU |
@@ -47,7 +49,7 @@ and [SoM Support](docs/som-support.md). Maximum CPU specifications depend on SKU
 
 | Category | Demos |
 | --- | --- |
-| [AI / ML](ai-ml-demos/) | Classification, detection and hand gestures |
+| [AI / ML](ai-ml-demos/) | Classification, object/face detection and hand gestures |
 | [Multimedia](multimedia-demos/) | Video player |
 | [OpenCL](opencl/python/) | GPU computation |
 | BSP | Graphical examples already installed in `/opt` |
@@ -57,6 +59,7 @@ and [SoM Support](docs/som-support.md). Maximum CPU specifications depend on SKU
 | Guide | Contents |
 | --- | --- |
 | [SoM Support](docs/som-support.md) | Available demos, NPUs and camera resolutions |
+| [Face Detection](docs/face-detection.md) | Image, video and camera modes, UltraFace models and preparation |
 | [Hardware](docs/hardware.md) | CPU, GPU, NPU specifications and official sources |
 | [NPU Guides](docs/npus/README.md) | Per-NPU requirements, preparation, startup and hardware/software flows |
 | [Models and Processing Flows](docs/models.md) | Model origins, data types, classification and detection diagrams |

@@ -42,7 +42,11 @@ class InstallerTests(unittest.TestCase):
     def test_prefetch_keeps_the_installed_asset_untouched(self):
         self.check_asset_download(prefetch=True)
 
-    def check_asset_download(self, prefetch):
+    def test_verified_upstream_https_asset_uses_its_own_url(self):
+        self.check_asset_download(prefetch=False,
+                                  remote='https://models.example.invalid/face.tflite')
+
+    def check_asset_download(self, prefetch, remote='media/test.mp4'):
         source = SCRIPT.read_text()
         functions = '\n'.join(
             re.search(
@@ -66,10 +70,14 @@ set -eu
 INSTALL_ROOT=$1/install
 WORK_DIR=$1/work
 FIXTURE=$1/fixture
+REQUEST=$1/request
 ASSET_BASE_URL=https://example.invalid
 PREFETCH_ONLY=$3
 fail() { echo "$*" >&2; exit 1; }
 curl() {
+    for argument in "$@"; do
+        case "$argument" in https://*) printf '%s' "$argument" > "$REQUEST" ;; esac
+    done
     while [ "$#" -gt 0 ]; do
         if [ "$1" = --output ]; then
             cp "$FIXTURE" "$2"
@@ -82,14 +90,16 @@ curl() {
 '''
             subprocess.run(
                 ['sh', '-c', shell + functions +
-                 '\ninstall_asset hd "$2" media/test.mp4 '
+                 '\ninstall_asset hd "$2" "$4" '
                  'assets/videos/test.mp4', 'test', str(root), digest,
-                 '1' if prefetch else '0'],
+                 '1' if prefetch else '0', remote],
                 check=True, capture_output=True, text=True,
             )
             expected = b'old static sample' if prefetch else payload
             self.assertEqual(destination.read_bytes(), expected)
             self.assertEqual((root / 'work/assets' / digest).read_bytes(), payload)
+            self.assertEqual((root / 'request').read_text(), remote if remote.startswith(
+                'https://') else 'https://example.invalid/' + remote)
 
 
 if __name__ == '__main__':

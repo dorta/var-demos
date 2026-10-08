@@ -4,6 +4,16 @@
 
 ## What This Runtime Expects
 
+### Face Detection
+
+UltraFace image, video and camera modes use RGB UINT8 input at 320×240,
+with scale 1/128 and zero point 127. The same source as MPlus is compiled with Vela 3.12.0 for Ethos-U65-256.
+The model graph produces FLOAT32 face scores and normalized boxes; its
+postprocessing still uses CPU operations. Frame acquisition, resize and
+quantization precede the Ethos-U65 invocation; confidence filtering
+and display-coordinate mapping follow it. See [Face Detection](../face-detection.md)
+for the complete flow, artifact checksums and current validation limits.
+
 ### NPU and Libraries
 
 Ethos-U65 accelerates tensor operations under Cortex-M33 firmware control.

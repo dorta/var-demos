@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import signal
 from time import monotonic, sleep
+from typing import NamedTuple
 
 from telemetry import SOC_TEMPERATURE, SoCTemperature
 
@@ -17,7 +18,54 @@ RESOURCES = ContextVar('demo_resources')
 STATISTICS = ContextVar('demo_statistics', default=None)
 CPU_TEMPERATURE = SoCTemperature(sensor_name='cpu-thermal')
 A55_TEMPERATURE = SoCTemperature(sensor_name='a55-thermal')
+ANA_TEMPERATURE = SoCTemperature(sensor_name='ana-thermal')
 CLOCK_SCALE = Path('/sys/bus/platform/drivers/galcore/gpu3DClockScale')
+THERMAL_ROOT = Path('/sys/class/thermal')
+
+
+class ThermalLimits(NamedTuple):
+    warm: float = 80
+    pause: float = 82
+    resume: float = 78
+
+
+@lru_cache(maxsize=1)
+def thermal_limits():
+    """Read kernel policy; keep headroom and never write its trip points.
+
+    Defaults remain conservative when a recognized SoC zone lacks a policy.
+    The 95 C ceiling is our application limit, not a vendor specification.
+    """
+    pauses = []
+    for zone in THERMAL_ROOT.glob('thermal_zone*'):
+        try:
+            name = (zone / 'type').read_text().strip()
+        except OSError:
+            continue
+        if name not in ('soc-thermal', 'cpu-thermal', 'a55-thermal', 'ana-thermal'):
+            continue
+        passive, critical = [], []
+        for path in zone.glob('trip_point_*_type'):
+            try:
+                kind = path.read_text().strip()
+                value = float(path.with_name(path.name.removesuffix('type') + 'temp').read_text()) / 1000
+            except (OSError, ValueError):
+                continue
+            if 40 <= value <= 150:
+                if kind == 'passive':
+                    passive.append(value)
+                elif kind == 'critical':
+                    critical.append(value)
+        if not passive:
+            return ThermalLimits()
+        pause = min(min(passive) - 3, 95)
+        if critical:
+            pause = min(pause, min(critical) - 10)
+        pauses.append(pause)
+    if not pauses:
+        return ThermalLimits()
+    pause = min(pauses)
+    return ThermalLimits(warm=pause - 2, pause=pause, resume=pause - 4)
 
 
 def warm_up_model(interpreter):
@@ -212,7 +260,7 @@ def clock_is_limited():
 
 def temperature():
     values = [SOC_TEMPERATURE.read(), CPU_TEMPERATURE.read(),
-              A55_TEMPERATURE.read()]
+              A55_TEMPERATURE.read(), ANA_TEMPERATURE.read()]
     return max((value for value in values if value is not None), default=None)
 
 
@@ -282,15 +330,16 @@ def managed_capture(source):
 
 
 class ThermalPacer:
-    """Bound continuous load and cool before the kernel's 85 C trip point."""
+    """Bound continuous load using the shared, read-only kernel-aware policy."""
 
-    def __init__(self, clock_paced=False):
+    def __init__(self, clock_paced=False, limits=None):
         self.last_frame = monotonic()
         self.cooling = False
         self.warm = False
         self.next_check = 0
         self.limited = False
         self.clock_paced = clock_paced
+        self.limits = limits if limits is not None else thermal_limits()
 
     def wait(self, poll_stop=lambda: False, on_cooling=None):
         while True:
@@ -300,25 +349,25 @@ class ThermalPacer:
                 self.next_check = now + 1
             value = temperature()
             if value is not None:
-                if value >= 80:
+                if value >= self.limits.warm:
                     if not self.warm:
                         print(f'Thermal rate limit: hottest SoC zone {value:.1f} C; '
                               'processing capped at 15 FPS.', flush=True)
                     self.warm = True
-                elif value < 78:
+                elif value < self.limits.resume:
                     if self.warm:
                         print('Thermal rate limit cleared: normal processing resumed.',
                               flush=True)
                     self.warm = False
-            if self.limited or (value is not None and value >= 82):
+            if self.limited or (value is not None and value >= self.limits.pause):
                 if not self.cooling:
                     if on_cooling:
                         on_cooling(True)
-                    print('Cooling: inference paused until below 78 C.',
+                    print(f'Cooling: inference paused until below {self.limits.resume:g} C.',
                           flush=True)
                 self.cooling = True
             if self.cooling:
-                if not self.limited and value is not None and value < 78:
+                if not self.limited and value is not None and value < self.limits.resume:
                     self.cooling = False
                     if on_cooling:
                         on_cooling(False)

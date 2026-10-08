@@ -86,6 +86,12 @@ def video_resolution(frame, size, rgb=False):
     badge(frame, f'VIDEO  {width} x {height}', row=2, rgb=rgb)
 
 
+def camera_resolution(frame, size, rgb=False):
+    """Show negotiated capture dimensions, never the resized working frame."""
+    width, height = size
+    badge(frame, f'CAMERA  {width} x {height}', row=2, rgb=rgb)
+
+
 def statistics(frame, ms, fps=None, rgb=False):
     metric(frame, 'INFERENCE', ms, 'ms', rgb=rgb)
     if fps is not None:
@@ -131,7 +137,7 @@ def results(frame, rows, rgb=False):
                         FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
-def box(frame, bounds, name, score=None, rgb=False):
+def box(frame, bounds, name, score=None, rgb=False, show_label=True):
     left, top, right, bottom = bounds
     color = color_for(name, rgb)
     corner = max(10, min(24, (right - left) // 5, (bottom - top) // 5))
@@ -140,6 +146,8 @@ def box(frame, bounds, name, score=None, rgb=False):
                          (left, bottom, 1, -1), (right, bottom, -1, -1)):
         cv2.line(frame, (x, y), (x + dx * corner, y), color, 3, cv2.LINE_AA)
         cv2.line(frame, (x, y), (x, y + dy * corner), color, 3, cv2.LINE_AA)
+    if not show_label:
+        return
     text = name if score is None else f'{name}  {score:.0%}'
     (width, height), baseline = cv2.getTextSize(text, FONT, .55, 1)
     label_height = height + baseline + 10

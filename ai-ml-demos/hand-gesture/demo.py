@@ -53,7 +53,7 @@ def display_frame(frame, windowed):
     return cv2.resize(frame, (width, height))
 
 
-def draw(frame, points, gesture, fps, inference):
+def draw(frame, points, gesture, fps, inference, camera_size=None):
     source_height, source_width = frame.shape[:2]
     frame, (x, y, width, height) = display_view(frame)
     if points is not None:
@@ -68,6 +68,8 @@ def draw(frame, points, gesture, fps, inference):
             cv2.circle(frame, tuple(point), 3, TEXT, -1, cv2.LINE_AA)
     ui.results(frame, [(gesture, None)])
     ui.statistics(frame, inference * 1000, fps)
+    if camera_size is not None:
+        ui.camera_resolution(frame, camera_size)
     ui.model(frame, 'Palm + 21 landmarks | VIP8000')
     draw_soc_temperature(frame, PANEL, TEXT)
     return frame
@@ -106,10 +108,12 @@ def run(args):
         sample = reference
     else:
         startup_step('Models ready; opening camera')
+        capture_width, capture_height = map(int, args.resolution.split('x'))
         pipeline = (f'v4l2src device={args.camera} ! '
-                    'video/x-raw,width=640,height=480,framerate=30/1 ! '
+                    f'video/x-raw,width={capture_width},height={capture_height},framerate=30/1 ! '
                     'queue leaky=downstream max-size-buffers=1 ! '
-                    'videoconvert ! appsink max-buffers=1 drop=true')
+                    'videoconvert ! video/x-raw,format=BGR ! '
+                    'appsink max-buffers=1 drop=true')
         capture = managed_capture(pipeline)
     startup_step('Waiting for the first valid frame')
     stable = StableGesture()
@@ -149,7 +153,8 @@ def run(args):
                       flush=True)
                 next_log = now + 1
             continue
-        frame = draw(frame, points, gesture, fps, tracker.inference_seconds)
+        frame = draw(frame, points, gesture, fps, tracker.inference_seconds,
+                     camera_size=None if args.sample else (capture_width, capture_height))
         if not window:
             cv2.namedWindow(TITLE, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
             if not args.windowed:
@@ -168,6 +173,8 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--camera', default='/dev/video4')
+    parser.add_argument('--resolution', default='640x480',
+                        choices=['720x480', '640x480', '1280x720', '1920x1080'])
     parser.add_argument('--sample', action='store_true')
     parser.add_argument('--headless', action='store_true')
     parser.add_argument('--windowed', action='store_true')

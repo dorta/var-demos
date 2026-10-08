@@ -126,7 +126,8 @@ zone, which can be hotter than the footer sensor. This is not a guarantee of
 20.23 FPS at 720p and is not the common-menu detection measurement above.
 
 Clocked files no longer have an additional cold-board rate limiter. Hot-board
-15 FPS limiting, 82 C pause and below-78 C resume remain. MX93/MX95 GI capture
+15 FPS limiting, 82 C pause and below-78 C resume remained at that revision.
+The newer policy is recorded below. MX93/MX95 GI capture
 pauses the decoder during cooling; the MPlus HD-specific runner does too.
 The common MPlus OpenCV backend still has inference-only cooling.
 Padded buffer stride, offset and bottom rows are now handled explicitly.
@@ -158,6 +159,57 @@ were illustrative layout values, not new performance measurements.
 
 Regression: 98 AI tests and 51 suite tests passed. This update does not establish
 new sustained FPS, prediction equivalence or cooled MX95 inference performance.
+
+## Face Detection and Camera Presentation Update, 2026-10-07
+
+UltraFace Slim was exercised with actual NPU delegates on all three connected
+SoMs. The reference image produced 14 detections on each target. City Selfie
+(user clip 1117992) completed at both 1280x720 and 1920x1080 with visible
+fullscreen output and detected faces. These are single-run measurements,
+not sustained-performance guarantees:
+
+| SoM | HD FPS / inference | Full HD FPS / inference | Peak SoC temperature, HD / Full HD |
+| --- | --- | --- | --- |
+| i.MX 8M Plus | 16.36 / 5.56 ms | 12.53 / 5.66 ms | 80 / 81 C |
+| VAR-SOM-MX93 | 23.07 / 7.11 ms | 22.90 / 7.23 ms | 62.35 / 65.35 C |
+| DART-MX95 | 24.87 / 4.25 ms | 19.88 / 4.21 ms | 83 / 88.12 C |
+
+The source is 25 FPS, not 30 FPS. MPlus reached application thermal pacing
+during these runs. MX95 completed without entering Cooling under the newer
+policy, but its default Full HD conversion path still costs throughput.
+The experimental scaled MX95 path remains opt-in and is not certified here.
+
+Thermal pacing now reads recognized SoC zones' kernel trip points without
+changing them. The tested application warm/pause/resume thresholds were
+80/82/78 C on MPlus, 88/90/86 C on MX93 and 93/95/91 C on MX95. These are
+conservative application choices, not manufacturer temperature ratings.
+Missing policy data retains the 80/82/78 C fallback; reported hardware
+throttling still pauses inference. Regression tests cover these cases.
+
+Face camera capture ran in VGA, HD and Full HD on MPlus and MX93. Accelerated
+conversion uses G2D and PXP respectively. The final CAMERA badge was checked
+while actually displaying 140 SD frames on MPlus and 130 Full HD frames on
+MX93: every frame showed the capture dimensions, independent of the 800x480
+display and smaller intermediate working frame. All camera launchers now
+offer their configured SoM resolution choices, including hand gestures.
+Additional live checks covered MPlus classification at VGA (148 visible
+frames), object detection at SD (100), and gestures at HD (37), plus MX93
+classification at VGA (140) and object detection at HD (29). Each displayed
+frame called the CAMERA badge with the selected capture dimensions.
+The gesture test exposed unconstrained pixel-format negotiation; capture
+now explicitly requests BGR after conversion. Its successful repeat is a
+functional check, not a 30 FPS claim for the experimental gesture pipeline.
+
+MX95 camera validation is blocked by OV5640 probe/power errors (-5) and an
+absent media graph. Image/video success is not camera validation. Reconnect
+or inspect the camera with the board powered off, then retest capture.
+
+Published face assets were downloaded and SHA-256 checked on the targets.
+An isolated MPlus face installation using the normal installer completed
+without modifying `/opt/var-demos` or its existing launcher.
+Local regression: 116 AI tests and 51 suite tests passed.
+Model origins, preparation, video transformations and limitations are in
+[Face Detection](face-detection.md) and [Video Sources](video-sources.md).
 
 ## Related Guides
 

@@ -172,6 +172,7 @@ download() {
         --retry 5 \
         --retry-all-errors \
         --connect-timeout 15 \
+        --speed-time 30 --speed-limit 1024 \
         --output "${download_destination}" \
         "${download_url}"
 }
@@ -313,8 +314,13 @@ install_asset() {
         else
             progress "Downloading ${relative_path}" 0 0 "${cache_file}.part" "${remote_path}"
             [ "${VAR_DEMOS_PROGRESS:-0}" = 1 ] || echo "Downloading ${remote_path}"
+            case "${remote_path}" in
+                https://*) asset_url=${remote_path} ;;
+                *://*) fail "unsupported asset URL: ${remote_path}" ;;
+                *) asset_url="${ASSET_BASE_URL}/${remote_path}" ;;
+            esac
             download \
-                "${ASSET_BASE_URL}/${remote_path}" \
+                "${asset_url}" \
                 "${cache_file}.part"
             printf '%s  %s\n' "${expected}" "${cache_file}.part" | \
                 sha256sum -c - >/dev/null

@@ -82,7 +82,9 @@ Neutron NPU. MobileNet V1 classification and SSD-Lite V2 detection.
 The previous Full HD timing was withdrawn: its GL conversion delivered
 black frames. The corrected path was checked with visible detections;
 representative sustained video timings must be measured again. Thermal
-pauses still occur around 82 °C; camera throughput is limited by capture.
+pauses occurred around 82 °C under the previous universal application guard;
+that guard has since been replaced with the kernel-aware policy documented
+in [Face Detection](face-detection.md). Camera throughput is limited by capture.
 The final video path explicitly uses MMAP decoder buffers before GPU
 conversion; automatic DMA_DRM import produced out-of-order image content
 even with increasing timestamps. See the [validation record](validation.md).
