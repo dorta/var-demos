@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT.parent))
 from runtime import demo_session, managed_capture, record_inference, ThermalPacer
 from runtime import startup_step
 from runtime import display_view
+from runtime import check_camera
 from telemetry import draw_soc_temperature, SOC_TEMPERATURE
 from gestures import classify, SmoothLandmarks, StableGesture
 from hand_tracker import HandTracker
@@ -79,6 +80,7 @@ def draw(frame, points, gesture, fps, inference, camera_size=None):
 def run(args):
     startup_step('Checking camera and model assets')
     if not args.sample:
+        check_camera('imx8mplus', args.camera)
         if (not args.camera.startswith('/dev/video') or
                 not args.camera.removeprefix('/dev/video').isdigit()):
             raise ValueError('Expected a /dev/video camera device')

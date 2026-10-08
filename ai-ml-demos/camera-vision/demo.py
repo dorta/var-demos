@@ -19,10 +19,13 @@ from runtime import (demo_session, managed_capture, record_inference,
                      register_cleanup, startup_step, ThermalPacer,
                      display_view, display_box, video_work_size, video_source_size,
                      display_size, viewport_geometry)
+from runtime import check_camera, CameraUnavailable
 from telemetry import SoCTemperature
 import vision_overlay as ui
 from postprocess import decode_postprocessed, decode_ssdlite
 from face import load_face_model, prepare_face_input, decode_faces
+from segmentation import (load_segmentation_model, prepare_segmentation_input,
+                          decode_segmentation, read_segmentation, paint_segmentation, legend)
 
 ROOT = Path(__file__).resolve().parent
 COLORS = [(52, 211, 153), (245, 189, 66), (223, 147, 70), (194, 133, 246)]
@@ -114,6 +117,8 @@ def configure_camera(platform, device, resolution):
 def load_model(platform, task):
     if task == 'face':
         return load_face_model(ROOT, platform)
+    if task == 'segmentation':
+        return load_segmentation_model(ROOT, platform)
     if platform == 'imx8mplus':
         raise RuntimeError('Use the existing MPlus classification/detection demos')
     suffix = 'vela' if platform == 'imx93' else 'neutron'
@@ -180,6 +185,12 @@ def run(args):
     platform = board()
     args.camera = args.camera or ('/dev/video4' if platform == 'imx8mplus'
                                  else '/dev/video0')
+    if not args.video and not args.image:
+        try:
+            check_camera(platform, args.camera)
+        except CameraUnavailable as error:
+            print(f'Camera unavailable. {error}', flush=True)
+            return
     pacer = ThermalPacer(clock_paced=bool(args.video))
     # Do not start a decoder that keeps the GPU busy while waiting to cool.
     if not pacer.wait():
@@ -234,7 +245,7 @@ def run(args):
     # files clocked, and drop only late sink samples. Live cameras may leak.
     if not args.video and not args.image:
         pipeline += 'queue leaky=downstream max-size-buffers=1 ! '
-        if args.task == 'face':
+        if args.task in ('face', 'segmentation'):
             _, _, work_width, work_height = viewport_geometry(
                 (height, width, 3), display_size())
             pipeline += face_camera_conversion(platform, (work_width, work_height))
@@ -257,7 +268,8 @@ def run(args):
     # Caps above require the selected capture mode. Face conversion may resize
     # afterward, so cap/frame dimensions are not the camera's resolution.
     camera_size = (width, height) if not args.video and not args.image else None
-    title = ('UltraFace Slim' if args.task == 'face' else
+    title = ('DeepLabV3 | People and vehicles' if args.task == 'segmentation' else
+             'UltraFace Slim' if args.task == 'face' else
              'MobileNet V1' if args.task == 'classification' else
              'SSD MobileNet V1' if platform == 'imx93' else 'SSD-Lite V2')
     title += ' | ' + ('Ethos-U65' if platform == 'imx93' else
@@ -277,13 +289,18 @@ def run(args):
                 break
             raise RuntimeError('Capture stopped delivering frames')
         rgb = cv2.cvtColor(cv2.resize(frame, size), cv2.COLOR_BGR2RGB)
-        interpreter.set_tensor(source['index'], prepare_face_input(rgb, source)
-                               if args.task == 'face' else rgb[None])
+        tensor = (prepare_face_input(rgb, source) if args.task == 'face' else
+                  prepare_segmentation_input(rgb, source) if args.task == 'segmentation'
+                  else rgb[None])
+        interpreter.set_tensor(source['index'], tensor)
         before = monotonic()
         interpreter.invoke()
         ms = (monotonic() - before) * 1000
         record_inference(ms / 1000)
-        values = [interpreter.get_tensor(item['index']) for item in outputs]
+        # Segmentation validates its large score tensor once, through a
+        # temporary view; other tasks retain their small owned output arrays.
+        classes = read_segmentation(interpreter, outputs[0]) if args.task == 'segmentation' else None
+        values = [] if classes is not None else [interpreter.get_tensor(item['index']) for item in outputs]
         if not all(np.isfinite(value).all() for value in values):
             raise RuntimeError('Invalid model output')
         detections = []
@@ -307,6 +324,9 @@ def run(args):
                 break
             continue
         frame, box_area = display_view(frame)
+        if classes is not None:
+            paint_segmentation(frame, classes, box_area)
+            legend(frame)
         overlay(frame, detections, labels, title,
                 None if args.image else frames / max(monotonic() - started, .001), ms, thermal, 'CPU',
                 box_area, faces=args.task == 'face')
@@ -343,7 +363,7 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', choices=['classification', 'detection', 'face'],
+    parser.add_argument('--task', choices=['classification', 'detection', 'face', 'segmentation'],
                         default='detection')
     sources = parser.add_mutually_exclusive_group()
     sources.add_argument('--camera')

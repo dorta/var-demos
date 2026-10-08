@@ -13,6 +13,7 @@
 | Face detection, image | ✓ | ✓ | ✓ |
 | Face detection, HD / Full HD video | ✓ | ✓ | ✓ |
 | Face detection, camera | ✓ | ✓ | Sensor unavailable during test |
+| People / vehicle segmentation, image, video and camera | Experimental | Experimental | Converter/runtime mismatch, not enabled |
 | Video player | ✓ | ✓ | ✓ |
 | OpenCL / GPU examples | ✓ | N/A | ✓ |
 | Hand gestures | Experimental | N/A | N/A |

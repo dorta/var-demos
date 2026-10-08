@@ -1,5 +1,59 @@
 version = 1
 
+[[launchers]]
+id = "segmentation-image"
+title = "Paint people and vehicles in an image with VIP8000"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx8mplus"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "segmentation", "--image", "media/segmentation-image.jpg"]
+
+[[launchers]]
+id = "segmentation-video"
+title = "Paint people and vehicles in a video with VIP8000"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx8mplus"
+startup_progress = true
+select_video = true
+video_demo = "high-resolution-video-detection"
+command = ["python3", "demo.py", "--task", "segmentation"]
+
+[[launchers]]
+id = "segmentation-camera"
+title = "Paint people and vehicles in the camera with VIP8000"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx8mplus"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "segmentation"]
+
+[[launchers]]
+id = "ethosu-segmentation-image"
+title = "Paint people and vehicles in an image with Ethos-U65"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx93"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "segmentation", "--image", "media/segmentation-image.jpg"]
+
+[[launchers]]
+id = "ethosu-segmentation-video"
+title = "Paint people and vehicles in a video with Ethos-U65"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx93"
+startup_progress = true
+select_video = true
+video_demo = "vision-imx93"
+command = ["python3", "demo.py", "--task", "segmentation"]
+
+[[launchers]]
+id = "ethosu-segmentation-camera"
+title = "Paint people and vehicles in the camera with Ethos-U65"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx93"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "segmentation"]
+
 [[videos]]
 demo = "vision-imx8mplus"
 task = "face"
@@ -84,7 +138,7 @@ runtime_plugins = "appsink v4l2src videoconvert qtdemux h264parse v4l2h264dec gl
 
 [[demos]]
 id = "vision-imx8mplus"
-title = "UltraFace image, video and camera inference"
+title = "Face detection and semantic segmentation"
 path = "camera-vision"
 platforms = ["imx8mplus"]
 entrypoint = "python3 demo.py --task face"

@@ -32,6 +32,18 @@ def clock_text(seconds):
     return f'{seconds // 60:02d}:{seconds % 60:02d}'
 
 
+def processor_name():
+    try:
+        compatible = Path('/proc/device-tree/compatible').read_bytes().split(b'\0')
+    except OSError:
+        return 'i.MX SoM'
+    for identifier, title in ((b'fsl,imx8mp', 'i.MX 8M Plus'),
+                              (b'fsl,imx93', 'i.MX 93'), (b'fsl,imx95', 'i.MX 95')):
+        if identifier in compatible:
+            return title
+    return 'i.MX SoM'
+
+
 def video_converter():
     if Gst.ElementFactory.find('imxvideoconvert_g2d'):
         return 'imxvideoconvert_g2d'
@@ -140,6 +152,7 @@ class Player(Gtk.Window):
         else:
             brand = Gtk.Label(label='VARISCITE')
         header.pack_start(brand, False, False, 0)
+        header.pack_start(Gtk.Label(label=processor_name()), False, False, 0)
         layout.pack_start(Gtk.Box(), True, True, 0)
         bottom = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         bottom.get_style_context().add_class('controls-bar')

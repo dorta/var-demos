@@ -4,6 +4,13 @@ UltraFace image, video and camera modes support MPlus, MX93 and MX95
 through this shared runner. See [Face Detection](../../docs/face-detection.md)
 for models, quantization, conversion and current validation limits.
 Its City Selfie video selector is separate from Buildings A/B.
+Experimental DeepLabV3 paints people and vehicles on MPlus and MX93 in image,
+video and camera modes. See [Segmentation](../../docs/segmentation.md) for
+the exact source, conversion, CPU/NPU flow and MX95 runtime-version limitation.
+
+All views share the official Variscite logo, SoM name and fixed value columns
+for inference, FPS and source dimensions. Native camera presence is checked
+before model preparation; an absent sensor produces a short notice.
 
 MobileNet classification and SSD detection for the tested MX93 and MX95
 BSPs. Select the demo through `var-demos`; the installer selects compiled

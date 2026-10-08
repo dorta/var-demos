@@ -126,6 +126,10 @@ than assuming every operator was accelerated.
 
 ## Conversion and Further Reading
 
+DeepLabV3 semantic masks use BSP Vela 3.12.0 with `ethos-u65-256`, not the
+512-MAC setting in NXP's newer recipe. Image/video/camera modes remain
+experimental. See [Segmentation](../segmentation.md) for the full frame flow.
+
 [Arm Vela documentation](https://gitlab.arm.com/artificial-intelligence/ethos-u/ethos-u-vela/-/blob/main/README.md) and the [NXP ML guide](https://www.nxp.com/docs/en/user-guide/UG10166.pdf), Ethos-U sections. For the reproduced command and compiler settings, use [our conversion record](../model-conversion.md#imx-93).
 
 - [Our exact conversion/provenance record](../model-conversion.md#imx-93).

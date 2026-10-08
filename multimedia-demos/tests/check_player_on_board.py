@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'video-player'))
-from player import GLib, Gst, Gtk, Player
+from player import GLib, Gst, Gtk, Player, processor_name
 
 if not Gtk.init_check()[0]:
     raise SystemExit('Board display unavailable')
@@ -23,6 +23,8 @@ assert any(isinstance(widget, Gtk.Image)
            for widget in widgets(player)), \
     'Installed player header is missing the Variscite logo'
 assert isinstance(player.get_child(), Gtk.Overlay)
+assert any(isinstance(widget, Gtk.Label) and widget.get_text() == processor_name()
+           for widget in widgets(player)), 'Player header is missing the SoM name'
 assert not hasattr(player, 'filename'), 'Movie filename is visible in header'
 errors = []
 

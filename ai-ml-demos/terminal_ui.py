@@ -12,7 +12,8 @@ import textwrap
 import time
 
 from telemetry import SOC_TEMPERATURE
-from runtime import clock_is_limited, temperature, thermal_limits, StartupProgress
+from runtime import (clock_is_limited, temperature, thermal_limits, StartupProgress,
+                     CameraUnavailable, check_camera)
 
 
 def navigate(key, selected, count):
@@ -313,6 +314,7 @@ class TerminalUI:
             try:
                 video = None
                 if launcher.get('select_camera'):
+                    check_camera(self.platform)
                     resolution = self.choose('Choose a camera resolution',
                         self.api.camera_choices(self.catalog, self.platform))
                     if resolution is None:
@@ -335,5 +337,10 @@ class TerminalUI:
                     if video is None:
                         continue
                 self.run(launcher, video)
+            except CameraUnavailable:
+                self.message('Camera unavailable', [
+                    'No camera was found. Image and video demos are available.',
+                    'Connect the OV5640 with the board powered off.',
+                    'Boot again, then retry the camera demo.'])
             except (OSError, RuntimeError) as error:
                 self.message('Cannot start demo', [str(error)])

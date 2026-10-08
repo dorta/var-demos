@@ -35,6 +35,8 @@ def asset_name(path):
                       '1920x1080': '1080p'}[size]
         return f'{title} - {resolution}'
     if name.endswith('.tflite'):
+        if name.startswith('deeplab'):
+            return 'DeepLabV3 segmentation model'
         if name.startswith('ultraface'):
             return 'UltraFace face detection model'
         if name.startswith('mobilenet'):
@@ -50,6 +52,8 @@ def asset_name(path):
                 else 'Object detection labels')
     return {'classification-image.jpg': 'Classification sample image',
             'face-image.jpg': 'Face detection sample image',
+            'segmentation-image.jpg': 'People segmentation sample image',
+            'variscite-logo-white.png': 'Variscite logo',
             'example_input.jpg': 'Face detection sample image',
             'detection-image.png': 'Object detection sample image',
             'hand.bmp': 'Hand gesture sample image',

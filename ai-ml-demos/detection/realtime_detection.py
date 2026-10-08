@@ -23,6 +23,7 @@ from helper.opencv import (
 from helper.utils import get_tensor, load_labels, Timer, Framerate
 
 from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step
+from runtime import check_camera
 
 # Constants
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
@@ -38,6 +39,7 @@ def open_video_capture(width=720, height=480, framerate="30/1"):
 
 @demo_session()
 def image_detection(args):
+    check_camera('imx8mplus', args['camera'])
     labels = load_labels(args['label'])
 
     ext_delegate_options = {}

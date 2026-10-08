@@ -20,6 +20,7 @@ images, videos and camera frames are processed.
 | --- | --- |
 | [SoM Support](som-support.md) | Demo availability, NPUs and tested camera modes |
 | [Face Detection](face-detection.md) | UltraFace image/video/camera demos, NPU preparation, frame flow and validation limits |
+| [People and Vehicle Segmentation](segmentation.md) | Colored masks, shared input modes, model conversion and current platform limits |
 | [Hardware](hardware.md) | Official CPU/GPU/NPU specifications, photos and source links |
 | [NPU Guides](npus/README.md) | What each NPU expects and per-SoM startup, classification and detection flows |
 | [Models and Processing Flows](models.md) | Model comparison, origins and preparation, classification and detection flows |

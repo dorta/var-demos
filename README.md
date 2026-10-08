@@ -34,6 +34,8 @@ or **Buildings B**. AI demos and the player use the same [two Freepik clips](doc
 with identical choices on all three SoMs.
 
 Face detection has its own **City Selfie** video, also available in HD and Full HD.
+Experimental [people and vehicle segmentation](docs/segmentation.md) is available
+on MPlus and MX93, with image, video and camera modes.
 
 ## Supported System on Modules
 
@@ -49,7 +51,7 @@ and [SoM Support](docs/som-support.md). Maximum CPU specifications depend on SKU
 
 | Category | Demos |
 | --- | --- |
-| [AI / ML](ai-ml-demos/) | Classification, object/face detection and hand gestures |
+| [AI / ML](ai-ml-demos/) | Classification, object/face detection, segmentation and hand gestures |
 | [Multimedia](multimedia-demos/) | Video player |
 | [OpenCL](opencl/python/) | GPU computation |
 | BSP | Graphical examples already installed in `/opt` |

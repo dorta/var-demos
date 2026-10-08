@@ -211,6 +211,69 @@ Local regression: 116 AI tests and 51 suite tests passed.
 Model origins, preparation, video transformations and limitations are in
 [Face Detection](face-detection.md) and [Video Sources](video-sources.md).
 
+## Segmentation, Branding and Camera Preflight, 2026-10-08
+
+DeepLabV3-MobileNetV2 semantic masks were checked with visible 800x480
+fullscreen output on MPlus and MX93. Both use the same pinned source model;
+MX93 uses a locally reproduced Vela 3.12.0 / Ethos-U65-256 artifact.
+Input/output boundary tensors were measured as FLOAT32, with a quantized
+internal network. NPU delegation is checked without an automatic CPU delegate.
+
+The City Selfie sample frame produced a person mask on both. Buildings A
+produced both people and vehicle masks at HD and Full HD. Final short checks:
+
+| SoM | Input | Processed Frames | FPS | Mean Model Invoke |
+| --- | --- | ---: | ---: | ---: |
+| MPlus | Buildings A HD | 8 | 1.17 | 557.99 ms |
+| MPlus | Buildings A Full HD, earlier owned-output path | 9 | 1.30 | 558.33 ms |
+| MPlus | Camera VGA | 8 | 1.21 | 556.77 ms |
+| MX93 | Buildings A HD | 26 | 4.75 | 89.48 ms |
+| MX93 | Buildings A Full HD | 23 | 3.76 | 90.70 ms |
+| MX93 | Camera HD | 30 | 5.51 | 88.90 ms |
+
+These are short functional runs, not sustained benchmarks or a 30 FPS claim.
+Final complete Buildings A HD runs used the published model assets:
+
+| SoM | Processed Frames | Elapsed | FPS | Mean Model Invoke | Peak SoC |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MPlus | 51 | 44.17 s | 1.15 | 557.11 ms | 82 C |
+| MX93 | 168 | 34.43 s | 4.89 | 89.57 ms | 62.35 C |
+
+MPlus entered application cooling and resumed before reaching the end of the
+clip. Its elapsed time and FPS include that pause. MX93 completed without
+cooling. These remain single-run measurements, not long-duration guarantees.
+The source videos remain the user's original Buildings clips or their existing
+MX93 MJPEG copies. Masks are predictions; no pixel-accuracy guarantee is given.
+Large score tensors now use short-lived views to avoid output copies and
+duplicate validation scans; only independent class masks leave that scope.
+
+MX95's official SDK 3.1.3 DeepLab trial did invoke but reported microcode
+mismatches against driver 3.1.2. It is deliberately not offered in the menu.
+This is a software-version issue, not evidence of inadequate NPU hardware.
+No driver or firmware was changed. See [Segmentation](segmentation.md) for
+conversion provenance, licenses, tensor contracts and CPU/NPU flow.
+
+Camera inputs now check native capture nodes and, on MX93/MX95, the connected
+sensor in the media graph before launching a model. Existing MX95 ISI nodes
+without a sensor are rejected as unavailable. Direct face-camera execution on
+the disconnected MX95 returned a short notice, no traceback, and zero model
+invocations. Menu regression verifies return without opening the resolution
+selector or starting a child process.
+
+The shared inference layout uses the player's official logo, a device-tree
+SoM label and one left-aligned value column for inference, FPS and dimensions.
+The logo is installed with each current AI demo and alpha-composited from a
+cached resized asset. The player also names the SoM. Existing external NXP BSP
+executables are not rewritten; terminal-only OpenCL remains a console demo.
+
+The MPlus module installation was rechecked in a temporary prefix using public,
+checksum-verified models, sample frame, license files and logo. The published
+MX93 Vela artifact was separately fetched and verified. No `/opt` installation
+or existing menu process was overwritten. Local regression: 131 AI tests and
+53 suite tests passed.
+The MX93 player also passed the on-board playback, pause, seek, stop, restart,
+close and fullscreen checks with the official logo and SoM label.
+
 ## Related Guides
 
 - [Performance](performance.md): the current per-SoM measurement tables.

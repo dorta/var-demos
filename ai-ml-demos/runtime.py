@@ -23,6 +23,36 @@ CLOCK_SCALE = Path('/sys/bus/platform/drivers/galcore/gpu3DClockScale')
 THERMAL_ROOT = Path('/sys/class/thermal')
 
 
+class CameraUnavailable(RuntimeError):
+    """An expected input condition, not a demo crash."""
+
+
+def check_camera(platform, device=None):
+    """Check the tested native sensor before allocating models or capture."""
+    import subprocess
+    device = device or ('/dev/video4' if platform == 'imx8mplus' else '/dev/video0')
+    message = ('No camera is available. Connect the OV5640 with the board '
+               'powered off, boot again, then retry. Image and video demos '
+               'remain available.')
+    if not Path(device).is_char_device():
+        raise CameraUnavailable(message)
+    if platform in ('imx93', 'imx95'):
+        # ISI capture nodes can exist even when no camera sensor is connected.
+        if not Path('/dev/media0').exists():
+            raise CameraUnavailable(message)
+        try:
+            topology = subprocess.run(['media-ctl', '-d', '/dev/media0', '-p'],
+                                      capture_output=True, text=True, timeout=3,
+                                      check=False)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise CameraUnavailable('Camera could not be checked. Verify the '
+                                    'BSP media-controller tools and retry.') from error
+        sensor = 'ov5640 4-003c' if platform == 'imx93' else 'ov5640 2-003c'
+        if topology.returncode or sensor not in topology.stdout:
+            raise CameraUnavailable(message)
+    return device
+
+
 class ThermalLimits(NamedTuple):
     warm: float = 80
     pause: float = 82
@@ -301,6 +331,8 @@ def demo_session():
                         'before restarting the demo; check heatsink and fan.'
                     )
                 yield
+            except CameraUnavailable as error:
+                print(f'Camera unavailable. {error}', flush=True)
             except KeyboardInterrupt:
                 pass
             finally:

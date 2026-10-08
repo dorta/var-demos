@@ -4,6 +4,7 @@
 
 import hashlib
 from functools import lru_cache
+from pathlib import Path
 import cv2
 import numpy as np
 
@@ -12,6 +13,62 @@ TEXT = (242, 244, 246)
 PALETTE = ((167, 211, 34), (248, 189, 56), (36, 191, 251),
            (250, 139, 167), (133, 113, 251), (53, 230, 163))
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+FIELD_TOP = 68
+
+
+@lru_cache(maxsize=1)
+def som_name():
+    try:
+        compatible = Path('/proc/device-tree/compatible').read_bytes().split(b'\0')
+    except OSError:
+        return 'i.MX SoM'
+    for identifier, title in ((b'fsl,imx8mp', 'i.MX 8M Plus'),
+                              (b'fsl,imx93', 'i.MX 93'), (b'fsl,imx95', 'i.MX 95')):
+        if identifier in compatible:
+            return title
+    return 'i.MX SoM'
+
+
+@lru_cache(maxsize=1)
+def logo_image():
+    root = Path(__file__).resolve().parent
+    candidates = [root.parent / 'multimedia/video-player/media/variscite-logo-white.png']
+    candidates.extend(sorted(root.glob('*/media/variscite-logo-white.png')))
+    for path in candidates:
+        if not path.is_file():
+            continue
+        logo = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        if logo is None or logo.ndim != 3 or logo.shape[2] not in (3, 4):
+            continue
+        scale = min(150 / logo.shape[1], 28 / logo.shape[0])
+        logo = cv2.resize(logo, (max(1, round(logo.shape[1] * scale)),
+                                max(1, round(logo.shape[0] * scale))),
+                          interpolation=cv2.INTER_AREA)
+        logo.setflags(write=False)
+        return logo
+    return None
+
+
+def branding(frame, rgb=False):
+    panel(frame, 10, 10, frame.shape[1] - 20, 42, rgb)
+    logo = logo_image()
+    if logo is None:
+        cv2.putText(frame, 'VARISCITE', (22, 38), FONT, .65,
+                    TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
+    else:
+        height, width = logo.shape[:2]
+        region = frame[17:17 + height, 22:22 + width]
+        height, width = region.shape[:2]
+        color = logo[:height, :width, :3]
+        if rgb:
+            color = color[:, :, ::-1]
+        if logo.shape[2] == 4:
+            alpha = logo[:height, :width, 3:4].astype(np.float32) / 255
+            region[:] = np.rint(color * alpha + region * (1 - alpha)).astype(np.uint8)
+        else:
+            region[:] = color
+    cv2.putText(frame, som_name(), (192, 38), FONT, .65,
+                TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
 def color_for(name, rgb=False):
@@ -60,21 +117,25 @@ def badge(frame, text, row=0, rgb=False):
                 FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
-def metric(frame, label, value, unit='', row=0, rgb=False):
-    """Use pixel-aligned numeric columns, not proportional-font spaces."""
-    width = min(250, frame.shape[1] - 20)
-    x, y = frame.shape[1] - width - 10, 10 + row * 38
+def field(frame, label, value, unit='', row=0, rgb=False):
+    """All values start in one fixed column, including source dimensions."""
+    width = min(320, frame.shape[1] - 20)
+    x, y = frame.shape[1] - width - 10, FIELD_TOP + row * 38
     panel(frame, x, y, width, 34, rgb)
     color = TEXT[::-1] if rgb else TEXT
-    label = fitted_text(label, max(1, width - 132), .6)
+    value_column = min(150, max(1, width // 2))
+    label = fitted_text(label, max(1, value_column - 20), .6)
     cv2.putText(frame, label, (x + 9, y + 23), FONT, .6, color, 1, cv2.LINE_AA)
-    text = f'{value:.1f}'
-    value_width = cv2.getTextSize(text, FONT, .6, 1)[0][0]
-    cv2.putText(frame, text, (x + width - 42 - value_width, y + 23),
+    text = fitted_text(value, max(1, width - value_column - (48 if unit else 12)), .6)
+    cv2.putText(frame, text, (x + value_column, y + 23),
                 FONT, .6, color, 1, cv2.LINE_AA)
     if unit:
-        cv2.putText(frame, unit, (x + width - 32, y + 23),
+        cv2.putText(frame, unit, (x + width - 40, y + 23),
                     FONT, .6, color, 1, cv2.LINE_AA)
+
+
+def metric(frame, label, value, unit='', row=0, rgb=False):
+    field(frame, label, f'{value:.1f}', unit, row, rgb)
 
 
 def fps(frame, value, rgb=False):
@@ -83,13 +144,13 @@ def fps(frame, value, rgb=False):
 
 def video_resolution(frame, size, rgb=False):
     width, height = size
-    badge(frame, f'VIDEO  {width} x {height}', row=2, rgb=rgb)
+    field(frame, 'VIDEO', f'{width} x {height}', row=2, rgb=rgb)
 
 
 def camera_resolution(frame, size, rgb=False):
     """Show negotiated capture dimensions, never the resized working frame."""
     width, height = size
-    badge(frame, f'CAMERA  {width} x {height}', row=2, rgb=rgb)
+    field(frame, 'CAMERA', f'{width} x {height}', row=2, rgb=rgb)
 
 
 def statistics(frame, ms, fps=None, rgb=False):
@@ -99,6 +160,7 @@ def statistics(frame, ms, fps=None, rgb=False):
 
 
 def model(frame, title, rgb=False):
+    branding(frame, rgb)
     x, y = 10, frame.shape[0] - 44
     width = max(1, frame.shape[1] - 180)
     panel(frame, x, y, width, 34, rgb, .72)
@@ -124,12 +186,12 @@ def results(frame, rows, rgb=False):
     rows = list(rows)
     if not rows:
         return
-    width = max(1, min(320, frame.shape[1] - 290))
-    panel(frame, 10, 10, width, len(rows) * 32 + 14, rgb)
+    width = max(1, min(320, frame.shape[1] - 360))
+    panel(frame, 10, FIELD_TOP, width, len(rows) * 32 + 14, rgb)
     accent = color_for('person', rgb)
-    cv2.rectangle(frame, (10, 10), (14, 10 + len(rows) * 32 + 14), accent, -1)
+    cv2.rectangle(frame, (10, FIELD_TOP), (14, FIELD_TOP + len(rows) * 32 + 14), accent, -1)
     for row, (label, score) in enumerate(rows):
-        y = 34 + row * 32
+        y = FIELD_TOP + 24 + row * 32
         cv2.putText(frame, fitted_text(label, width - 100, .6), (26, y),
                     FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
         if score is not None:

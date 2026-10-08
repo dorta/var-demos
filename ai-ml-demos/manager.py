@@ -17,7 +17,8 @@ import time
 import tomllib
 
 from telemetry import SOC_TEMPERATURE
-from runtime import clock_is_limited, temperature, thermal_limits, StartupProgress
+from runtime import (clock_is_limited, temperature, thermal_limits, StartupProgress,
+                     CameraUnavailable, check_camera)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -64,12 +65,14 @@ def launchers_for(catalog, platform):
     order = {'classification-image': 0, 'classification-video': 1,
              'classification-camera': 2, 'detection-image': 3,
              'detection-video': 4, 'detection-camera': 5,
-             'face-image': 6, 'face-video': 7, 'face-camera': 8}
+             'face-image': 6, 'face-video': 7, 'face-camera': 8,
+             'segmentation-image': 9, 'segmentation-video': 10,
+             'segmentation-camera': 11}
     def rank(item):
         name = item['id']
         for prefix in ('ethosu-', 'neutron-'):
             name = name.removeprefix(prefix)
-        return order.get(name, 9)
+        return order.get(name, 12)
     return sorted(launchers, key=rank)
 
 
@@ -239,6 +242,8 @@ def run_with_dashboard(launcher, command, directory):
 
 
 def prepare_launch(catalog, launcher, video=None):
+    if launcher.get('select_camera') and video is None:
+        check_camera(detect_platform(catalog))
     demo = find_demo(catalog, launcher["demo"])
     directory = ROOT / demo["path"]
     if not directory.is_dir():
@@ -356,6 +361,7 @@ def interactive(catalog, platform, launchers):
         try:
             video = None
             if launcher.get('select_camera'):
+                check_camera(platform)
                 choices = camera_choices(catalog, platform)
                 print('\nChoose a camera resolution:')
                 for index, item in enumerate(choices, 1):
@@ -372,6 +378,8 @@ def interactive(catalog, platform, launchers):
             result = run_launcher(catalog, launcher, video=video)
             if result != 0:
                 print(f"\nThe demo could not finish (exit {result}).")
+        except CameraUnavailable as error:
+            print(f'\nCamera unavailable. {error}')
         except (OSError, RuntimeError) as error:
             print(f"\nError: {error}")
         try:
@@ -462,7 +470,11 @@ def main():
             )
         except StopIteration as error:
             raise SystemExit(f"unknown launcher: {args.run}") from error
-        return run_launcher(catalog, launcher)
+        try:
+            return run_launcher(catalog, launcher)
+        except CameraUnavailable as error:
+            print(f'Camera unavailable. {error}')
+            return 0
 
     if (not args.plain and sys.stdin.isatty() and sys.stdout.isatty()
             and os.environ.get('TERM', 'dumb') != 'dumb'):

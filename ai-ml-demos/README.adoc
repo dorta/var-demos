@@ -4,6 +4,8 @@
 = AI/ML Demos
 
 Classification, object detection, face detection and experimental hand gestures.
+Experimental people/vehicle segmentation is also available on MPlus and MX93;
+see link:../docs/segmentation.md[model, processing flow and platform limits].
 
 UltraFace provides image, HD/Full HD video and OV5640 camera modes on all
 three SoMs. See link:../docs/face-detection.md[Face Detection] for model

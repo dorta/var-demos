@@ -126,6 +126,10 @@ than assuming every operator was accelerated.
 
 ## Conversion and Further Reading
 
+DeepLabV3 segmentation is not enabled on the tested 3.1.2 driver. The official
+3.1.3 artifact reported a microcode mismatch during trial inference; this is
+not proof of a hardware-performance limitation. See [Segmentation](../segmentation.md).
+
 [Variscite Neutron conversion tutorial](https://dev.variscite.com/dart-mx95/mx95-yocto-walnascar-6.12.49_2.2.0-v1.0/machine-learning/) demonstrates eIQ Toolkit offline conversion. It targets a Walnascar BSP, not the tested Wrynose image: do not copy that release's converter unchanged. Use the [NXP ML guide](https://www.nxp.com/docs/en/user-guide/UG10166.pdf) and toolkit version matching the installed BSP.
 
 - [Our exact conversion/provenance record](../model-conversion.md#imx-95).
