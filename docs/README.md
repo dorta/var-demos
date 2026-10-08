@@ -32,6 +32,9 @@ images, videos and camera frames are processed.
 
 ## Component Guides
 
+For frame-level bottlenecks and repeatable profiling commands, see
+[Segmentation Profiling](segmentation-profiling.md).
+
 | Component | Guide |
 | --- | --- |
 | AI / ML | [Overview](../ai-ml-demos/README.adoc) |

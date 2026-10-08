@@ -13,7 +13,7 @@
 | Face detection, image | ✓ | ✓ | ✓ |
 | Face detection, HD / Full HD video | ✓ | ✓ | ✓ |
 | Face detection, camera | ✓ | ✓ | Sensor unavailable during test |
-| People / vehicle segmentation, image, video and camera | Experimental | Experimental | Converter/runtime mismatch, not enabled |
+| People / vehicle segmentation, image, video and camera | Experimental | Experimental | Experimental |
 | Video player | ✓ | ✓ | ✓ |
 | OpenCL / GPU examples | ✓ | N/A | ✓ |
 | Hand gestures | Experimental | N/A | N/A |
@@ -23,8 +23,9 @@ continuous operation. MX93 uses CPU-decoded MJPEG, not H.264.
 Both buildings clips are available in 720p and 1080p; 720p is the default.
 Face menus use the separate City Selfie clip. See
 [Face Detection](face-detection.md) for its shared menus and model preparation.
-MX95 camera mode requires the OV5640 to initialize successfully; the current
-sensor has a power/probe failure.
+MX95 camera mode requires the OV5640 to initialize successfully. Its sensor
+was absent during earlier face checks; a later HD segmentation camera check
+succeeded after the media graph became available again. See [Validation](validation.md).
 
 | Camera capture choice | i.MX 8M Plus | i.MX 93 | i.MX 95 |
 | --- | :---: | :---: | :---: |

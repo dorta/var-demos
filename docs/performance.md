@@ -94,6 +94,14 @@ Different camera resolutions, models, codecs, durations and temperatures
 prevent a fair speed ranking. Uniform-duration comparative measurements
 are still pending; multi-hour stability is not certified.
 
+## Segmentation Diagnostics
+
+The optimized experimental DeepLab runner's ten-second Buildings A HD checks
+measured 1.42 FPS on MPlus, 5.48 on MX93 and 5.15 on MX95. These are diagnostic
+runs at different temperatures/codecs, not a standardized hardware ranking.
+See [Segmentation Profiling](segmentation-profiling.md) for per-stage costs,
+timing scope and repeatable commands. No 25/30 FPS guarantee is implied.
+
 [Camera and video details](../ai-ml-demos/camera-vision/) ·
 [Model conversion](model-conversion.md)
 

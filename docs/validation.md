@@ -274,6 +274,35 @@ or existing menu process was overwritten. Local regression: 131 AI tests and
 The MX93 player also passed the on-board playback, pause, seek, stop, restart,
 close and fullscreen checks with the official logo and SoM label.
 
+## MX95 Segmentation and Three-SoM Profiling, 2026-10-08
+
+The user supplied Neutron SDK 3.1.2. The same pinned DeepLab source was compiled
+locally for MX95 and delegated six Neutron partitions without a microcode
+mismatch. No installed driver or firmware was replaced. The new public asset
+was fetched and its SHA-256 matched the manifest.
+
+MX95 displayed a person mask on the sample image (18.68% viewport coverage),
+and people/vehicle masks during Buildings A HD and Full HD. An initial full
+HD clip completed with 169 processed frames, 4.93 FPS, 131.17 ms mean invoke
+and 89.01 C peak. A twelve-second Full HD check processed 40 frames at 3.41 FPS,
+205.23 ms mean invoke and 86.07 C peak. These preceded the final parallel-mask
+optimization and are not sustained-performance guarantees.
+
+The camera media graph became available again during this validation;
+the earlier absent-sensor check remains historical, not its current state.
+A bounded HD camera check displayed 17 frames in 6.20 seconds, with 2.68 FPS,
+271.17 ms mean invoke and 82.62 C peak. That camera scene contained neither
+target category, so this validates capture/display, not segmentation accuracy.
+
+The optimized shared runner completed ten-second HD profiles on all three
+SoMs with repeated invocations and no retained-tensor-view errors. It measured
+1.42 FPS on MPlus, 5.48 on MX93 and 5.15 on MX95. The same model source does not
+make these different-temperature/codec runs a controlled speed ranking.
+See [Segmentation Profiling](segmentation-profiling.md) for stage costs,
+experiments kept/rejected and commands to reproduce the measurements.
+Local regression: 134 AI tests and 53 suite tests passed. The distributed
+profiling helper also ran on MX95 and emitted per-stage JSON successfully.
+
 ## Related Guides
 
 - [Performance](performance.md): the current per-SoM measurement tables.

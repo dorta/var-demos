@@ -35,7 +35,7 @@ with identical choices on all three SoMs.
 
 Face detection has its own **City Selfie** video, also available in HD and Full HD.
 Experimental [people and vehicle segmentation](docs/segmentation.md) is available
-on MPlus and MX93, with image, video and camera modes.
+on all three SoMs, with image, video and camera modes.
 
 ## Supported System on Modules
 

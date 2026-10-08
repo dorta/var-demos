@@ -4,7 +4,7 @@ UltraFace image, video and camera modes support MPlus, MX93 and MX95
 through this shared runner. See [Face Detection](../../docs/face-detection.md)
 for models, quantization, conversion and current validation limits.
 Its City Selfie video selector is separate from Buildings A/B.
-Experimental DeepLabV3 paints people and vehicles on MPlus and MX93 in image,
+Experimental DeepLabV3 paints people and vehicles on all three SoMs in image,
 video and camera modes. See [Segmentation](../../docs/segmentation.md) for
 the exact source, conversion, CPU/NPU flow and MX95 runtime-version limitation.
 

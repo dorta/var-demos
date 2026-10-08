@@ -1,6 +1,33 @@
 version = 1
 
 [[launchers]]
+id = "neutron-segmentation-image"
+title = "Paint people and vehicles in an image with Neutron"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx95"
+startup_progress = true
+command = ["python3", "demo.py", "--task", "segmentation", "--image", "media/segmentation-image.jpg"]
+
+[[launchers]]
+id = "neutron-segmentation-video"
+title = "Paint people and vehicles in a video with Neutron"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx95"
+startup_progress = true
+select_video = true
+video_demo = "vision-imx95"
+command = ["python3", "demo.py", "--task", "segmentation"]
+
+[[launchers]]
+id = "neutron-segmentation-camera"
+title = "Paint people and vehicles in the camera with Neutron"
+description = "Semantic masks by class; experimental, not instance tracking"
+demo = "vision-imx95"
+startup_progress = true
+select_camera = true
+command = ["python3", "demo.py", "--task", "segmentation"]
+
+[[launchers]]
 id = "segmentation-image"
 title = "Paint people and vehicles in an image with VIP8000"
 description = "Semantic masks by class; experimental, not instance tracking"
