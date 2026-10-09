@@ -14,6 +14,7 @@ from helper.config import FONT
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from telemetry import draw_soc_temperature
 from runtime import display_view, display_box
+import vision_window
 import vision_overlay as ui
 
 
@@ -30,9 +31,9 @@ TEXT_COLOR = (242, 244, 246)
 
 
 def create_window(title, windowed=False):
-    cv2.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    vision_window.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
     if not windowed:
-        cv2.setWindowProperty(
+        vision_window.setWindowProperty(
             title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
         )
 

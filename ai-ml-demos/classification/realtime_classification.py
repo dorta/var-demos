@@ -23,6 +23,8 @@ from runtime import demo_session, managed_capture, ThermalPacer, register_cleanu
 from runtime import check_camera
 
 # Constants
+import vision_window
+
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
 def open_video_capture(width=720, height=480, framerate="30/1"):
@@ -59,7 +61,7 @@ def realtime_classification(args):
     pacer = ThermalPacer()
     while video_capture.isOpened():
         with framerate.fpsit():
-            if not pacer.wait(lambda: cv2.waitKey(1) == 27):
+            if not pacer.wait(lambda: vision_window.waitKey(1) == 27):
                 break
             check, frame = video_capture.read()
             if check is not True:
@@ -91,12 +93,12 @@ def realtime_classification(args):
             if not window_created:
                 create_window(TITLE, args['windowed'])
                 window_created = True
-            cv2.imshow(TITLE, frame)
+            vision_window.imshow(TITLE, frame)
             if not ready:
-                cv2.waitKey(1)
+                vision_window.waitKey(1)
                 startup_step('Frames and NPU inference ready', ready=True)
                 ready = True
-            if cv2.waitKey(1) == 27:
+            if vision_window.waitKey(1) == 27:
                 break
 
 

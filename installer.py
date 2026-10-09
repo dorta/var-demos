@@ -334,7 +334,7 @@ def main():
         lib = root / 'lib'
         lib.mkdir(exist_ok=True)
         for name in ('manager.py', 'terminal_ui.py', 'runtime.py', 'telemetry.py',
-                     'vision_overlay.py', 'demo_menu.py'):
+                     'vision_overlay.py', 'vision_window.py', 'demo_menu.py'):
             shutil.copy2(source / 'ai-ml-demos' / name, lib / name)
         for name in ('suite.py', 'catalog.toml', 'installer.py', 'install.sh',
                      'install_ui.py'):

@@ -324,6 +324,8 @@ def demo_session():
         with ExitStack() as resources:
             token = RESOURCES.set(resources)
             resources.callback(cv2.destroyAllWindows)
+            from vision_window import destroyAllWindows
+            resources.callback(destroyAllWindows)
             try:
                 if clock_is_limited():
                     raise RuntimeError(

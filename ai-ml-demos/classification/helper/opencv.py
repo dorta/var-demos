@@ -14,6 +14,7 @@ from helper.config import FONT
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from telemetry import draw_soc_temperature
 from runtime import display_view
+import vision_window
 import vision_overlay as ui
 
 
@@ -24,9 +25,9 @@ ACCENT_COLOR = (167, 211, 34)
 
 
 def create_window(title, windowed=False):
-    cv2.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    vision_window.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
     if not windowed:
-        cv2.setWindowProperty(
+        vision_window.setWindowProperty(
             title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
         )
 
@@ -97,12 +98,15 @@ def _model_title(model_name):
 
 
 def put_info_on_frame(frame, top_result, labels,
-                      inference_time, model_name, _source_file, camera_size=None):
+                      inference_time, model_name, _source_file, camera_size=None,
+                      video_size=None):
     frame, _ = display_view(frame)
     ui.results(frame, [(labels[index], score) for index, score in top_result])
     ui.statistics(frame, _inference_ms(inference_time))
     if camera_size is not None:
         ui.camera_resolution(frame, camera_size)
+    elif video_size is not None:
+        ui.video_resolution(frame, video_size)
     ui.model(frame, _model_title(model_name).replace(' | NPU', ' | VIP8000'))
     draw_soc_temperature(frame, PANEL_COLOR, TEXT_COLOR)
     return frame

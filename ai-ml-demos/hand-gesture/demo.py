@@ -12,6 +12,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent))
+import vision_window
 from runtime import demo_session, managed_capture, record_inference, ThermalPacer
 from runtime import startup_step
 from runtime import display_view
@@ -127,7 +128,7 @@ def run(args):
     next_log = started
     ready = False
     while not args.duration or monotonic() - started < args.duration:
-        if not pacer.wait(lambda: not args.headless and cv2.waitKey(1) == 27):
+        if not pacer.wait(lambda: not args.headless and vision_window.waitKey(1) == 27):
             break
         if sample is not None:
             frame = sample.copy()
@@ -158,17 +159,17 @@ def run(args):
         frame = draw(frame, points, gesture, fps, tracker.inference_seconds,
                      camera_size=None if args.sample else (capture_width, capture_height))
         if not window:
-            cv2.namedWindow(TITLE, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+            vision_window.namedWindow(TITLE, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
             if not args.windowed:
-                cv2.setWindowProperty(TITLE, cv2.WND_PROP_FULLSCREEN,
+                vision_window.setWindowProperty(TITLE, cv2.WND_PROP_FULLSCREEN,
                                       cv2.WINDOW_FULLSCREEN)
             window = True
-        cv2.imshow(TITLE, frame)
+        vision_window.imshow(TITLE, frame)
         if not ready:
-            cv2.waitKey(1)
+            vision_window.waitKey(1)
             startup_step('Video displayed; demo ready', ready=True)
             ready = True
-        if cv2.waitKey(1) == 27:
+        if vision_window.waitKey(1) == 27:
             break
 
 

@@ -15,6 +15,7 @@ import numpy as np
 from tflite_runtime.interpreter import Interpreter, load_delegate
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import vision_window
 from runtime import (demo_session, managed_capture, record_inference,
                      register_cleanup, startup_step, ThermalPacer,
                      display_view, display_box, video_work_size, video_source_size,
@@ -268,7 +269,7 @@ def run(args):
         'cpu-thermal' if platform == 'imx93' else
         'soc-thermal' if platform == 'imx8mplus' else 'a55-thermal'))
     started, frames = monotonic(), 0
-    video_size = video_source_size(path) if args.video and args.task != 'classification' else None
+    video_size = video_source_size(path) if args.video else None
     # Caps above require the selected capture mode. Face conversion may resize
     # afterward, so cap/frame dimensions are not the camera's resolution.
     camera_size = (width, height) if not args.video and not args.image else None
@@ -284,7 +285,7 @@ def run(args):
         def stop_requested():
             return (bool(args.seconds and monotonic() - started >= args.seconds)
                     or (pacer.cooling and not args.headless and frames > 0
-                        and cv2.waitKey(1) & 0xff == 27))
+                        and vision_window.waitKey(1) & 0xff == 27))
 
         if not pacer.wait(stop_requested, cap.set_paused if args.video else None):
             break
@@ -320,9 +321,9 @@ def run(args):
         frames += 1
         if frames == 1:
             if not args.headless:
-                cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+                vision_window.namedWindow(title, cv2.WINDOW_NORMAL)
                 if not args.windowed:
-                    cv2.setWindowProperty(title, cv2.WND_PROP_FULLSCREEN,
+                    vision_window.setWindowProperty(title, cv2.WND_PROP_FULLSCREEN,
                                           cv2.WINDOW_FULLSCREEN)
         if args.headless:
             if frames == 1:
@@ -348,17 +349,17 @@ def run(args):
                 scores = (scores - zero) * scale
             ui.results(frame, [(labels[int(index)], float(scores[index]))
                                for index in np.argsort(scores)[-3:][::-1]])
-        cv2.imshow(title, frame)
+        vision_window.imshow(title, frame)
         if frames == 1:
             startup_step('Frames and NPU inference ready', ready=True)
         if args.image:
             while not args.seconds or monotonic() - started < args.seconds:
-                if cv2.waitKey(50) & 0xff == 27:
+                if vision_window.waitKey(50) & 0xff == 27:
                     break
-                if cv2.getWindowProperty(title, cv2.WND_PROP_VISIBLE) < 1:
+                if vision_window.getWindowProperty(title, cv2.WND_PROP_VISIBLE) < 1:
                     break
             break
-        if cv2.waitKey(1) & 0xff == 27:
+        if vision_window.waitKey(1) & 0xff == 27:
             break
     if not frames:
         raise RuntimeError('No frames processed')

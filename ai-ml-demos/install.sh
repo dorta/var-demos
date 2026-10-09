@@ -277,7 +277,8 @@ import tflite_runtime.interpreter
 import gi
 gi.require_version('GstPbutils', '1.0')
 gi.require_version('GstVideo', '1.0')
-from gi.repository import GstPbutils, GstVideo
+gi.require_version('Gtk', '3.0')
+from gi.repository import GstPbutils, GstVideo, Gtk
 PY
 
     require_command gst-inspect-1.0
@@ -506,6 +507,8 @@ else
         "${INSTALL_ROOT}/runtime.py"
     install -m 0644 "${SOURCE_ROOT}/vision_overlay.py" \
         "${INSTALL_ROOT}/vision_overlay.py"
+    install -m 0644 "${SOURCE_ROOT}/vision_window.py" \
+        "${INSTALL_ROOT}/vision_window.py"
     install -m 0644 "${SOURCE_ROOT}/terminal_ui.py" \
         "${INSTALL_ROOT}/terminal_ui.py"
     install -m 0644 "${SOURCE_ROOT}/demo_menu.py" \

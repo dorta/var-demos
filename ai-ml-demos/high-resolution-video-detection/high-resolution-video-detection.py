@@ -21,6 +21,8 @@ from utils import (
 )
 from runtime import demo_session, register_cleanup, ThermalPacer, warm_up_model, startup_step, video_work_size, video_source_size
 
+import vision_window
+
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -172,7 +174,7 @@ def main(args):
 
     while True:
         poll_stop = (lambda: False) if args.headless else (
-            lambda: pacer.cooling and cv2.waitKey(1) == 27
+            lambda: pacer.cooling and vision_window.waitKey(1) == 27
         )
         if not pacer.wait(poll_stop, lambda paused: pipeline.set_state(
                 Gst.State.PAUSED if paused else Gst.State.PLAYING)):
@@ -200,18 +202,18 @@ def main(args):
 
         if not args.headless:
             if not window_created:
-                cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
+                vision_window.namedWindow("Detection", cv2.WINDOW_NORMAL)
                 if mode == "fullscreen":
-                    cv2.setWindowProperty(
+                    vision_window.setWindowProperty(
                         "Detection", cv2.WND_PROP_FULLSCREEN,
                         cv2.WINDOW_FULLSCREEN
                     )
                 window_created = True
-            cv2.imshow("Detection", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            vision_window.imshow("Detection", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
             if frame_count == 1:
-                cv2.waitKey(1)
+                vision_window.waitKey(1)
                 startup_step('Frames and NPU inference ready', ready=True)
-            if cv2.waitKey(1) == 27:
+            if vision_window.waitKey(1) == 27:
                 break
 
     print(

@@ -194,6 +194,9 @@ class Player(Gtk.Window):
                     'folder-open-symbolic')
         self.button(controls, 'Exit', lambda _: self.destroy(),
                     'window-close-symbolic')
+        if self.requested_full:
+            self.set_decorated(False)
+            self.fullscreen()
         self.show_all()
         self.tick_id = GLib.timeout_add(16, self.tick)
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM,
@@ -345,6 +348,7 @@ class Player(Gtk.Window):
 
     def toggle_fullscreen(self, _=None):
         self.requested_full = not self.requested_full
+        self.set_decorated(not self.requested_full)
         if self.requested_full:
             self.fullscreen()
         else:

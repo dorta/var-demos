@@ -23,6 +23,8 @@ from helper.utils import get_tensor, load_labels, Timer, Framerate
 from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup, warm_up_model, startup_step, video_work_size, video_source_size
 
 # Constants
+import vision_window
+
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
 def open_video_capture(args):
@@ -63,7 +65,7 @@ def image_detection(args):
     pacer = ThermalPacer(clock_paced=True)
     while video_capture.isOpened():
         with framerate.fpsit():
-            if not pacer.wait(lambda: pacer.cooling and cv2.waitKey(1) == 27):
+            if not pacer.wait(lambda: pacer.cooling and vision_window.waitKey(1) == 27):
                 break
             check, frame = video_capture.read()
             if check is not True:
@@ -97,12 +99,12 @@ def image_detection(args):
             if not window_created:
                 create_window(TITLE, args['windowed'])
                 window_created = True
-            cv2.imshow(TITLE, frame)
+            vision_window.imshow(TITLE, frame)
             if not ready:
-                cv2.waitKey(1)
+                vision_window.waitKey(1)
                 startup_step('Frames and NPU inference ready', ready=True)
                 ready = True
-            if cv2.waitKey(1) == 27:
+            if vision_window.waitKey(1) == 27:
                 break
 
 

@@ -322,6 +322,39 @@ Task/input menus share one implementation across SoMs; resolution/video
 selectors and camera preflight remain active. The menu helper is included in
 both suite and standalone AI installations, including the removal path.
 
+## Complete Demo Smoke Checks
+
+Final checks on October 8, 2026 passed all 86 scenarios:
+
+| SoM | Installed Kernel | Passed Scenarios |
+| --- | --- | ---: |
+| i.MX 8M Plus | 6.6.144 | 33 |
+| VAR-SOM-MX93 | 6.6.138 | 22 |
+| DART-MX95 | 6.18.20 | 31 |
+
+Local regression checks passed 147 AI tests and 53 suite tests.
+
+The published installer was run on all three connected SoMs. The installed
+catalog was exercised sequentially per SoM: classification, object detection,
+face detection, DeepLab segmentation and lightweight people segmentation,
+each with an image, HD video, Full HD video and an HD camera capture.
+The player checks exercised play, pause, seek, stop, restart, fullscreen and
+close. GPU vector addition and the available image-provided graphics demos
+were also executed on MPlus/MX95; hand gestures were exercised on MPlus.
+
+These are bounded functional checks with real display output, not sustained
+benchmarks or segmentation/detection accuracy certification. The automated
+runner closes AI views after approximately five displayed seconds. BSP demos
+use their native `--ExitAfterFrame 120` option; an initial duration-format
+error in the test command was corrected before the successful rerun.
+
+Visual inspection exposed a missing VIDEO panel in classification. The panel
+now reports the source dimensions on all three SoMs. The opening white window
+was addressed by preparing the first frame, fullscreen state and decoration
+settings in a shared GTK presenter before mapping. The MPlus GTK backend
+requires Wayland; automatic socket selection was added and affected cases
+were repeated. The player's initial fullscreen request also precedes mapping.
+
 ## Related Guides
 
 - [Performance](performance.md): the current per-SoM measurement tables.

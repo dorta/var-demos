@@ -33,6 +33,10 @@ Segmentation follow the same navigation on all three SoMs. The NPU appears
 in the header beside the temperature, not in demo names.
 Sample image predictions stay visible
 until Esc. All views use the shared MPlus-style panels and fullscreen.
+The shared GTK presenter prepares the first frame and fullscreen state before
+mapping its undecorated window. It discovers the board's Wayland socket for
+direct execution as well as menu launches. OpenCV still handles image processing.
+Classification videos show the same source-resolution panel as detection.
 
 Only the two user-provided Freepik Buildings clips are installed as video
 choices, in 720p and 1080p at 25 FPS.

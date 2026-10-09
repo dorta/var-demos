@@ -20,6 +20,8 @@ from helper.utils import load_labels, Timer
 from runtime import demo_session, managed_capture, ThermalPacer, register_cleanup
 
 # Constants
+import vision_window
+
 EXT_DELEGATE_PATH = "/usr/lib/libvx_delegate.so"
 
 @demo_session()
@@ -65,13 +67,13 @@ def image_classification(args):
                 image.copy(), result, labels, timer.time,
                 args['model'], args['image'],
             )
-            cv2.imshow(TITLE, frame)
-            if cv2.waitKey(1000) >= 0:
+            vision_window.imshow(TITLE, frame)
+            if vision_window.waitKey(1000) >= 0:
                 break
-            if cv2.getWindowProperty(TITLE, cv2.WND_PROP_VISIBLE) < 1:
+            if vision_window.getWindowProperty(TITLE, cv2.WND_PROP_VISIBLE) < 1:
                 break
     finally:
-        cv2.destroyAllWindows()
+        vision_window.destroyAllWindows()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
