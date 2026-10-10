@@ -243,8 +243,19 @@ def box(frame, bounds, name, score=None, rgb=False, show_label=True):
     (width, height), baseline = cv2.getTextSize(text, FONT, .55, 1)
     label_height = height + baseline + 10
     label_top = top - label_height if top >= label_height + 4 else top
-    cv2.rectangle(frame, (left, label_top),
-                  (min(frame.shape[1] - 1, left + width + 14),
+    label_width = min(width + 14, frame.shape[1])
+    label_left = max(0, min(left, frame.shape[1] - label_width))
+    # Keep labels clear of the header, all three metric rows and the footer.
+    safe_top = HEADER_TOP + 42 + 8
+    safe_bottom = frame.shape[0] - HEADER_TOP - 34 - 8
+    label_top = max(safe_top, min(label_top, safe_bottom - label_height))
+    metrics_left = frame.shape[1] - MARGIN - 280
+    metrics_bottom = FIELD_TOP + 2 * FIELD_STEP + 36
+    if (label_left + label_width > metrics_left - 8 and
+            label_top < metrics_bottom + 8 and label_top + label_height > FIELD_TOP - 8):
+        label_top = metrics_bottom + 8
+    cv2.rectangle(frame, (label_left, label_top),
+                  (label_left + label_width - 1,
                    label_top + label_height), color, -1)
-    cv2.putText(frame, text, (left + 7, label_top + height + 5),
+    cv2.putText(frame, text, (label_left + 7, label_top + height + 5),
                 FONT, .55, PANEL[::-1] if rgb else PANEL, 1, cv2.LINE_AA)

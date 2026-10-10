@@ -190,6 +190,19 @@ class SharedPresentationTests(unittest.TestCase):
         draw.assert_not_called()
         self.assertTrue(frame.any())
 
+    def test_box_labels_avoid_header_metrics_and_footer(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        for bounds in ((180, 32, 780, 465), (700, 100, 799, 300),
+                       (20, 445, 150, 479)):
+            with patch.object(ui.cv2, 'rectangle') as rect:
+                ui.box(frame, bounds, 'person', .8)
+            left, top = rect.call_args.args[1]
+            right, bottom = rect.call_args.args[2]
+            self.assertGreaterEqual(top, ui.HEADER_TOP + 42 + 8)
+            self.assertLessEqual(bottom, 480 - ui.HEADER_TOP - 34 - 8)
+            self.assertLess(right, 800)
+            self.assertTrue(right < 496 or top >= ui.FIELD_TOP + 2 * ui.FIELD_STEP + 36)
+
     def test_rgb_and_bgr_paths_have_same_colors(self):
         bgr = np.zeros((480, 800, 3), np.uint8)
         rgb = bgr.copy()
