@@ -13,7 +13,10 @@ TEXT = (242, 244, 246)
 PALETTE = ((167, 211, 34), (248, 189, 56), (36, 191, 251),
            (250, 139, 167), (133, 113, 251), (53, 230, 163))
 FONT = cv2.FONT_HERSHEY_SIMPLEX
-FIELD_TOP = 68
+MARGIN = 24
+HEADER_TOP = 32
+FIELD_TOP = 90
+FIELD_STEP = 42
 
 
 @lru_cache(maxsize=1)
@@ -50,14 +53,15 @@ def logo_image():
 
 
 def branding(frame, rgb=False):
-    panel(frame, 10, 10, frame.shape[1] - 20, 42, rgb)
+    panel(frame, MARGIN, HEADER_TOP, frame.shape[1] - 2 * MARGIN, 42, rgb)
     logo = logo_image()
     if logo is None:
-        cv2.putText(frame, 'VARISCITE', (22, 38), FONT, .65,
+        cv2.putText(frame, 'VARISCITE', (MARGIN + 12, HEADER_TOP + 28), FONT, .65,
                     TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
     else:
         height, width = logo.shape[:2]
-        region = frame[17:17 + height, 22:22 + width]
+        region = frame[HEADER_TOP + 7:HEADER_TOP + 7 + height,
+                       MARGIN + 12:MARGIN + 12 + width]
         height, width = region.shape[:2]
         color = logo[:height, :width, :3]
         if rgb:
@@ -67,7 +71,7 @@ def branding(frame, rgb=False):
             region[:] = np.rint(color * alpha + region * (1 - alpha)).astype(np.uint8)
         else:
             region[:] = color
-    cv2.putText(frame, som_name(), (192, 38), FONT, .65,
+    cv2.putText(frame, som_name(), (MARGIN + 182, HEADER_TOP + 28), FONT, .65,
                 TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
@@ -89,13 +93,28 @@ def panel_background(shape, rgb):
     return background
 
 
-def panel(frame, x, y, width, height, rgb=False, opacity=.78):
+@lru_cache(maxsize=32)
+def panel_mask(height, width):
+    """Cache the rounded silhouette; no per-frame mask allocation."""
+    mask = np.zeros((height, width), dtype=np.uint8)
+    radius = min(9, (height - 1) // 2, (width - 1) // 2)
+    cv2.rectangle(mask, (radius, 0), (width - radius - 1, height - 1), 255, -1)
+    cv2.rectangle(mask, (0, radius), (width - 1, height - radius - 1), 255, -1)
+    for cx in (radius, width - radius - 1):
+        for cy in (radius, height - radius - 1):
+            cv2.circle(mask, (cx, cy), radius, 255, -1, cv2.LINE_AA)
+    mask.setflags(write=False)
+    return mask
+
+
+def panel(frame, x, y, width, height, rgb=False, opacity=.86):
     x, y = max(0, x), max(0, y)
     region = frame[y:min(frame.shape[0], y + height),
                    x:min(frame.shape[1], x + width)]
     if region.size:
-        cv2.addWeighted(panel_background(region.shape, rgb), opacity,
-                        region, 1 - opacity, 0, region)
+        blended = cv2.addWeighted(panel_background(region.shape, rgb), opacity,
+                                 region, 1 - opacity, 0)
+        cv2.copyTo(blended, panel_mask(*region.shape[:2]), region)
 
 
 def fitted_text(text, width, scale):
@@ -119,19 +138,16 @@ def badge(frame, text, row=0, rgb=False):
 
 def field(frame, label, value, unit='', row=0, rgb=False):
     """All values start in one fixed column, including source dimensions."""
-    width = min(320, frame.shape[1] - 20)
-    x, y = frame.shape[1] - width - 10, FIELD_TOP + row * 38
-    panel(frame, x, y, width, 34, rgb)
+    width = min(320, frame.shape[1] - 2 * MARGIN)
+    x, y = frame.shape[1] - width - MARGIN, FIELD_TOP + row * FIELD_STEP
+    panel(frame, x, y, width, 36, rgb)
     color = TEXT[::-1] if rgb else TEXT
     value_column = min(150, max(1, width // 2))
-    label = fitted_text(label, max(1, value_column - 20), .6)
-    cv2.putText(frame, label, (x + 9, y + 23), FONT, .6, color, 1, cv2.LINE_AA)
-    text = fitted_text(value, max(1, width - value_column - (48 if unit else 12)), .6)
-    cv2.putText(frame, text, (x + value_column, y + 23),
+    label = fitted_text(label, max(1, value_column - 24), .55)
+    cv2.putText(frame, label, (x + 12, y + 24), FONT, .55, color, 1, cv2.LINE_AA)
+    text = fitted_text(f'{value} {unit}'.strip(), max(1, width - value_column - 12), .6)
+    cv2.putText(frame, text, (x + value_column, y + 24),
                 FONT, .6, color, 1, cv2.LINE_AA)
-    if unit:
-        cv2.putText(frame, unit, (x + width - 40, y + 23),
-                    FONT, .6, color, 1, cv2.LINE_AA)
 
 
 def metric(frame, label, value, unit='', row=0, rgb=False):
@@ -161,8 +177,8 @@ def statistics(frame, ms, fps=None, rgb=False):
 
 def model(frame, title, rgb=False):
     branding(frame, rgb)
-    x, y = 10, frame.shape[0] - 44
-    width = max(1, frame.shape[1] - 180)
+    x, y = MARGIN, frame.shape[0] - HEADER_TOP - 34
+    width = max(1, frame.shape[1] - 2 * MARGIN - 152)
     panel(frame, x, y, width, 34, rgb, .72)
     cv2.putText(frame, fitted_text(title, width - 20, .5), (x + 10, y + 23),
                 FONT, .5, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
@@ -170,7 +186,7 @@ def model(frame, title, rgb=False):
 
 def temperature(frame, value, rgb=False):
     width, height = 140, 34
-    x, y = frame.shape[1] - width - 10, frame.shape[0] - height - 10
+    x, y = frame.shape[1] - width - MARGIN, frame.shape[0] - height - HEADER_TOP
     panel(frame, x, y, width, height, rgb, .72)
     text = 'SoC --.- C' if value is None else f'SoC {value:5.1f} C'
     color = TEXT[::-1] if rgb else TEXT
@@ -187,15 +203,16 @@ def results(frame, rows, rgb=False):
     if not rows:
         return
     width = max(1, min(320, frame.shape[1] - 360))
-    panel(frame, 10, FIELD_TOP, width, len(rows) * 32 + 14, rgb)
+    panel(frame, MARGIN, FIELD_TOP, width, len(rows) * 32 + 14, rgb)
     accent = color_for('person', rgb)
-    cv2.rectangle(frame, (10, FIELD_TOP), (14, FIELD_TOP + len(rows) * 32 + 14), accent, -1)
+    cv2.rectangle(frame, (MARGIN + 8, FIELD_TOP + 10),
+                  (MARGIN + 11, FIELD_TOP + len(rows) * 32 + 4), accent, -1)
     for row, (label, score) in enumerate(rows):
         y = FIELD_TOP + 24 + row * 32
-        cv2.putText(frame, fitted_text(label, width - 100, .6), (26, y),
+        cv2.putText(frame, fitted_text(label, width - 100, .6), (MARGIN + 20, y),
                     FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
         if score is not None:
-            cv2.putText(frame, f'{score:4.0%}', (10 + width - 76, y),
+            cv2.putText(frame, f'{score:4.0%}', (MARGIN + width - 76, y),
                         FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 

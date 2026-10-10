@@ -32,10 +32,10 @@ def read_people(interpreter, output, threshold=.5):
 
 def legend(frame):
     import vision_overlay as ui
-    ui.panel(frame, 10, ui.FIELD_TOP, 225, 44)
+    ui.panel(frame, ui.MARGIN, ui.FIELD_TOP, 225, 44)
     y = ui.FIELD_TOP + 11
-    cv2.rectangle(frame, (22, y), (36, y + 14), ui.color_for('person'), -1)
-    cv2.putText(frame, 'People', (46, y + 14), ui.FONT, .6, ui.TEXT, 1, cv2.LINE_AA)
+    cv2.rectangle(frame, (ui.MARGIN + 12, y), (ui.MARGIN + 26, y + 14), ui.color_for('person'), -1)
+    cv2.putText(frame, 'People', (ui.MARGIN + 36, y + 14), ui.FONT, .6, ui.TEXT, 1, cv2.LINE_AA)
 
 
 def load_people_model(root, platform):

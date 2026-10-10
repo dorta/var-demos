@@ -77,9 +77,9 @@ class SharedPresentationTests(unittest.TestCase):
             with patch.object(ui, 'panel') as panel, \
                     patch.object(ui.cv2, 'putText') as draw:
                 ui.camera_resolution(frame, size)
-            self.assertEqual(panel.call_args.args[1:5], (470, 144, 320, 34))
+            self.assertEqual(panel.call_args.args[1:5], (456, 174, 320, 36))
             self.assertEqual(draw.call_args.args[1], f'{size[0]} x {size[1]}')
-            self.assertEqual(draw.call_args.args[2][0], 620)
+            self.assertEqual(draw.call_args.args[2][0], 606)
 
     def test_badge_origin_does_not_change_with_values(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -97,11 +97,10 @@ class SharedPresentationTests(unittest.TestCase):
                 ui.statistics(frame, ms, rate)
                 ui.camera_resolution(frame, (1920, 1080))
             values = {call.args[1]: call.args[2] for call in draw.call_args_list}
-            for value in (ms, rate):
-                text = f'{value:.1f}'
-                self.assertEqual(values[text][0], 620)
-            self.assertEqual(values['1920 x 1080'][0], 620)
-            self.assertEqual(values[f'{rate:.1f}'][1] - values[f'{ms:.1f}'][1], 38)
+            for text in (f'{ms:.1f} ms', f'{rate:.1f}', '1920 x 1080'):
+                self.assertEqual(values[text][0], 606)
+            self.assertNotIn('ms', values)
+            self.assertEqual(values[f'{rate:.1f}'][1] - values[f'{ms:.1f} ms'][1], 42)
 
     def test_video_resolution_panel_is_below_fps_and_has_fixed_geometry(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -112,7 +111,7 @@ class SharedPresentationTests(unittest.TestCase):
                 ui.video_resolution(frame, size)
             origins.append(panel.call_args.args[1:5])
             self.assertIn(f'{size[0]} x {size[1]}', draw.call_args.args[1])
-        self.assertEqual(origins, [(470, 144, 320, 34)] * 2)
+        self.assertEqual(origins, [(456, 174, 320, 36)] * 2)
 
     def test_branding_is_above_results_and_identifies_the_processor(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -121,7 +120,7 @@ class SharedPresentationTests(unittest.TestCase):
                 patch.object(ui.cv2, 'putText') as draw:
             ui.branding(frame)
         texts = {call.args[1]: call.args[2] for call in draw.call_args_list}
-        self.assertEqual(texts['i.MX 93'], (192, 38))
+        self.assertEqual(texts['i.MX 93'], (206, 60))
         self.assertLess(texts['VARISCITE'][1], ui.FIELD_TOP)
 
     def test_real_logo_alpha_blends_without_mutating_the_asset(self):
@@ -132,7 +131,23 @@ class SharedPresentationTests(unittest.TestCase):
         with patch.object(ui, 'logo_image', return_value=logo):
             ui.branding(frame)
         np.testing.assert_array_equal(logo, original)
-        self.assertTrue(frame[17:45, 22:162].any())
+        self.assertTrue(frame[39:67, 36:176].any())
+
+    def test_rounded_panel_preserves_corner_pixels(self):
+        frame = np.full((50, 100, 3), 180, np.uint8)
+        ui.panel(frame, 10, 10, 80, 30)
+        np.testing.assert_array_equal(frame[10, 10], [180] * 3)
+        self.assertFalse(np.all(frame[25, 50] == 180))
+        self.assertIs(ui.panel_mask(30, 80), ui.panel_mask(30, 80))
+
+    def test_branding_and_footer_leave_hd_letterbox_untouched(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        frame[15:465] = 180
+        with patch.object(ui, 'logo_image', return_value=None):
+            ui.model(frame, 'Model | NPU')
+        ui.temperature(frame, 60)
+        self.assertFalse(frame[:15].any())
+        self.assertFalse(frame[465:].any())
 
     def test_semantic_colors_independent_of_class_index(self):
         self.assertEqual(ui.color_for(' person '), ui.PALETTE[0])

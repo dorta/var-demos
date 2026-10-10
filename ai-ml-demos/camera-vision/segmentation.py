@@ -80,11 +80,11 @@ def paint_segmentation(frame, classes, area, opacity=.45):
 
 def legend(frame):
     import vision_overlay as ui
-    ui.panel(frame, 10, ui.FIELD_TOP, 225, 78)
+    ui.panel(frame, ui.MARGIN, ui.FIELD_TOP, 225, 78)
     for row, (title, name) in enumerate((('People', 'person'), ('Vehicles', 'car'))):
         y = ui.FIELD_TOP + 11 + row * 32
-        cv2.rectangle(frame, (22, y), (36, y + 14), ui.color_for(name), -1)
-        cv2.putText(frame, title, (46, y + 14), ui.FONT, .6, ui.TEXT, 1, cv2.LINE_AA)
+        cv2.rectangle(frame, (ui.MARGIN + 12, y), (ui.MARGIN + 26, y + 14), ui.color_for(name), -1)
+        cv2.putText(frame, title, (ui.MARGIN + 36, y + 14), ui.FONT, .6, ui.TEXT, 1, cv2.LINE_AA)
 
 
 def load_segmentation_model(root, platform):
