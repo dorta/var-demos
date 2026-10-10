@@ -17,7 +17,6 @@ MARGIN = 24
 HEADER_TOP = 32
 FIELD_TOP = 90
 FIELD_STEP = 42
-METRIC_MARGIN = 12
 
 
 @lru_cache(maxsize=1)
@@ -143,8 +142,8 @@ def badge(frame, text, row=0, rgb=False):
 
 def field(frame, label, value, unit='', row=0, rgb=False):
     """All values start in one fixed column, including source dimensions."""
-    width = min(280, frame.shape[1] - 2 * METRIC_MARGIN)
-    x, y = frame.shape[1] - width - METRIC_MARGIN, FIELD_TOP + row * FIELD_STEP
+    width = min(280, frame.shape[1] - 2 * MARGIN)
+    x, y = frame.shape[1] - width - MARGIN, FIELD_TOP + row * FIELD_STEP
     panel(frame, x, y, width, 36, rgb)
     color = TEXT[::-1] if rgb else TEXT
     value_column = min(130, max(1, width // 2))

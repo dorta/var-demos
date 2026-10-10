@@ -77,9 +77,9 @@ class SharedPresentationTests(unittest.TestCase):
             with patch.object(ui, 'panel') as panel, \
                     patch.object(ui.cv2, 'putText') as draw:
                 ui.camera_resolution(frame, size)
-            self.assertEqual(panel.call_args.args[1:5], (508, 174, 280, 36))
+            self.assertEqual(panel.call_args.args[1:5], (496, 174, 280, 36))
             self.assertEqual(draw.call_args.args[1], f'{size[0]} x {size[1]}')
-            self.assertEqual(draw.call_args.args[2][0], 638)
+            self.assertEqual(draw.call_args.args[2][0], 626)
 
     def test_badge_origin_does_not_change_with_values(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -98,7 +98,7 @@ class SharedPresentationTests(unittest.TestCase):
                 ui.camera_resolution(frame, (1920, 1080))
             values = {call.args[1]: call.args[2] for call in draw.call_args_list}
             for text in (f'{ms:.1f} ms', f'{rate:.1f}', '1920 x 1080'):
-                self.assertEqual(values[text][0], 638)
+                self.assertEqual(values[text][0], 626)
             self.assertNotIn('ms', values)
             self.assertEqual(values[f'{rate:.1f}'][1] - values[f'{ms:.1f} ms'][1], 42)
 
@@ -111,7 +111,17 @@ class SharedPresentationTests(unittest.TestCase):
                 ui.video_resolution(frame, size)
             origins.append(panel.call_args.args[1:5])
             self.assertIn(f'{size[0]} x {size[1]}', draw.call_args.args[1])
-        self.assertEqual(origins, [(508, 174, 280, 36)] * 2)
+        self.assertEqual(origins, [(496, 174, 280, 36)] * 2)
+
+    def test_header_metrics_and_temperature_share_right_edge(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        with patch.object(ui, 'panel') as panel, patch.object(ui, 'logo_image', return_value=None):
+            ui.branding(frame)
+            ui.statistics(frame, 9, 25)
+            ui.video_resolution(frame, (1280, 720))
+            ui.temperature(frame, 60)
+        for call in panel.call_args_list:
+            self.assertEqual(call.args[1] + call.args[3], 800 - ui.MARGIN)
 
     def test_branding_is_above_results_and_identifies_the_processor(self):
         frame = np.zeros((480, 800, 3), np.uint8)
