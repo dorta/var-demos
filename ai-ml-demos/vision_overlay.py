@@ -17,6 +17,7 @@ MARGIN = 24
 HEADER_TOP = 32
 FIELD_TOP = 90
 FIELD_STEP = 42
+METRIC_MARGIN = 12
 
 
 @lru_cache(maxsize=1)
@@ -71,7 +72,11 @@ def branding(frame, rgb=False):
             region[:] = np.rint(color * alpha + region * (1 - alpha)).astype(np.uint8)
         else:
             region[:] = color
-    cv2.putText(frame, som_name(), (MARGIN + 182, HEADER_TOP + 28), FONT, .65,
+    modules = {'i.MX 8M Plus': 'DART-MX8M-PLUS / VAR-SOM-MX8M-PLUS',
+               'i.MX 93': 'DART-MX93 / VAR-SOM-MX93',
+               'i.MX 95': 'DART-MX95'}.get(som_name(), 'Variscite SoM')
+    cv2.putText(frame, fitted_text(modules, frame.shape[1] - 2 * MARGIN - 194, .55),
+                (MARGIN + 182, HEADER_TOP + 28), FONT, .55,
                 TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
@@ -138,11 +143,11 @@ def badge(frame, text, row=0, rgb=False):
 
 def field(frame, label, value, unit='', row=0, rgb=False):
     """All values start in one fixed column, including source dimensions."""
-    width = min(320, frame.shape[1] - 2 * MARGIN)
-    x, y = frame.shape[1] - width - MARGIN, FIELD_TOP + row * FIELD_STEP
+    width = min(280, frame.shape[1] - 2 * METRIC_MARGIN)
+    x, y = frame.shape[1] - width - METRIC_MARGIN, FIELD_TOP + row * FIELD_STEP
     panel(frame, x, y, width, 36, rgb)
     color = TEXT[::-1] if rgb else TEXT
-    value_column = min(150, max(1, width // 2))
+    value_column = min(130, max(1, width // 2))
     label = fitted_text(label, max(1, value_column - 24), .55)
     cv2.putText(frame, label, (x + 12, y + 24), FONT, .55, color, 1, cv2.LINE_AA)
     text = fitted_text(f'{value} {unit}'.strip(), max(1, width - value_column - 12), .6)
@@ -180,7 +185,7 @@ def model(frame, title, rgb=False):
     x, y = MARGIN, frame.shape[0] - HEADER_TOP - 34
     width = max(1, frame.shape[1] - 2 * MARGIN - 152)
     panel(frame, x, y, width, 34, rgb, .72)
-    cv2.putText(frame, fitted_text(title, width - 20, .5), (x + 10, y + 23),
+    cv2.putText(frame, fitted_text(f'{som_name()} | {title}', width - 20, .5), (x + 10, y + 23),
                 FONT, .5, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
 
 
@@ -208,6 +213,14 @@ def results(frame, rows, rgb=False):
     cv2.rectangle(frame, (MARGIN + 8, FIELD_TOP + 10),
                   (MARGIN + 11, FIELD_TOP + len(rows) * 32 + 4), accent, -1)
     for row, (label, score) in enumerate(rows):
+        if score is None:
+            text = fitted_text(label, width - 40, .6)
+            (text_width, text_height), _ = cv2.getTextSize(text, FONT, .6, 1)
+            center_y = FIELD_TOP + (len(rows) * 32 + 14) // 2 if len(rows) == 1 else FIELD_TOP + 23 + row * 32
+            cv2.putText(frame, text,
+                        (MARGIN + (width - text_width) // 2, center_y + text_height // 2),
+                        FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)
+            continue
         y = FIELD_TOP + 24 + row * 32
         cv2.putText(frame, fitted_text(label, width - 100, .6), (MARGIN + 20, y),
                     FONT, .6, TEXT[::-1] if rgb else TEXT, 1, cv2.LINE_AA)

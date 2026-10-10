@@ -77,9 +77,9 @@ class SharedPresentationTests(unittest.TestCase):
             with patch.object(ui, 'panel') as panel, \
                     patch.object(ui.cv2, 'putText') as draw:
                 ui.camera_resolution(frame, size)
-            self.assertEqual(panel.call_args.args[1:5], (456, 174, 320, 36))
+            self.assertEqual(panel.call_args.args[1:5], (508, 174, 280, 36))
             self.assertEqual(draw.call_args.args[1], f'{size[0]} x {size[1]}')
-            self.assertEqual(draw.call_args.args[2][0], 606)
+            self.assertEqual(draw.call_args.args[2][0], 638)
 
     def test_badge_origin_does_not_change_with_values(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -98,7 +98,7 @@ class SharedPresentationTests(unittest.TestCase):
                 ui.camera_resolution(frame, (1920, 1080))
             values = {call.args[1]: call.args[2] for call in draw.call_args_list}
             for text in (f'{ms:.1f} ms', f'{rate:.1f}', '1920 x 1080'):
-                self.assertEqual(values[text][0], 606)
+                self.assertEqual(values[text][0], 638)
             self.assertNotIn('ms', values)
             self.assertEqual(values[f'{rate:.1f}'][1] - values[f'{ms:.1f} ms'][1], 42)
 
@@ -111,7 +111,7 @@ class SharedPresentationTests(unittest.TestCase):
                 ui.video_resolution(frame, size)
             origins.append(panel.call_args.args[1:5])
             self.assertIn(f'{size[0]} x {size[1]}', draw.call_args.args[1])
-        self.assertEqual(origins, [(456, 174, 320, 36)] * 2)
+        self.assertEqual(origins, [(508, 174, 280, 36)] * 2)
 
     def test_branding_is_above_results_and_identifies_the_processor(self):
         frame = np.zeros((480, 800, 3), np.uint8)
@@ -120,8 +120,27 @@ class SharedPresentationTests(unittest.TestCase):
                 patch.object(ui.cv2, 'putText') as draw:
             ui.branding(frame)
         texts = {call.args[1]: call.args[2] for call in draw.call_args_list}
-        self.assertEqual(texts['i.MX 93'], (206, 60))
+        self.assertEqual(texts['DART-MX93 / VAR-SOM-MX93'], (206, 60))
         self.assertLess(texts['VARISCITE'][1], ui.FIELD_TOP)
+
+    def test_soc_is_in_model_footer_for_each_platform(self):
+        for name in ('i.MX 8M Plus', 'i.MX 93', 'i.MX 95'):
+            frame = np.zeros((480, 800, 3), np.uint8)
+            with patch.object(ui, 'som_name', return_value=name), \
+                    patch.object(ui, 'branding'), \
+                    patch.object(ui.cv2, 'putText') as draw:
+                ui.model(frame, 'Model | NPU')
+            self.assertEqual(draw.call_args.args[1], f'{name} | Model | NPU')
+
+    def test_face_count_is_centered_in_panel(self):
+        frame = np.zeros((480, 800, 3), np.uint8)
+        text = 'Faces detected: 1'
+        (width, height), _ = ui.cv2.getTextSize(text, ui.FONT, .6, 1)
+        with patch.object(ui.cv2, 'putText') as draw:
+            ui.results(frame, [(text, None)])
+        self.assertEqual(draw.call_args.args[2],
+                         (ui.MARGIN + (320 - width) // 2,
+                          ui.FIELD_TOP + 23 + height // 2))
 
     def test_real_logo_alpha_blends_without_mutating_the_asset(self):
         logo = np.full((28, 140, 4), 255, np.uint8)
